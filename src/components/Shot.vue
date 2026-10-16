@@ -9,6 +9,7 @@
 // move the mouse off the frame (or change scene) and the clicker/arrow keys drive the deck again.
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useStep } from '../engine/useStep.js'
+import { useDeck } from '../engine/useDeck.js'
 
 const props = defineProps({
   src: String,
@@ -47,6 +48,9 @@ const onWinBlur = () => setTimeout(() => {
 })
 const onWinFocus = () => { interacting.value = false }
 watch(active, (a) => { if (!a) releaseFocus() })
+// deck reset (R) → live frames go back to their starting URL
+const { resets } = useDeck()
+watch(resets, () => { reloadKey.value++; releaseFocus() })
 onMounted(() => {
   if (!props.live) return
   addEventListener('blur', onWinBlur)

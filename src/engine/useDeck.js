@@ -78,7 +78,21 @@ function receive(data) {
   if (data.type === 'nav') { idx.value = data.idx; step.value = data.step }
   if (data.type === 'blackout') blackout.value = data.value
   if (data.type === 'hello') sendNav()
+  if (data.type === 'reset') applyReset()
   receiving = false
+}
+
+// ---- Reset: back to the title in every window, live frames reloaded, timers zeroed ----
+const resets = ref(0) // bumps on every reset; components watch it
+function applyReset() {
+  overview.value = false
+  blackout.value = false
+  go(0)
+  resets.value++
+}
+function reset() {
+  applyReset()
+  post({ type: 'reset' })
 }
 channel?.addEventListener('message', ({ data }) => receive(data))
 hot?.on('deck:msg', receive)
@@ -106,6 +120,7 @@ function onKey(e) {
   else if (k === 'o' || k === 'O') overview.value = !overview.value
   else if (k === 'b' || k === 'B' || k === '.') blackout.value = !blackout.value
   else if (k === 'x' || k === 'X') { overview.value = false; toFallback() }
+  else if (k === 'r' || k === 'R') reset()
   else if (k === 'f' || k === 'F') {
     document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
   }
@@ -116,7 +131,7 @@ function onKey(e) {
 window.addEventListener('keydown', onKey)
 
 export function useDeck() {
-  return { scenes, idx, step, current, overview, blackout, go, next, prev, maxStep, nextIndex }
+  return { scenes, idx, step, current, overview, blackout, go, next, prev, maxStep, nextIndex, reset, resets }
 }
 
 /**

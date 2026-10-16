@@ -5,7 +5,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck } from './engine/useDeck.js'
 
-const { scenes, idx, current, nextIndex } = useDeck()
+const { scenes, idx, current, nextIndex, reset } = useDeck()
 document.title = '📝 Notes — ' + document.title
 
 // notes: a string (multi-line template literals are fine) or an array of bullets
@@ -59,6 +59,7 @@ const clock = computed(() => now.value.toLocaleTimeString([], { hour: '2-digit',
       <span><b>{{ idx + 1 }}</b> / {{ scenes.length }} · {{ current.title ?? current.id }}</span>
       <span v-if="nextScene" class="next">next: {{ nextScene.title ?? nextScene.id }}</span>
       <span class="clock">{{ clock }}</span>
+      <button class="reset" title="Back to the start in every window (R)" @click="reset">↺ Reset</button>
     </header>
     <main ref="box">
       <div ref="text" class="text" :class="{ empty: !lines.join('') }">
@@ -79,7 +80,6 @@ const clock = computed(() => now.value.toLocaleTimeString([], { hour: '2-digit',
   flex-direction: column;
   background: #000;
   color: #fff;
-  cursor: none;
 }
 header {
   display: flex;
@@ -101,4 +101,14 @@ main {
 .text { font-family: var(--sans); font-weight: 700; line-height: 1.25; overflow-wrap: break-word; }
 .text p { margin: 0 0 0.35em; }
 .text.empty { color: #444; }
+.reset {
+  border: 1px solid #333;
+  border-radius: 999px;
+  padding: 0.15em 0.9em;
+  background: none;
+  color: #888;
+  font: inherit;
+  cursor: pointer;
+}
+.reset:hover { color: #000; background: #c3f240; border-color: #c3f240; }
 </style>

@@ -1,9 +1,9 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck } from './engine/useDeck.js'
 import ScenePreview from './engine/ScenePreview.vue'
 
-const { scenes, idx, step, current, maxStep, next, prev, blackout, nextIndex } = useDeck()
+const { scenes, idx, step, current, maxStep, next, prev, blackout, nextIndex, reset, resets } = useDeck()
 document.title = '🎤 Presenter — ' + document.title
 
 const nextView = computed(() => {
@@ -29,6 +29,7 @@ const fmt = (ms) => {
 const elapsed = computed(() => (started.value ? fmt(now.value - started.value) : '00:00'))
 const clock = computed(() => new Date(now.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
 const toggleBlackout = () => { blackout.value = !blackout.value }
+watch(resets, () => { started.value = null })
 const toggleTimer = () => { started.value = started.value ? null : Date.now() }
 const go = (fn) => { if (!started.value) started.value = Date.now(); fn() }
 addEventListener('keydown', (e) => {
@@ -59,6 +60,7 @@ addEventListener('keydown', (e) => {
         <div class="label">Notes</div>
         <div class="notes">{{ notesText }}</div>
         <div class="controls">
+          <button @click="reset">↺ Reset</button>
           <button @click="go(prev)">← Back</button>
           <button :class="{ on: blackout }" @click="toggleBlackout">Blackout</button>
           <button class="primary" @click="go(next)">Next →</button>

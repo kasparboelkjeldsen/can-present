@@ -6,7 +6,7 @@ import SceneFrame from './engine/SceneFrame.vue'
 
 const W = 1920
 const H = 1080
-const { scenes, idx, step, overview, blackout, go, maxStep } = useDeck()
+const { scenes, idx, step, overview, blackout, go, maxStep, reset } = useDeck()
 
 // ---------- world placement ----------
 const place = (sc) => ({ x: sc.at?.x ?? 0, y: sc.at?.y ?? 0, s: sc.at?.s ?? 1, r: sc.at?.r ?? 0 })
@@ -145,10 +145,11 @@ function pick(i) {
       </div>
 
       <div class="progress" :style="{ transform: `scaleX(${progress})` }" />
+      <button class="reset" title="Back to the start in every window, reload live sites (R)" @click="reset">↺ Reset</button>
       <div class="counter">{{ idx + 1 }} / {{ scenes.length }}</div>
       <Transition name="hint">
         <div v-if="showHint" class="hint">
-          <kbd>→</kbd> next <kbd>←</kbd> back <kbd>O</kbd> overview <kbd>P</kbd> presenter <kbd>F</kbd> fullscreen <kbd>B</kbd> blackout
+          <kbd>→</kbd> next <kbd>←</kbd> back <kbd>O</kbd> overview <kbd>P</kbd> presenter <kbd>F</kbd> fullscreen <kbd>B</kbd> blackout <kbd>R</kbd> reset
         </div>
       </Transition>
       <div class="blackout" :class="{ on: blackout }" />
@@ -257,6 +258,27 @@ function pick(i) {
   z-index: 10;
 }
 .viewport:not(.idle) .counter { color: rgba(127, 127, 160, 0.7); }
+
+/* only shows while the mouse is moving, so it never sits on the projector */
+.reset {
+  position: absolute;
+  top: 28px;
+  right: 32px;
+  z-index: 15;
+  padding: 12px 22px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--k-dark);
+  color: var(--k-green);
+  font: 700 22px var(--sans);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+.viewport:not(.idle) .reset { opacity: 1; pointer-events: auto; }
+.reset:hover { background: #000; }
 
 .hint {
   position: absolute;

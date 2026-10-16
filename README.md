@@ -18,6 +18,7 @@ npm run dev
 | F | fullscreen |
 | B or . | blackout |
 | X | jump to the demo fallback scene (skipped in normal navigation) |
+| R | reset: every window back to the title, blackout off, live sites reloaded, presenter timer zeroed. Also a ↺ Reset button (deck: top-right while the mouse moves; /notes: header; presenter: controls) |
 | Home / End | first / last |
 
 The URL hash (`#pipeline/2`) keeps your place across reloads.
