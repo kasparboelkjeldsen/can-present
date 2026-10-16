@@ -34,6 +34,8 @@ const LANES = { who: 664, wear: 710, jobs: 756 }
 const packets = [
   { label: 'who am I?', path: `M1350 ${LANES.who} H920`, begin: 0 },
   { label: 'what do I wear?', path: `M1350 ${LANES.wear} H920`, begin: 1.2 },
+  // the answers share the return lane, half a loop apart, so they never touch
+  { label: 'settings', path: `M920 ${LANES.jobs} H1350`, begin: 0.6 },
   { label: 'jobs', path: `M920 ${LANES.jobs} H1350`, begin: 2.4 },
 ]
 // the short wire segments between the boxes, one per lane (← requests, → the answer)
