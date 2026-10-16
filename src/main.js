@@ -9,5 +9,11 @@ import './styles/theme.css'
 import App from './App.vue'
 import Presenter from './Presenter.vue'
 
-const isPresenter = new URLSearchParams(location.search).has('presenter')
-createApp(isPresenter ? Presenter : App).mount('#app')
+import Notes from './Notes.vue'
+
+const page = location.pathname.replace(/\/+$/, '').endsWith('/notes')
+  ? Notes
+  : new URLSearchParams(location.search).has('presenter')
+    ? Presenter
+    : App
+createApp(page).mount('#app')

@@ -28,7 +28,7 @@ This isn't PowerPoint. It's a web app (Vue) with these properties:
 - **Nested scenes.** A scene can be placed *small inside another scene*. The camera then **dives into it**. Example: a diagram has a box labelled "the shovel", and the next scene lives inside that box, so the camera zooms into the box and the code appears. This is the signature move. Use it 2–4 times in the whole talk, where "zooming into detail" means something.
 - **Overview.** Pressing O zooms out to show the whole canvas. Since the audience can see the layout of the talk, **where scenes sit is part of the storytelling** (e.g. the "Umbraco world" on the left, the "WordPress world" on the right, the bridge in the middle).
 - **Builds.** Inside a scene, elements can appear one click at a time.
-- **Presenter window.** It shows speaker notes, the next scene and a timer, so every scene should have notes.
+- **Speaker notes.** A separate notes screen shows the current scene's notes in huge white-on-black text, so every scene should have notes. Notes are **per scene**, not per click. The fewer words, the bigger they render, so keep them to short cue bullets.
 - **Live websites.** A scene can embed a real, clickable website in a browser frame. He can click around in it on stage.
 
 ## Visual language
@@ -124,7 +124,7 @@ Rules for the scene list:
 
 - Each scene heading is `### <number>. <id> – <Title>`. The id is short kebab-case and becomes the URL (`#the-setup/2`).
 - **Builds** are numbered in click order. A scene with no builds advances with a single click.
-- **Notes** are for the presenter view: short bullets, jokes marked as `(joke)`, and timing cues like `(pause)`.
+- **Notes** go on the notes screen, one block per scene: 2–5 short cue bullets, not a script. Mark jokes as `(joke)` and add timing cues like `(pause)`.
 - For **code**, include the actual code and say which lines light up on which click.
 - For **diagrams**, list the nodes, the connections and the reveal order.
 - For **nested scenes**, say which scene and which element they live inside.

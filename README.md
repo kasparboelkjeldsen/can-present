@@ -21,6 +21,14 @@ npm run dev
 
 The URL hash (`#pipeline/2`) keeps your place across reloads.
 
+## Speaker notes
+
+Open **`/notes`** (e.g. http://localhost:5173/notes) on your laptop screen, in another tab or window, or on another device. It shows the current scene's `notes` from `deck.js`, white on black, scaled to fill the window, plus a small line with the scene number, the next scene and the clock. Notes are per scene, not per build step. A string (multi-line is fine) or an array of bullets both work.
+
+It follows the deck in both directions, so arrow keys or the clicker on the notes page move the deck too:
+- **Same browser:** BroadcastChannel. This also works in the built version.
+- **Other device (phone or tablet):** the dev server relays messages over its websocket. Run `npm run dev:lan` so other devices can reach it, then open `http://<laptop-ip>:5173/notes`. This only works with the dev server, and it exposes the dev server on the network, so use it on a network you trust.
+
 ## Adding a scene
 
 1. Create `src/scenes/Thing.vue` with a `.slide` root (`slide--dark | sand | pink | blue`). The canvas is a fixed 1920×1080.

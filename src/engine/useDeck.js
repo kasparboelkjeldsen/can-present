@@ -37,22 +37,42 @@ watch([idx, step], () => {
   if (location.hash !== h) history.replaceState(null, '', location.search + h)
 })
 
-// ---- Cross-window sync ----
-const channel = 'BroadcastChannel' in window ? new BroadcastChannel('shovel-deck') : null
+// ---- Sync between deck, /notes and ?presenter ----
+// Two transports, same messages:
+//  • BroadcastChannel – windows/tabs in the same browser (works in the built version too)
+//  • Vite dev-server websocket – other devices on the network (phone/tablet as notes screen),
+//    relayed by the `deck-sync` plugin in vite.config.js. Only exists under `npm run dev`.
+// Every message carries a sender id + sequence number so duplicates/echoes are dropped.
+const clientId = Math.random().toString(36).slice(2)
+const lastSeen = {}
+let seq = 0
 let receiving = false
-channel?.addEventListener('message', ({ data }) => {
+
+const channel = 'BroadcastChannel' in window ? new BroadcastChannel('shovel-deck') : null
+const hot = import.meta.hot
+
+function post(msg) {
+  msg = { ...msg, from: clientId, seq: ++seq }
+  channel?.postMessage(msg)
+  hot?.send('deck:msg', msg)
+}
+function receive(data) {
+  if (!data || data.from === clientId) return
+  if (data.seq <= (lastSeen[data.from] ?? 0)) return
+  lastSeen[data.from] = data.seq
   receiving = true
   if (data.type === 'nav') { idx.value = data.idx; step.value = data.step }
   if (data.type === 'blackout') blackout.value = data.value
-  if (data.type === 'hello') send()
+  if (data.type === 'hello') sendNav()
   receiving = false
-})
-function send() {
-  channel?.postMessage({ type: 'nav', idx: idx.value, step: step.value })
 }
-watch([idx, step], () => { if (!receiving) send() }, { flush: 'sync' })
-watch(blackout, (value) => { if (!receiving) channel?.postMessage({ type: 'blackout', value }) }, { flush: 'sync' })
-channel?.postMessage({ type: 'hello' })
+channel?.addEventListener('message', ({ data }) => receive(data))
+hot?.on('deck:msg', receive)
+
+const sendNav = () => post({ type: 'nav', idx: idx.value, step: step.value })
+watch([idx, step], () => { if (!receiving) sendNav() }, { flush: 'sync' })
+watch(blackout, (value) => { if (!receiving) post({ type: 'blackout', value }) }, { flush: 'sync' })
+post({ type: 'hello' })
 
 // ---- Keyboard (works with most presentation clickers too) ----
 function onKey(e) {
