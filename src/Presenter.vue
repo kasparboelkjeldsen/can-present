@@ -1,6 +1,7 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck } from './engine/useDeck.js'
+import { notes } from './engine/notes.js'
 import ScenePreview from './engine/ScenePreview.vue'
 
 const { scenes, idx, step, current, maxStep, next, prev, blackout, nextIndex, reset, resets } = useDeck()
@@ -11,10 +12,7 @@ const nextView = computed(() => {
   return { scene: scenes[nextIndex(idx.value)], step: 0 }
 })
 
-const notesText = computed(() => {
-  const n = current.value.notes
-  return Array.isArray(n) ? n.map((l) => '• ' + l).join('\n') : n || '—'
-})
+const notesText = computed(() => notes[current.value.id] || '—')
 
 // timer starts on first navigation (or click on it)
 const started = ref(null)
