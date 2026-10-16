@@ -193,8 +193,8 @@ export const scenes = [
     at: { x: 17800, y: 3000, s: 1.3 },
     notes: [
       'Right: "DSA doesn\'t know me yet". Nothing renders',
-      'Left: open kjeldsen.dev component, paste origin, Active on, SAVE (clears both caches)',
-      'Right: Reload → carousel in kjeldsen.dev colours (pause)',
+      'Left: Open ↗ (new tab, already logged in). kjeldsen.dev component, paste origin, Active on, SAVE (clears both caches)',
+      'Ctrl+Tab back. Right: Reload → carousel in kjeldsen.dev colours (pause)',
       'Revoke: Active off, save, reload right. Gone',
       'TOGGLE, NEVER DELETE. Explodes? Press X',
     ],

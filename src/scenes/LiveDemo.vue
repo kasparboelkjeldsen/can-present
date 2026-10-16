@@ -6,7 +6,14 @@ import Shot from '../components/Shot.vue'
   <div class="slide slide--sand live-demo">
     <div class="pane left">
       <div class="label"><span class="dot u" />Umbraco</div>
-      <Shot class="frame" live="https://umbraco.dsa.dk/umbraco/section/web-komponenter" :zoom="0.72" />
+      <!-- the backoffice login can't live in a cross-site iframe (SameSite cookies), so it opens in a tab -->
+      <Shot
+        class="frame"
+        live="https://umbraco.dsa.dk/umbraco/section/web-komponenter"
+        external
+        src="/shots/backoffice-web-komponenter.png"
+        position="left top"
+      />
     </div>
     <div class="pane right">
       <div class="label"><span class="dot w" />Someone else's website</div>

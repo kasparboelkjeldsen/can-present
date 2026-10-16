@@ -2,6 +2,8 @@
 // Screenshot OR live website in a frame.
 //   <Shot src="/shots/foo.png" />                       image (put files in /public/shots)
 //   <Shot live="https://www.kjeldsen.dev/" />           real, clickable iframe
+//   <Shot live="https://…" external src="/shots/x.png" />   site that can't run in an iframe (e.g. a logged-in
+//                                                       backoffice): a launch card that opens it in a new tab
 //   <Shot />                                            placeholder that says what goes there
 //
 // Live frames only load once their scene is on stage or one away, and show a placeholder in
@@ -9,7 +11,7 @@
 // move the mouse off the frame (or change scene) and the clicker/arrow keys drive the deck again.
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useStep } from '../engine/useStep.js'
-import { useDeck } from '../engine/useDeck.js'
+import { resets } from '../engine/signals.js'
 
 const props = defineProps({
   src: String,
@@ -22,11 +24,17 @@ const props = defineProps({
   fit: { type: String, default: 'cover' }, // object-fit for images
   position: { type: String, default: 'top' }, // object-position for images
   zoom: { type: Number, default: 1 }, // live only: <1 shows more of the page, >1 magnifies
+  external: Boolean, // live only: don't iframe it, open it in a (reused) new tab instead
+
 })
 
 const { active, near, preview } = useStep()
 const px = (v) => (v == null ? undefined : typeof v === 'number' ? v + 'px' : v)
 const shownUrl = computed(() => props.url ?? (props.live ? props.live.replace(/^https?:\/\//, '').replace(/\/$/, '') : ''))
+
+// ---- open in a new tab (same tab every time, so repeated clicks don't pile up tabs) ----
+const tabName = computed(() => 'deck-' + (props.live ?? '').replace(/[^a-z0-9]+/gi, '-'))
+function openTab() { window.open(props.live, tabName.value) }
 
 // ---- live iframe ----
 const root = ref(null)
@@ -49,7 +57,6 @@ const onWinBlur = () => setTimeout(() => {
 const onWinFocus = () => { interacting.value = false }
 watch(active, (a) => { if (!a) releaseFocus() })
 // deck reset (R) → live frames go back to their starting URL
-const { resets } = useDeck()
 watch(resets, () => { reloadKey.value++; releaseFocus() })
 onMounted(() => {
   if (!props.live) return
@@ -77,13 +84,21 @@ onBeforeUnmount(() => {
         <span v-if="live" class="live-dot" />{{ shownUrl }}
       </span>
       <span v-if="live && interacting" class="mode">driving the site · move mouse off to return</span>
-      <button v-if="live" class="home" title="Reload (back to the starting URL)" @click="reloadKey++; releaseFocus()">
+      <button v-if="live" class="home ghost" title="Open in a new tab" @click="openTab">Open ↗</button>
+      <button v-if="live && !external" class="home" title="Reload (back to the starting URL)" @click="reloadKey++; releaseFocus()">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
         Reload
       </button>
     </div>
     <div class="body">
-      <template v-if="live && !preview">
+      <div v-if="live && external" class="launch">
+        <img v-if="src" :src="src" alt="" :style="{ objectFit: fit, objectPosition: position }" />
+        <button class="launch-btn" @click="openTab">
+          <span>Open {{ shownUrl.split('/')[0] }} ↗</span>
+          <small>opens in a new tab · Ctrl+Tab back here</small>
+        </button>
+      </div>
+      <template v-else-if="live && !preview">
         <iframe
           v-if="loaded"
           ref="iframe"
@@ -172,6 +187,29 @@ onBeforeUnmount(() => {
   flex: none;
 }
 .home:hover { background: #000; }
+.home.ghost { background: transparent; color: var(--k-dark); box-shadow: inset 0 0 0 2px var(--k-dark); }
+.home.ghost:hover { background: var(--k-dark); color: var(--k-sand); }
+.launch { position: absolute; inset: 0; display: grid; place-items: center; background: var(--k-dark); }
+.launch img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.35; filter: grayscale(0.4) blur(1px); }
+.launch-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 34px 52px;
+  border: 0;
+  border-radius: 24px;
+  background: var(--k-green);
+  color: var(--k-dark);
+  font: 700 40px var(--sans);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  transition: transform 0.2s var(--ease-spring);
+}
+.launch-btn:hover { transform: scale(1.04); }
+.launch-btn:active { transform: scale(0.98); }
+.launch-btn small { font: 400 22px var(--sans); opacity: 0.75; }
 .home:active { transform: scale(0.96); }
 .body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .body img { display: block; width: 100%; height: 100%; }

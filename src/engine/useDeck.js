@@ -1,5 +1,6 @@
 import { ref, computed, watch } from 'vue'
 import { scenes } from '../deck.js'
+import { resets } from './signals.js'
 
 // One shared deck state per window. Audience + presenter windows sync over BroadcastChannel.
 const idx = ref(0)
@@ -83,7 +84,6 @@ function receive(data) {
 }
 
 // ---- Reset: back to the title in every window, live frames reloaded, timers zeroed ----
-const resets = ref(0) // bumps on every reset; components watch it
 function applyReset() {
   overview.value = false
   blackout.value = false
