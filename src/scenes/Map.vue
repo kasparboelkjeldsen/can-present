@@ -141,10 +141,10 @@ const wires = (from, to) => [
 .wire.on {
   opacity: 1;
   stroke-dashoffset: 0;
-  transition: opacity 0.4s ease 0.7s, stroke-dashoffset 0.8s var(--ease-out) 0.7s;
+  transition: opacity 0.3s ease 0.4s, stroke-dashoffset 0.6s var(--ease-out) 0.4s;
 }
 .wlabel { font: 700 22px var(--sans); fill: var(--k-dark); opacity: 0; transition: opacity 0.3s; }
-.wlabel.on { opacity: 1; transition: opacity 0.5s 1.2s; }
+.wlabel.on { opacity: 1; transition: opacity 0.4s 0.8s; }
 
 .node {
   position: absolute;

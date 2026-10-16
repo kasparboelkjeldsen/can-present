@@ -71,23 +71,23 @@ export const scenes = [
   },
   {
     id: 'bootstrap', title: 'The component wakes up', component: Bootstrap, steps: 3,
-    at: nest(MAP, SLOTS.bootstrap), parent: 'map', revealDelay: REVEAL_MS[0] + 300,
+    at: nest(MAP, SLOTS.bootstrap), parent: 'map', revealDelay: REVEAL_MS[0] + 150,
   },
   {
     id: 'who-am-i', title: 'Who am I?', component: WhoAmI, steps: 3,
-    at: nest(MAP, SLOTS.whoAmI), parent: 'map', revealDelay: REVEAL_MS[1] + 300,
+    at: nest(MAP, SLOTS.whoAmI), parent: 'map', revealDelay: REVEAL_MS[1] + 150,
   },
   {
     id: 'the-policy', title: 'The policy, at runtime', component: ThePolicy, steps: 5,
-    at: nest(MAP, SLOTS.policy), parent: 'map', revealDelay: REVEAL_MS[1] + 300,
+    at: nest(MAP, SLOTS.policy), parent: 'map', revealDelay: REVEAL_MS[1] + 150,
   },
   {
     id: 'what-to-wear', title: 'What do I wear?', component: WhatToWear, steps: 4,
-    at: nest(MAP, SLOTS.wear), parent: 'map', revealDelay: REVEAL_MS[2] + 300,
+    at: nest(MAP, SLOTS.wear), parent: 'map', revealDelay: REVEAL_MS[2] + 150,
   },
   {
     id: 'cache', title: 'Cached, but not stale', component: Cache, steps: 3,
-    at: nest(MAP, SLOTS.cache), parent: 'map', revealDelay: REVEAL_MS[2] + 300,
+    at: nest(MAP, SLOTS.cache), parent: 'map', revealDelay: REVEAL_MS[2] + 150,
   },
   {
     id: 'the-section', title: 'The remote control', component: TheSection, steps: 7,
