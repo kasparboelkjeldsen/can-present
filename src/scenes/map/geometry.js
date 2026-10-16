@@ -10,6 +10,10 @@ export const NODES = {
   partner: { x: 1720, y: 470, w: 170, h: 260 },
 }
 
+// The map builds itself (no clicks): ms after the scene comes on stage that each stage appears.
+// 1: partner + dsa.jobs · 2: ewcp · 3: Umbraco + backoffice · 4: job portal + traffic
+export const REVEAL_MS = [1400, 2000, 2600, 3200]
+
 const r = (w) => ({ w, h: (w * 9) / 16 })
 
 // Slots where nested scenes live: centre (cx, cy) and width w (16:9).

@@ -4,7 +4,7 @@
 //   id       → URL hash (#map/2)
 //   steps    → number of build steps inside the scene (0 = none)
 //   at       → place on the canvas: x/y = centre in world px, r = rotation (deg), s = scale
-//   parent / revealAt → scene sits inside a slot of `parent`, visible from that build step
+//   parent / revealDelay → scene sits inside a slot of `parent`; fades in that many ms after the parent comes on stage
 //   skip     → stepped over by next/prev (reachable via #id or the X key)
 //   ghost    → only visible while on stage (the takeaway that hovers over the whole canvas)
 //   (speaker notes live in notes.json, keyed by id — edit them on /notes)
@@ -33,7 +33,7 @@ import Numbers from './scenes/Numbers.vue'
 import Tomorrow from './scenes/Tomorrow.vue'
 import ControlPlane from './scenes/ControlPlane.vue'
 import Thanks from './scenes/Thanks.vue'
-import { SLOTS, nest } from './scenes/map/geometry.js'
+import { SLOTS, nest, REVEAL_MS } from './scenes/map/geometry.js'
 
 const MAP = { x: 0, y: 2700, s: 1.5 }
 
@@ -66,28 +66,28 @@ export const scenes = [
 
   // ---------------- Act 2: back across the bridge ----------------
   {
-    id: 'map', title: 'How it works', component: MapScene, steps: 4,
+    id: 'map', title: 'How it works', component: MapScene,
     at: MAP,
   },
   {
     id: 'bootstrap', title: 'The component wakes up', component: Bootstrap, steps: 3,
-    at: nest(MAP, SLOTS.bootstrap), parent: 'map', revealAt: 1,
+    at: nest(MAP, SLOTS.bootstrap), parent: 'map', revealDelay: REVEAL_MS[0] + 300,
   },
   {
     id: 'who-am-i', title: 'Who am I?', component: WhoAmI, steps: 3,
-    at: nest(MAP, SLOTS.whoAmI), parent: 'map', revealAt: 2,
+    at: nest(MAP, SLOTS.whoAmI), parent: 'map', revealDelay: REVEAL_MS[1] + 300,
   },
   {
     id: 'the-policy', title: 'The policy, at runtime', component: ThePolicy, steps: 5,
-    at: nest(MAP, SLOTS.policy), parent: 'map', revealAt: 2,
+    at: nest(MAP, SLOTS.policy), parent: 'map', revealDelay: REVEAL_MS[1] + 300,
   },
   {
     id: 'what-to-wear', title: 'What do I wear?', component: WhatToWear, steps: 4,
-    at: nest(MAP, SLOTS.wear), parent: 'map', revealAt: 3,
+    at: nest(MAP, SLOTS.wear), parent: 'map', revealDelay: REVEAL_MS[2] + 300,
   },
   {
     id: 'cache', title: 'Cached, but not stale', component: Cache, steps: 3,
-    at: nest(MAP, SLOTS.cache), parent: 'map', revealAt: 3,
+    at: nest(MAP, SLOTS.cache), parent: 'map', revealDelay: REVEAL_MS[2] + 300,
   },
   {
     id: 'the-section', title: 'The remote control', component: TheSection, steps: 7,

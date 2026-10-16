@@ -73,6 +73,9 @@ const worldStyle = computed(() => ({
   transform: `translate(${W / 2}px, ${H / 2}px) scale(${W / cam.w}) rotate(${-cam.r}deg) translate(${-cam.x}px, ${-cam.y}px)`,
 }))
 
+// nested scenes fade in on their parent's schedule (revealDelay in deck.js), but vanish at once
+const revealStyle = (sc, i) => (sc.revealDelay && nestedVisible(i) ? { transitionDelay: sc.revealDelay + 'ms' } : null)
+
 function sceneStyle(sc) {
   const p = place(sc)
   return { transform: `translate(${p.x - W / 2}px, ${p.y - H / 2}px) rotate(${p.r}deg) scale(${p.s})` }
@@ -131,7 +134,7 @@ function pick(i) {
             'is-ghost': sc.ghost,
             'is-skip': sc.skip,
           }"
-          :style="sceneStyle(sc)"
+          :style="[sceneStyle(sc), revealStyle(sc, i)]"
           @click="pick(i)"
         >
           <SceneFrame

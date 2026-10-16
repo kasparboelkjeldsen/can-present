@@ -1,25 +1,46 @@
 <script setup>
 // The map. Three nodes have empty "slots" — the dive scenes (8–12) are placed in them on the canvas.
-import { computed } from 'vue'
+import { ref, computed, watch, provide, onBeforeUnmount } from 'vue'
 import { useStep } from '../engine/useStep.js'
 import Step from '../engine/Step.vue'
 import UmbracoMark from '../components/UmbracoMark.vue'
 import WordPressMark from '../components/WordPressMark.vue'
-import { NODES, SLOTS } from './map/geometry.js'
+import { NODES, SLOTS, REVEAL_MS } from './map/geometry.js'
 
-const { step } = useStep()
-const at = (n) => computed(() => step.value >= n)
+// No build steps: the map assembles itself when it comes on stage. Coming back out of a dive
+// (or in the overview) it's simply all there.
+const { step, active } = useStep()
+const stage = ref(0)
+let timers = []
+watch([active, step], ([on, s], [wasOn, oldS] = []) => {
+  timers.forEach(clearTimeout)
+  timers = []
+  if (!on) { stage.value = s === Infinity ? 4 : 0; return }
+  if (wasOn) return
+  if (oldS === Infinity) { stage.value = 4; return }
+  stage.value = 0
+  REVEAL_MS.forEach((ms, i) => timers.push(setTimeout(() => (stage.value = i + 1), ms)))
+}, { immediate: true })
+onBeforeUnmount(() => timers.forEach(clearTimeout))
+provide('scene-step', stage) // the <Step>s below follow the self-running stage, not clicks
+const at = (n) => computed(() => stage.value >= n)
 const s1 = at(1), s2 = at(2), s3 = at(3), s4 = at(4)
 
 const box = (n) => ({ left: n.x + 'px', top: n.y + 'px', width: n.w + 'px', height: n.h + 'px' })
 const slot = (s) => ({ left: s.cx - s.w / 2 + 'px', top: s.cy - s.h / 2 + 'px', width: s.w + 'px', height: s.h + 'px' })
 
-const LEFT = 'M1350 676 H920'
-const RIGHT = 'M920 734 H1350'
+// one lane each, so the pills never overlap as they float past each other
+const LANES = { who: 664, wear: 710, jobs: 756 }
 const packets = [
-  { label: 'who am I?', path: LEFT, begin: 0 },
-  { label: 'what do I wear?', path: LEFT, begin: 1.2 },
-  { label: 'jobs', path: RIGHT, begin: 2.4 },
+  { label: 'who am I?', path: `M1350 ${LANES.who} H920`, begin: 0 },
+  { label: 'what do I wear?', path: `M1350 ${LANES.wear} H920`, begin: 1.2 },
+  { label: 'jobs', path: `M920 ${LANES.jobs} H1350`, begin: 2.4 },
+]
+// the short wire segments between the boxes, one per lane (← requests, → the answer)
+const wires = (from, to) => [
+  `M${from} ${LANES.who} H${to + 6}`,
+  `M${from} ${LANES.wear} H${to + 6}`,
+  `M${to} ${LANES.jobs} H${from - 6}`,
 ]
 </script>
 
@@ -37,11 +58,9 @@ const packets = [
       <path class="wire" :class="{ on: s1 }" d="M1720 600 H1596" marker-end="url(#arr)" />
       <text class="wlabel" :class="{ on: s1 }" x="1655" y="548" text-anchor="middle"><tspan x="1655">one script</tspan><tspan x="1655" dy="26">tag</tspan></text>
       <!-- dsa.jobs ↔ ewcp -->
-      <path class="wire" :class="{ on: s2 }" d="M1350 676 H1236" marker-end="url(#arr)" />
-      <path class="wire" :class="{ on: s2 }" d="M1230 734 H1344" marker-end="url(#arr)" />
+      <path v-for="d in wires(1350, 1230)" :key="d" class="wire" :class="{ on: s2 }" :d="d" marker-end="url(#arr)" />
       <!-- ewcp ↔ umbraco -->
-      <path class="wire" :class="{ on: s3 }" d="M1050 676 H926" marker-end="url(#arr)" />
-      <path class="wire" :class="{ on: s3 }" d="M920 734 H1044" marker-end="url(#arr)" />
+      <path v-for="d in wires(1050, 920)" :key="d" class="wire" :class="{ on: s3 }" :d="d" marker-end="url(#arr)" />
       <!-- backoffice → umbraco -->
       <path class="wire" :class="{ on: s3 }" d="M660 325 V414" marker-end="url(#arr)" />
       <text class="wlabel" :class="{ on: s3 }" x="680" y="380">config</text>
@@ -113,11 +132,17 @@ const packets = [
   stroke-linecap: round;
   stroke-dasharray: 200;
   stroke-dashoffset: 200;
-  transition: stroke-dashoffset 0.9s var(--ease-out) 0.3s;
+  /* hidden entirely (arrowhead markers ignore the dash trick) until the boxes have popped in */
+  opacity: 0;
+  transition: opacity 0.3s, stroke-dashoffset 0s;
 }
-.wire.on { stroke-dashoffset: 0; }
-.wlabel { font: 700 22px var(--sans); fill: var(--k-dark); opacity: 0; transition: opacity 0.5s 0.6s; }
-.wlabel.on { opacity: 1; }
+.wire.on {
+  opacity: 1;
+  stroke-dashoffset: 0;
+  transition: opacity 0.4s ease 0.7s, stroke-dashoffset 0.8s var(--ease-out) 0.7s;
+}
+.wlabel { font: 700 22px var(--sans); fill: var(--k-dark); opacity: 0; transition: opacity 0.3s; }
+.wlabel.on { opacity: 1; transition: opacity 0.5s 1.2s; }
 
 .node {
   position: absolute;
@@ -146,7 +171,7 @@ const packets = [
 .ewcp { background: var(--k-dark); color: var(--k-sand); padding-top: 26px; }
 .ewcp .name { font-size: 25px; }
 .ewcp .sub { font-size: 18px; color: var(--k-green); opacity: 1; }
-.slit { position: absolute; left: 22px; right: 22px; top: 356px; height: 80px; border-radius: 40px; background: #1d1d1f; box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.6); }
+.slit { position: absolute; left: 22px; right: 22px; top: 344px; height: 132px; border-radius: 30px; background: #1d1d1f; box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.6); }
 
 .dsajobs { background: var(--k-dark); color: var(--k-sand); }
 .dsajobs .head { display: flex; gap: 12px; align-items: center; }
@@ -156,6 +181,6 @@ const packets = [
 .partner { background: var(--wp); color: #fff; justify-content: center; gap: 18px; }
 .partner .name { font-size: 26px; }
 
-.pill { fill: var(--k-dark); }
-.pill-text { font: 700 24px var(--mono); fill: var(--k-green); }
+.pill { fill: var(--k-grey); stroke: var(--k-sand); stroke-width: 2; }
+.pill-text { font: 700 24px var(--mono); fill: var(--k-dark); }
 </style>
