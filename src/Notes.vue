@@ -5,7 +5,7 @@
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck } from './engine/useDeck.js'
 
-const { scenes, idx, current } = useDeck()
+const { scenes, idx, current, nextIndex } = useDeck()
 document.title = '📝 Notes — ' + document.title
 
 // notes: a string (multi-line template literals are fine) or an array of bullets
@@ -19,7 +19,7 @@ const lines = computed(() => {
     .trim()
     .split('\n')
 })
-const nextScene = computed(() => scenes[idx.value + 1])
+const nextScene = computed(() => scenes[nextIndex(idx.value)])
 
 // ---- scale text to fill the window ----
 const box = ref(null)
@@ -85,7 +85,7 @@ header {
   display: flex;
   gap: 2em;
   padding: 1.2vh 2.5vw;
-  font: 400 max(14px, 2.2vh) var(--font);
+  font: 400 max(14px, 2.2vh) var(--sans);
   color: #777;
   white-space: nowrap;
 }
@@ -98,7 +98,7 @@ main {
   margin: 1vh 3vw 3vh;
   overflow: hidden;
 }
-.text { font-family: var(--font); font-weight: 700; line-height: 1.25; overflow-wrap: break-word; }
+.text { font-family: var(--sans); font-weight: 700; line-height: 1.25; overflow-wrap: break-word; }
 .text p { margin: 0 0 0.35em; }
 .text.empty { color: #444; }
 </style>

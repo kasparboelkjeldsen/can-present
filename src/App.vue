@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useDeck, stepFor } from './engine/useDeck.js'
+import { useDeck, stepFor, nestedVisible } from './engine/useDeck.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './engine/camera.js'
 import SceneFrame from './engine/SceneFrame.vue'
 
@@ -19,6 +19,7 @@ function viewFor(i) {
 function overviewView() {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
   for (const sc of scenes) {
+    if (sc.ghost) continue
     const p = place(sc)
     const a = (p.r * Math.PI) / 180
     const hw = (W / 2) * p.s, hh = (H / 2) * p.s
@@ -56,6 +57,17 @@ function flyTo(t) {
   raf = requestAnimationFrame(tick)
 }
 watch(target, flyTo)
+
+// Dot grid drawn on the (untransformed) stage and moved with the camera: cheap at any zoom.
+const gridStyle = computed(() => {
+  const z = W / cam.w
+  let g = 80 * z
+  while (g < 28) g *= 4
+  return {
+    backgroundSize: `${g}px ${g}px`,
+    backgroundPosition: `${W / 2 - cam.x * z}px ${H / 2 - cam.y * z}px`,
+  }
+})
 
 const worldStyle = computed(() => ({
   transform: `translate(${W / 2}px, ${H / 2}px) scale(${W / cam.w}) rotate(${-cam.r}deg) translate(${-cam.x}px, ${-cam.y}px)`,
@@ -105,8 +117,8 @@ function pick(i) {
 <template>
   <div class="viewport" :class="{ idle, overview }">
     <div class="stage" :style="{ transform: `translate(-50%, -50%) scale(${fit})` }">
+      <div class="grid" :style="gridStyle" />
       <div class="world" :style="worldStyle">
-        <div class="world-grid" />
         <div
           v-for="(sc, i) in scenes"
           :key="sc.id"
@@ -114,7 +126,10 @@ function pick(i) {
           :class="{
             'is-active': i === idx && !overview,
             'is-past': i < idx,
-            'is-nested': (sc.at?.s ?? 1) < 1,
+            'is-nested': !!sc.parent,
+            'is-hidden': !nestedVisible(i),
+            'is-ghost': sc.ghost,
+            'is-skip': sc.skip,
           }"
           :style="sceneStyle(sc)"
           @click="pick(i)"
@@ -125,7 +140,7 @@ function pick(i) {
             :active="i === idx && !overview"
             :near="Math.abs(i - idx) <= 1"
           />
-          <div class="scene-label"><b>{{ i + 1 }}</b> {{ sc.title ?? sc.id }}</div>
+          <div class="scene-label"><b>{{ i + 1 }}</b> {{ sc.title ?? sc.id }}<i v-if="sc.skip"> (fallback)</i></div>
         </div>
       </div>
 
@@ -147,9 +162,8 @@ function pick(i) {
   inset: 0;
   overflow: hidden;
   background:
-    radial-gradient(1200px 800px at 20% 10%, rgba(53, 68, 177, 0.35), transparent 70%),
-    radial-gradient(1000px 700px at 85% 90%, rgba(245, 193, 188, 0.12), transparent 70%),
-    var(--u-navy-deep);
+    radial-gradient(1200px 800px at 20% 10%, rgba(255, 255, 255, 0.06), transparent 70%),
+    var(--k-dark-deep);
 }
 .viewport.idle { cursor: none; }
 
@@ -169,14 +183,10 @@ function pick(i) {
   top: 0;
   transform-origin: 0 0;
 }
-.world-grid {
+.grid {
   position: absolute;
-  left: -30000px;
-  top: -30000px;
-  width: 60000px;
-  height: 60000px;
-  background-image: radial-gradient(circle, rgba(245, 193, 188, 0.22) 2.5px, transparent 3px);
-  background-size: 80px 80px;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(238, 237, 233, 0.16) 2.5px, transparent 3px);
   pointer-events: none;
 }
 
@@ -193,16 +203,22 @@ function pick(i) {
 }
 .scene > :deep(.scene-frame) { border-radius: inherit; }
 .scene.is-active { border-radius: 0; box-shadow: none; }
-.scene.is-nested:not(.is-active) { box-shadow: 0 20px 60px rgba(5, 10, 30, 0.35); }
+.scene.is-nested:not(.is-active) { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); border-radius: 160px; }
+.scene { transition: border-radius 0.7s var(--ease-out), box-shadow 0.7s, opacity 0.6s; }
+.scene.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.6s, visibility 0s 0.6s; }
+/* the ghost scene (takeaway) covers the whole canvas and only exists while it's on stage */
+.scene.is-ghost { box-shadow: none; border-radius: 0; transition: opacity 1.2s; z-index: 10; }
+.scene.is-ghost:not(.is-active) { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1.2s, visibility 0s 1.2s; }
+.overview .scene.is-ghost .scene-label { display: none; }
 
 .overview .scene { cursor: pointer; }
-.overview .scene:hover { outline: 24px solid var(--u-pink); }
+.overview .scene:hover { outline: 24px solid var(--k-green); }
 .scene-label {
   position: absolute;
   left: 0;
   bottom: calc(100% + 30px);
-  font: 700 72px var(--font);
-  color: var(--u-pink);
+  font: 700 72px var(--sans);
+  color: var(--k-green);
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.4s;
@@ -215,8 +231,8 @@ function pick(i) {
   height: 110px;
   margin-right: 20px;
   border-radius: 50%;
-  background: var(--u-pink);
-  color: var(--u-navy);
+  background: var(--k-green);
+  color: var(--k-dark);
 }
 .overview .scene:not(.is-nested) .scene-label { opacity: 1; }
 
@@ -226,7 +242,7 @@ function pick(i) {
   bottom: 0;
   height: 8px;
   width: 100%;
-  background: linear-gradient(90deg, var(--u-pink), var(--u-pink-hot));
+  background: linear-gradient(90deg, var(--k-green), var(--k-red));
   transform-origin: 0 50%;
   transition: transform 0.6s var(--ease-out);
   z-index: 10;
@@ -261,8 +277,8 @@ function pick(i) {
   padding: 4px 10px;
   margin: 0 6px 0 18px;
   border-radius: 8px;
-  background: var(--u-pink);
-  color: var(--u-navy);
+  background: var(--k-green);
+  color: var(--k-dark);
 }
 .hint kbd:first-child { margin-left: 0; }
 .hint-leave-active { transition: opacity 0.8s, transform 0.8s; }

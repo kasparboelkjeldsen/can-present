@@ -1,29 +1,33 @@
 <script setup>
-import Step from '../engine/Step.vue'
+// Fallback for the live demo. Skipped in normal navigation (skip: true in deck.js); X or #fallback gets here.
+// TODO: drop shots/fallback-backoffice-origin-added.png and shots/fallback-job-test-after.png in, then pass them as src.
 import Shot from '../components/Shot.vue'
 </script>
 
 <template>
-  <div class="slide slide--pink screens">
-    <div class="kicker">Same content, two homes</div>
+  <div class="slide slide--grey screens">
+    <div class="kicker">What you would have seen</div>
     <div class="row">
-      <Step :at="0" anim="left" class="tilt-l">
-        <Shot url="cms.example.com/umbraco" hint="Umbraco backoffice screenshot" :width="800" style="height: 520px" />
-        <div class="label">Edited here…</div>
-      </Step>
-      <Step :at="1" anim="right" class="tilt-r">
-        <Shot url="client-site.com/about" hint="WordPress page screenshot" :width="800" style="height: 520px" />
-        <div class="label">…shows up here.</div>
-      </Step>
+      <figure class="tilt-l">
+        <Shot frame="window" hint="shots/fallback-backoffice-origin-added.png" :width="800" style="height: 520px" />
+        <figcaption>Edited here…</figcaption>
+      </figure>
+      <figure class="tilt-r">
+        <Shot url="www.kjeldsen.dev/job-test" hint="shots/fallback-job-test-after.png" :width="800" style="height: 520px" />
+        <figcaption>…shows up here.</figcaption>
+      </figure>
     </div>
   </div>
 </template>
 
 <style scoped>
-.row { flex: 1; display: flex; align-items: center; justify-content: center; gap: 80px; margin-top: 20px; }
+.row { flex: 1; display: flex; align-items: center; justify-content: center; gap: 80px; position: relative; z-index: 2; }
+figure { margin: 0; }
 .tilt-l { transform: rotate(-3deg); }
 .tilt-r { transform: rotate(3deg) translateY(40px); }
-.tilt-l.step:not(.is-shown) { transform: rotate(-3deg) translateX(-100px); }
-.tilt-r.step:not(.is-shown) { transform: rotate(3deg) translate(100px, 40px); }
-.label { margin-top: 36px; font-size: 48px; font-weight: 900; text-align: center; color: var(--u-navy); }
+.is-active .tilt-l { animation: in-l 1s var(--ease-out) 0.15s both; }
+.is-active .tilt-r { animation: in-r 1s var(--ease-out) 0.3s both; }
+@keyframes in-l { from { opacity: 0; transform: rotate(-3deg) translateX(-200px); } }
+@keyframes in-r { from { opacity: 0; transform: rotate(3deg) translate(200px, 40px); } }
+figcaption { margin-top: 36px; font: 400 52px var(--serif); text-align: center; }
 </style>

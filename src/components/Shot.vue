@@ -73,8 +73,9 @@ onBeforeUnmount(() => {
         <span v-if="live" class="live-dot" />{{ shownUrl }}
       </span>
       <span v-if="live && interacting" class="mode">driving the site · move mouse off to return</span>
-      <button v-if="live" class="home" title="Back to start page" @click="reloadKey++; releaseFocus()">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
+      <button v-if="live" class="home" title="Reload (back to the starting URL)" @click="reloadKey++; releaseFocus()">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8" /><path d="M3 3v5h5" /></svg>
+        Reload
       </button>
     </div>
     <div class="body">
@@ -100,6 +101,7 @@ onBeforeUnmount(() => {
         </svg>
         <span>{{ live ? `live: ${shownUrl}` : hint }}</span>
       </div>
+      <slot />
     </div>
   </figure>
 </template>
@@ -116,7 +118,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 30px 80px rgba(10, 16, 50, 0.35), 0 0 0 1px rgba(10, 16, 50, 0.06);
   transition: box-shadow 0.3s;
 }
-.shot.interacting { box-shadow: 0 30px 80px rgba(10, 16, 50, 0.35), 0 0 0 6px var(--u-pink); }
+.shot.interacting { box-shadow: 0 30px 80px rgba(10, 16, 50, 0.35), 0 0 0 6px var(--k-green); }
 .shot--none { border-radius: 16px; }
 .bar {
   display: flex;
@@ -128,7 +130,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #dde1ee;
   flex: none;
 }
-.shot--window .bar { background: var(--u-navy); border-color: transparent; }
+.shot--window .bar { background: var(--k-dark); border-color: transparent; }
 .dots { display: flex; gap: 10px; }
 .dots i { width: 15px; height: 15px; border-radius: 50%; background: #f28b82; }
 .dots i:nth-child(2) { background: #f6c86b; }
@@ -150,19 +152,23 @@ onBeforeUnmount(() => {
 }
 .live-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.6); animation: pulse 1.8s infinite; }
 @keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(229, 72, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0); } }
-.mode { font: 700 16px var(--font); color: var(--u-navy); background: var(--u-pink); padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
+.mode { font: 700 16px var(--sans); color: var(--k-dark); background: var(--k-green); padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
 .home {
-  display: grid;
-  place-items: center;
-  width: 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   height: 38px;
+  padding: 0 16px 0 12px;
   border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: #6b7090;
+  border-radius: 999px;
+  background: var(--k-dark);
+  color: var(--k-sand);
+  font: 700 17px var(--sans);
   cursor: pointer;
+  flex: none;
 }
-.home:hover { background: #dde1ee; color: var(--u-navy); }
+.home:hover { background: #000; }
+.home:active { transform: scale(0.96); }
 .body { position: relative; flex: 1; min-height: 0; overflow: hidden; }
 .body img { display: block; width: 100%; height: 100%; }
 .body iframe {
@@ -186,7 +192,7 @@ onBeforeUnmount(() => {
   border: 4px dashed #c9cde0;
   border-radius: 14px;
   color: #8a8fb0;
-  font: 700 26px var(--font);
+  font: 700 26px var(--sans);
   text-align: center;
   background: repeating-linear-gradient(45deg, #fafbff, #fafbff 20px, #f3f4fb 20px, #f3f4fb 40px);
 }

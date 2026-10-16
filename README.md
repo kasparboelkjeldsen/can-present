@@ -17,6 +17,7 @@ npm run dev
 | P | presenter window (synced: notes, next scene, timer) |
 | F | fullscreen |
 | B or . | blackout |
+| X | jump to the demo fallback scene (skipped in normal navigation) |
 | Home / End | first / last |
 
 The URL hash (`#pipeline/2`) keeps your place across reloads.

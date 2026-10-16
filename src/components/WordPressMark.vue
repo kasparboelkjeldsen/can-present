@@ -3,7 +3,7 @@
 defineProps({
   size: { type: Number, default: 120 },
   inline: Boolean,
-  color: { type: String, default: 'var(--wp-blue)' },
+  color: { type: String, default: 'var(--wp)' },
   cut: { type: String, default: '#fff' },
 })
 </script>

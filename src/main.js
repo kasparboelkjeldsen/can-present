@@ -1,8 +1,9 @@
 import { createApp } from 'vue'
-import '@fontsource/lato/400.css'
-import '@fontsource/lato/700.css'
-import '@fontsource/lato/900.css'
-import '@fontsource/lato/400-italic.css'
+// Bundled locally (not Google Fonts) so the deck works without venue wifi.
+import '@fontsource/libre-caslon-text/400.css'
+import '@fontsource/libre-caslon-text/400-italic.css'
+import '@fontsource/dm-sans/400.css'
+import '@fontsource/dm-sans/700.css'
 import '@fontsource/jetbrains-mono/400.css'
 import '@fontsource/jetbrains-mono/700.css'
 import './styles/theme.css'

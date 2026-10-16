@@ -4,9 +4,9 @@
 defineProps({
   size: { type: Number, default: 300 },
   inline: Boolean,
-  shaft: { type: String, default: 'var(--u-pink)' },
+  shaft: { type: String, default: 'var(--k-green)' },
   blade: { type: String, default: '#e9ecff' },
-  edge: { type: String, default: 'var(--u-blue-bright)' },
+  edge: { type: String, default: 'var(--umbraco)' },
 })
 </script>
 

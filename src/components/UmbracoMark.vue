@@ -4,7 +4,7 @@
 defineProps({
   size: { type: Number, default: 120 },
   inline: Boolean,
-  bg: { type: String, default: 'var(--u-blue)' },
+  bg: { type: String, default: 'var(--umbraco)' },
   fg: { type: String, default: '#fff' },
 })
 </script>

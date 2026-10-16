@@ -15,13 +15,27 @@ function go(i, s = 0) {
   idx.value = i
   step.value = s === 'end' ? maxStep(i) : Math.max(0, Math.min(maxStep(i), s))
 }
+// Scenes with `skip: true` (the demo fallback) are stepped over by next/prev,
+// but stay reachable by URL (#fallback) or the X key.
+function nextIndex(i) {
+  for (let j = i + 1; j < scenes.length; j++) if (!scenes[j].skip) return j
+  return -1
+}
+function prevIndex(i) {
+  for (let j = i - 1; j >= 0; j--) if (!scenes[j].skip) return j
+  return -1
+}
 function next() {
   if (step.value < maxStep(idx.value)) step.value++
-  else if (idx.value < scenes.length - 1) go(idx.value + 1, 0)
+  else if (nextIndex(idx.value) >= 0) go(nextIndex(idx.value), 0)
 }
 function prev() {
   if (step.value > 0) step.value--
-  else if (idx.value > 0) go(idx.value - 1, 'end')
+  else if (prevIndex(idx.value) >= 0) go(prevIndex(idx.value), 'end')
+}
+function toFallback() {
+  const i = scenes.findIndex((s) => s.skip)
+  if (i >= 0) go(i)
 }
 
 // ---- URL hash: #scene-id/step (survives reloads while vibing) ----
@@ -72,7 +86,9 @@ hot?.on('deck:msg', receive)
 const sendNav = () => post({ type: 'nav', idx: idx.value, step: step.value })
 watch([idx, step], () => { if (!receiving) sendNav() }, { flush: 'sync' })
 watch(blackout, (value) => { if (!receiving) post({ type: 'blackout', value }) }, { flush: 'sync' })
-post({ type: 'hello' })
+// Opened with a position in the URL → tell everyone. Opened bare (e.g. /notes) → ask where we are.
+if (scenes.some((sc) => location.hash.replace(/^#\/?/, '').split('/')[0] === sc.id)) sendNav()
+else post({ type: 'hello' })
 
 // ---- Keyboard (works with most presentation clickers too) ----
 function onKey(e) {
@@ -86,6 +102,7 @@ function onKey(e) {
   else if (k === 'Escape') overview.value = false
   else if (k === 'o' || k === 'O') overview.value = !overview.value
   else if (k === 'b' || k === 'B' || k === '.') blackout.value = !blackout.value
+  else if (k === 'x' || k === 'X') { overview.value = false; toFallback() }
   else if (k === 'f' || k === 'F') {
     document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
   }
@@ -96,7 +113,20 @@ function onKey(e) {
 window.addEventListener('keydown', onKey)
 
 export function useDeck() {
-  return { scenes, idx, step, current, overview, blackout, go, next, prev, maxStep }
+  return { scenes, idx, step, current, overview, blackout, go, next, prev, maxStep, nextIndex }
+}
+
+/**
+ * Nested scenes (`parent` + `revealAt` in deck.js) only show up once their parent
+ * has reached that build step — otherwise they'd sit in boxes the diagram hasn't drawn yet.
+ */
+export function nestedVisible(i) {
+  const sc = scenes[i]
+  if (!sc.parent || overview.value) return true
+  const p = scenes.findIndex((s) => s.id === sc.parent)
+  if (idx.value > p) return true
+  if (idx.value < p) return false
+  return step.value >= (sc.revealAt ?? 0)
 }
 
 /** The step a scene at index i should render with, given where we are. */

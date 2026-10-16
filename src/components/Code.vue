@@ -1,81 +1,168 @@
 <script setup>
-// Tiny code block with a cheap regex highlighter and per-step line focus.
-// <Code :code="src" :focus="{ 1: [3], 2: [4, 5] }" />  — keys are build steps, values are 1-based lines.
+// Code block with a cheap highlighter, per-step line focus and callouts.
+//
+//   <Code :code="src"
+//         :focus="{ 1: [4, 5], 3: { lines: [8], token: 'CorsAllowAllPipelineFilter' } }"
+//         :callouts="{ 1: { text: 'Hello', line: 5 }, 5: { text: 'Hmm', line: 12.5, tone: 'green' } }" />
+//
+// focus:    step → array of 1-based lines (or { lines, token } to light up a single token)
+// callouts: step → { text, line, tone? }. Shown only on exactly that step, placed under `line`.
 import { computed } from 'vue'
 import { useStep } from '../engine/useStep.js'
 
 const props = defineProps({
   code: { type: String, required: true },
   focus: { type: Object, default: () => ({}) },
+  callouts: { type: Object, default: () => ({}) },
   title: String,
+  size: { type: Number, default: 30 },
 })
 const { step } = useStep()
 
-const KEYWORDS = /\b(function|return|const|let|var|if|else|foreach|as|new|true|false|null|import|from|export|async|await|use|class|public|private|fn|echo)\b/
+const KEYWORDS = new Set(('function return const let var if else foreach as new true false null import from export async ' +
+  'await use class public private protected static void fn echo is not and or string int bool var Task get set this ' +
+  'using namespace await typeof').split(' '))
+const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
-function highlight(line) {
-  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-  const tokens = /(\/\/.*$|#.*$)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\$[a-zA-Z_]\w*)|(\b\d+\b)|(\b[a-zA-Z_]\w*(?=\())|(\b[a-zA-Z_]\w*\b)/g
+function highlight(line, token) {
+  const re = /(\/\/.*$)|('(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*")|(\$[a-zA-Z_]\w*)|(\b\d+\b)|(\[[A-Z]\w*(?:\([^)]*\))?\])|(\b[a-zA-Z_]\w*\b)|(<\/?[a-z][\w-]*|\/?>)/g
   let out = '', last = 0, m
-  while ((m = tokens.exec(line))) {
+  while ((m = re.exec(line))) {
     out += esc(line.slice(last, m.index))
-    const [t, com, str, vari, num, call, word] = m
-    if (com) out += `<span class="c">${esc(t)}</span>`
-    else if (str) out += `<span class="s">${esc(t)}</span>`
-    else if (vari) out += `<span class="v">${esc(t)}</span>`
-    else if (num) out += `<span class="n">${esc(t)}</span>`
-    else if (call && !KEYWORDS.test(call)) out += `<span class="f">${esc(t)}</span>`
-    else if (KEYWORDS.test(word ?? call)) out += `<span class="k">${esc(t)}</span>`
-    else out += esc(t)
+    const [t, com, str, vari, num, attr, word, tag] = m
+    const after = line.slice(m.index + t.length)
+    let cls = ''
+    if (com) cls = 'c'
+    else if (str) cls = 's'
+    else if (vari) cls = 'v'
+    else if (num) cls = 'n'
+    else if (attr) cls = 'a'
+    else if (tag) cls = 'k'
+    else if (word) {
+      if (KEYWORDS.has(word)) cls = 'k'
+      else if (/^\s*\(/.test(after) || /^\s*</.test(after)) cls = 'f'
+      else if (/^[A-Z]/.test(word)) cls = 't'
+    }
+    let html = cls ? `<span class="${cls}">${esc(t)}</span>` : esc(t)
+    if (token && word === token) html = `<mark>${esc(t)}</mark>`
+    out += html
     last = m.index + t.length
   }
   return out + esc(line.slice(last)) || ' '
 }
 
-const lines = computed(() => props.code.replace(/^\n|\n\s*$/g, '').split('\n').map(highlight))
+const raw = computed(() => props.code.replace(/^\n+|\n\s*$/g, '').split('\n'))
 
-const focused = computed(() => {
+const current = computed(() => {
+  if (step.value === Infinity) return null
   const keys = Object.keys(props.focus).map(Number).filter((k) => k <= step.value)
-  if (!keys.length || step.value === Infinity) return null
-  return new Set(props.focus[Math.max(...keys)])
+  if (!keys.length) return null
+  const f = props.focus[Math.max(...keys)]
+  return Array.isArray(f) ? { lines: new Set(f) } : { lines: new Set(f.lines), token: f.token }
+})
+
+const lines = computed(() =>
+  raw.value.map((l, i) => {
+    const hot = current.value?.lines.has(i + 1)
+    return { html: highlight(l, hot ? current.value?.token : null), hot, dim: current.value && !hot }
+  }),
+)
+
+const LH = 1.55
+const callout = computed(() => {
+  const c = props.callouts[step.value]
+  if (!c) return null
+  const pad = 30
+  return { ...c, top: pad + c.line * props.size * LH + 10 }
 })
 </script>
 
 <template>
-  <div class="code">
+  <div class="code" :class="{ 'token-mode': current?.token }" :style="{ '--fs': size + 'px', '--lh': LH }">
     <div v-if="title" class="title">{{ title }}</div>
-    <pre><code><span
-      v-for="(l, i) in lines"
-      :key="i"
-      class="line"
-      :class="{ dim: focused && !focused.has(i + 1), hot: focused?.has(i + 1) }"
-    ><span class="ln">{{ i + 1 }}</span><span v-html="l" />
+    <div class="body">
+      <pre><code><span
+        v-for="(l, i) in lines"
+        :key="i"
+        class="line"
+        :class="{ dim: l.dim, hot: l.hot }"
+      ><span class="ln">{{ i + 1 }}</span><span class="src" v-html="l.html" />
 </span></code></pre>
+      <Transition name="callout">
+        <div
+          v-if="callout"
+          :key="step"
+          class="callout code-callout"
+          :class="{ 'callout--green': callout.tone === 'green' }"
+          :style="{ top: callout.top + 'px' }"
+        >{{ callout.text }}</div>
+      </Transition>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .code {
+  position: relative;
   border-radius: 24px;
-  background: var(--u-navy-deep);
-  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
-  overflow: hidden;
+  background: var(--k-dark-deep);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .title {
-  padding: 18px 32px;
-  font: 700 20px var(--mono);
-  color: var(--u-pink);
+  padding: 16px 32px;
+  font: 700 22px var(--mono);
+  color: var(--k-green);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
-pre { margin: 0; padding: 30px 0; font: 400 30px/1.6 var(--mono); color: #e6e9ff; }
+.body { position: relative; }
+pre { margin: 0; padding: 30px 0; font: 400 var(--fs) / var(--lh) var(--mono); color: #ecebe6; overflow: hidden; border-radius: 0 0 24px 24px; }
 .line { display: block; padding: 0 40px 0 0; transition: opacity 0.4s, background 0.4s; }
-.line.dim { opacity: 0.28; }
-.line.hot { background: rgba(245, 193, 188, 0.1); box-shadow: inset 6px 0 0 var(--u-pink); }
-.ln { display: inline-block; width: 80px; padding-right: 26px; text-align: right; color: #4c578c; user-select: none; }
-:deep(.k) { color: #ff9fc0; font-weight: 700; }
-:deep(.s) { color: #b5e8a0; }
-:deep(.v) { color: #8fb3ff; }
-:deep(.n) { color: #ffcf7a; }
-:deep(.f) { color: #f5c1bc; }
-:deep(.c) { color: #66709e; font-style: italic; }
+.line.dim { opacity: 0.25; }
+.line.hot { background: rgba(195, 242, 64, 0.08); box-shadow: inset 6px 0 0 var(--k-green); }
+.ln { display: inline-block; width: 3.2em; padding-right: 1.1em; text-align: right; color: #6d6b66; user-select: none; }
+:deep(.k) { color: var(--k-green); }
+:deep(.s) { color: #ffb4aa; }
+:deep(.v) { color: #b9c4ff; }
+:deep(.n) { color: #ffd479; }
+:deep(.a) { color: #ffd479; }
+:deep(.f) { color: #f7f6f2; font-weight: 700; }
+:deep(.t) { color: #9fb0ff; }
+:deep(.c) { color: #8a877f; font-style: italic; }
+
+/* single-token focus: everything on the hot line greys out except the token */
+.token-mode .line.hot { background: none; }
+.token-mode .line.hot .src, .token-mode .line.hot .src :deep(span) { color: #6d6b66; font-weight: 400; }
+:deep(mark) {
+  background: none;
+  color: #fff;
+  font-weight: 700;
+  text-decoration: underline wavy var(--k-red);
+  text-decoration-thickness: 4px;
+  text-underline-offset: 10px;
+}
+
+/* sits on the dark code block, so always light (or green) regardless of slide */
+.code .code-callout {
+  position: absolute;
+  right: 36px;
+  max-width: 640px;
+  z-index: 2;
+  background: var(--k-sand);
+  color: var(--k-dark);
+}
+.code-callout::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 40px;
+  width: 22px;
+  height: 22px;
+  background: inherit;
+  transform: rotate(45deg);
+  border-radius: 3px;
+}
+.callout-enter-active { transition: opacity 0.4s, transform 0.6s var(--ease-spring); }
+.callout-leave-active { transition: opacity 0.2s; }
+.callout-enter-from { opacity: 0; transform: translateY(16px) scale(0.95); }
+.callout-leave-to { opacity: 0; }
 </style>
