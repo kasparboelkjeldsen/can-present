@@ -117,7 +117,7 @@ function onKey(e) {
   else if (k === 'Home') go(0)
   else if (k === 'End') go(scenes.length - 1, 'end')
   else if (k === 'Escape') overview.value = false
-  else if (k === 'o' || k === 'O') overview.value = !overview.value
+  else if (k === 'o' || k === 'O' || k === '0') overview.value = !overview.value
   else if (k === 'b' || k === 'B' || k === '.') blackout.value = !blackout.value
   else if (k === 'x' || k === 'X') { overview.value = false; toFallback() }
   else if (k === 'r' || k === 'R') reset()

@@ -13,7 +13,7 @@ npm run dev
 |---|---|
 | → / Space / PageDown | next step or scene |
 | ← / PageUp | back |
-| O | overview (click a scene to jump to it) |
+| O or 0 | overview (click a scene to jump to it) |
 | P | presenter window (synced: notes, next scene, timer) |
 | F | fullscreen |
 | B or . | blackout |
