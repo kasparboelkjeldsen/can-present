@@ -86,9 +86,12 @@ hot?.on('deck:msg', receive)
 const sendNav = () => post({ type: 'nav', idx: idx.value, step: step.value })
 watch([idx, step], () => { if (!receiving) sendNav() }, { flush: 'sync' })
 watch(blackout, (value) => { if (!receiving) post({ type: 'blackout', value }) }, { flush: 'sync' })
-// Opened with a position in the URL → tell everyone. Opened bare (e.g. /notes) → ask where we are.
-if (scenes.some((sc) => location.hash.replace(/^#\/?/, '').split('/')[0] === sc.id)) sendNav()
-else post({ type: 'hello' })
+// The deck is the source of truth: it starts where its URL says (or at the beginning) and tells
+// everyone. Followers (/notes, ?presenter) opened without a position ask where we are instead.
+const isFollower = /\/notes\/?$/.test(location.pathname) || new URLSearchParams(location.search).has('presenter')
+const hasPosition = scenes.some((sc) => location.hash.replace(/^#\/?/, '').split('/')[0] === sc.id)
+if (isFollower && !hasPosition) post({ type: 'hello' })
+else sendNav()
 
 // ---- Keyboard (works with most presentation clickers too) ----
 function onKey(e) {
