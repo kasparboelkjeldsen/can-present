@@ -46,6 +46,7 @@ Read the one file you need instead of searching. The files in `decks/shovelling-
 | Code walkthrough: line/token focus, callouts | `decks/example/scenes/Walkthrough.vue`; more elaborate: `shovelling-umbraco/scenes/WhoAmI.vue` |
 | Diagram: wires that draw themselves, flowing packets, nested scenes in its boxes | `decks/example/scenes/Arch.vue` + `scenes/arch.js` (`<Diagram>` / `defineDiagram`, props in `README.md`), nested scene `Inside.vue`; more elaborate, hand-drawn: `shovelling-umbraco/scenes/Map.vue` + `scenes/map/geometry.js` |
 | Ride a wire: the flight into a nested scene follows a diagram edge with a pill (`via: ride(…)`) | `decks/example/deck.js` (scenes `inside` and `canvas`, riding edges 0 and 1 of `scenes/arch.js`), nested scene `scenes/Canvas.vue` |
+| Zoom into detail inside one scene, "powers of ten": camera framing per click (`frames`) and content that appears at a zoom (`<Detail>`); a label only shown in the overview (`<Detail :until>`) | `decks/example/scenes/Deeper.vue` + `scenes/deeper.js` (the boxes, shared with `deck.js`'s `frames`) |
 | Big number counting, with a ring | `decks/example/scenes/Stat.vue` (`<BigNumber>`, props in `README.md`); more elaborate: `shovelling-umbraco/scenes/OneInstance.vue`, two stats with phases: `Numbers.vue` |
 | Cards popping in on clicks | `decks/example/scenes/Cards.vue`; more elaborate: `shovelling-umbraco/scenes/WhatHappened.vue`, `DangerousBits.vue` |
 | Typed snippet plus captions that replace each other (`<Step :until>`) | `shovelling-umbraco/scenes/OneLine.vue` |

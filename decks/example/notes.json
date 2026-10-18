@@ -9,6 +9,7 @@
   "screens": "Two tilted <Shot> placeholders.\nDrop PNGs in public/shots/ to fill them.",
   "live": "A real, clickable site in a frame.\nMove the mouse off it to drive the deck again.\nX jumps to the fallback if it dies.",
   "loop": "A small looping SVG, drawn in the scene.\nColours come from the theme tokens.",
+  "deeper": "One card, four presses deeper. Things appear as we get close.\n[PRESS] a component\n[PRESS] a line of code\n[PRESS] one character\n[PRESS] its dot: the title scene. Scenes all the way down.",
   "takeaway": "Ghost scene: hovers over the whole canvas.\n(pause) Every scene is a file you can copy.",
   "fallback": "Skipped by → and ←; X jumps here.\nScreenshots of the demo, in case it dies.",
   "thanks": "Thanks!\nCopy decks/example to start your own."

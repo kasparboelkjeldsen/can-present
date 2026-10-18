@@ -6,7 +6,8 @@
 // Canvas layout (press O): a U-shaped path. The top row goes left to right
 // (title → cards → number → code → diagram), the camera dives into the diagram
 // and rides its wires (inside, canvas), then the bottom row comes back right to
-// left (screens → live → loop → thanks). The fallback hangs below the live demo;
+// left (screens → live → loop → thanks). Below the loop hangs the zoom (deeper),
+// a "powers of ten" dive inside one card; the fallback hangs below the live demo;
 // the takeaway is a ghost over everything.
 //
 //   id       → URL hash (#code/2)
@@ -16,12 +17,14 @@
 //   skip     → stepped over by next/prev (reachable via #id or the X key)
 //   ghost    → only visible while on stage; with `at: null` it covers the whole canvas
 //   via      → the flight in from the previous scene rides a path (ride(diagram, edge, parentAt, opts))
+//   frames   → per build step, the camera flies to a box of the card ({ cx, cy, w } in its 1920×1080 space)
 //   (speaker notes live in notes.json, keyed by id — edit them on /notes)
 // ------------------------------------------------------------------
 import './theme.css'
 import { nest } from '@engine/layout.js'
 import { ride } from '@engine/diagram.js'
 import { arch } from './scenes/arch.js'
+import { frames as deeperFrames } from './scenes/deeper.js'
 import Title from './scenes/Title.vue'
 import Cards from './scenes/Cards.vue'
 import Stat from './scenes/Stat.vue'
@@ -32,6 +35,7 @@ import Canvas from './scenes/Canvas.vue'
 import Screens from './scenes/Screens.vue'
 import Live from './scenes/Live.vue'
 import Loop from './scenes/Loop.vue'
+import Deeper from './scenes/Deeper.vue'
 import Takeaway from './scenes/Takeaway.vue'
 import Fallback from './scenes/Fallback.vue'
 import Thanks from './scenes/Thanks.vue'
@@ -69,6 +73,9 @@ export default {
     { id: 'screens', title: 'Screenshots', component: Screens, at: { x: 9300, y: 2300, r: 2 } },
     { id: 'live', title: 'A live site', component: Live, at: { x: 6900, y: 2500, r: -2 } },
     { id: 'loop', title: 'A looping illustration', component: Loop, at: { x: 4600, y: 2300, r: 2 } },
+    // powers of ten: each press flies the camera deeper into the card (frames, from deeper.js, which
+    // the scene shares), and <Detail>s show what's readable at each zoom. It ends inside a dot.
+    { id: 'deeper', title: 'Powers of ten', component: Deeper, steps: 4, frames: deeperFrames, at: { x: 4600, y: 4650 } },
     // hovers over the whole canvas while on stage: the camera pulls back and the talk shows behind it
     { id: 'takeaway', title: 'Takeaway', component: Takeaway, ghost: true, at: null },
     // stepped over by → and ←; X (or #fallback) jumps here if the live demo dies

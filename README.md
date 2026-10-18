@@ -120,7 +120,7 @@ With `--from`, it reads a scene description in the format of `docs/presentation-
 - `deck.js` entries with `steps`, laid out left to right 2300px apart (a scene whose Position says "inside …" gets a `// TODO: nest inside …` comment);
 - `notes.json` from the **Notes** bullets, the "Assets needed" list in `brief.md`, and a copy of the description at `decks/<id>/scene-description.md`.
 
-Then run it with `npm run deck -- dev <id>`, or make it the default in `package.json`. You can also copy `decks/example` by hand: it has one small, commented scene per building block (cards, big number, code, diagram with a nested scene, screenshots, live site, looping SVG, ghost takeaway, fallback), so it's also the place to copy a scene from.
+Then run it with `npm run deck -- dev <id>`, or make it the default in `package.json`. You can also copy `decks/example` by hand: it has one small, commented scene per building block (cards, big number, code, diagram with a nested scene and rides along its wires, screenshots, live site, looping SVG, a "powers of ten" zoom, ghost takeaway, fallback), so it's also the place to copy a scene from.
 
 `deck.js` imports the deck's own CSS and fonts. `theme.css` defines the look of a `.slide` and sets the engine tokens (all optional, defaults in `engine/styles/engine.css`):
 
