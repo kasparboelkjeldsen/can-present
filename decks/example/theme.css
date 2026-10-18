@@ -80,3 +80,6 @@
   box-shadow: 0 24px 60px rgba(29, 36, 51, 0.16);
 }
 .slide--dark .card { background: #263047; color: var(--paper); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4); }
+
+/* text written straight on the canvas, no card: the outer layers (bigger, biggest) */
+.slide--canvas { background: transparent; color: var(--paper); }
