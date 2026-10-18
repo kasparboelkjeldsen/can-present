@@ -171,10 +171,14 @@ const scenes = [
   {
     id: 'festival', title: 'Umbraco DK Festival', component: Festival, steps: 1,
     outer: { hole: FESTIVAL_HOLE },
+    // leaving it, the black fades out first (200 ms, the whole talk fading back in with it), then the punch in
+    onlyOnStage: { fade: 200 },
   },
+  // the punch back in: from the festival, one motion through the dot and the "1" into the spot the
+  // thank-you card had, with the whole talk back round it for scale. onlyOnStage: it shares that spot
   {
     id: 'thanks', title: 'Thanks', component: Thanks,
-    at: { x: 0, y: 1230 },
+    at: { x: -2400, y: 1230 }, onlyOnStage: true,
   },
 ]
 

@@ -385,7 +385,7 @@ export async function check(deckId, { json = false } = {}) {
     if (sc.skip) add('warn', id, 'formation on a skip scene: → and ← step over it, so it only plays from X or #id')
     if (sc.frames != null) add('warn', id, 'frames are ignored on the formation scene: the camera frames the formation')
     if (sc.via != null) add('warn', id, "via is ignored on the formation scene: its flight in is the formation's own")
-    const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].outer && !scenes[j].parent && scenes[j].back == null).length
+    const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].outer && !scenes[j].parent && scenes[j].back == null && !scenes[j].onlyOnStage).length
     if (unplaced) add('warn', id, `formation: ${unplaced} card(s) have no point and fade out instead (points has ${sc.formation.points.length}, ${plan.n + unplaced} cards move)`)
   })
 
@@ -444,8 +444,8 @@ export async function check(deckId, { json = false } = {}) {
   for (const key of Object.keys(notes)) if (!seen.has(key)) add('warn', key, 'notes.json entry with no scene')
 
   // layout
-  // (a back lies on its front on purpose)
-  const top = scenes.filter((sc) => sc.at && !sc.parent && !sc.ghost && sc.outer == null && sc.back == null)
+  // (a back lies on its front on purpose; an `onlyOnStage` scene may share a spot: it only shows while it's up)
+  const top = scenes.filter((sc) => sc.at && !sc.parent && !sc.ghost && sc.outer == null && sc.back == null && !sc.onlyOnStage)
   for (let i = 0; i < top.length; i++) {
     for (let j = i + 1; j < top.length; j++) {
       const d = overlapDepth(corners(top[i].at), corners(top[j].at))

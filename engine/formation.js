@@ -99,7 +99,7 @@ export function formationRoles(scenes, fIdx) {
     if (i === fIdx) return 'centre'
     const root = rootOf(i)
     if (root === fIdx) return 'stay'
-    if (sc.ghost || sc.outer || sc.skip || sc.back != null || scenes[root].ghost || scenes[root].skip || !sc.at || !scenes[root].at) return 'fade'
+    if (sc.ghost || sc.outer || sc.skip || sc.onlyOnStage || sc.back != null || scenes[root].ghost || scenes[root].skip || scenes[root].onlyOnStage || !sc.at || !scenes[root].at) return 'fade'
     return root === i ? 'lead' : 'follow'
   })
 }

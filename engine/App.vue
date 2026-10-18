@@ -271,7 +271,13 @@ const keptCard = computed(() => {
   for (let j = idx.value; j >= 0 && scenes[j].outer; j--) if (wrapsIdx[j] >= 0) return wrapsIdx[j]
   return -1
 })
-const wrappedOut = (i) => keptCard.value >= 0 && i !== keptCard.value && !scenes[i].outer && !scenes[i].ghost
+// `onlyOnStage: true`: the card only shows while it's the one on stage, so it may share its spot
+// with another card (e.g. a closing card where an outer layer's hole was)
+const wrappedOut = (i) => {
+  if (scenes[i].onlyOnStage) return overview.value || i !== idx.value
+  if (scenes[i].outer || scenes[i].ghost) return false
+  return keptCard.value >= 0 && i !== keptCard.value
+}
 // the back is up from the moment the deck reaches it, before that the front. In a formation the
 // front moves into the ring (the back fades), so there the front is up
 const backUp = (p) => idx.value >= p.back && !(formation.formed && fx?.roles[p.front] !== 'fade')
@@ -383,11 +389,29 @@ function flipTo(t, p, rev) {
   raf = requestAnimationFrame(tick)
 }
 
+// `onlyOnStage: { fade: ms }`: leaving that scene, it fades out first (and every card coming back
+// fades in with it, as fast), and only then does the camera move
+const leaveFade = (i) => { const o = scenes[i]?.onlyOnStage; return o && typeof o === 'object' && o.fade > 0 ? o.fade : 0 }
+const quickFade = ref(0) // ms: while set, every card's fade runs this fast
+let leaveTimer = 0
+
 let last = { idx: idx.value, overview: overview.value }
 watch(camKey, () => {
-  const t = target()
   const from = last
   last = { idx: idx.value, overview: overview.value }
+  clearTimeout(leaveTimer)
+  const lf = !from.overview && from.idx !== idx.value ? leaveFade(from.idx) : 0
+  if (lf) {
+    cancelAnimationFrame(raf)
+    flying.value = false
+    quickFade.value = lf
+    leaveTimer = setTimeout(() => { quickFade.value = 0; move(target(), from) }, lf)
+    return
+  }
+  quickFade.value = 0
+  move(target(), from)
+})
+function move(t, from) {
   // to the formation scene, or away from it while the cards are out (or on their way out)
   if (fx && (fxOn.value || formation.formed)) return formationMove(t)
   // between a card's two faces: turn it over (not while a turn runs: then the faces snap)
@@ -407,7 +431,7 @@ watch(camKey, () => {
     : null
   if (ride) rideTo(t, ride.via, ride.back)
   else flyTo(t)
-})
+}
 
 // Dot grid drawn on the (untransformed) stage and moved with the camera: cheap at any zoom.
 const gridStyle = computed(() => {
@@ -498,7 +522,7 @@ function pick(i) {
   <div class="viewport" :class="{ idle, overview }">
     <div class="stage" :style="{ transform: `translate(-50%, -50%) scale(${fit})` }">
       <div class="grid" :style="gridStyle" />
-      <div class="world" :style="[worldStyle, fxWorldVars]">
+      <div class="world" :class="{ 'quick-fade': quickFade }" :style="[worldStyle, fxWorldVars, quickFade ? { '--quick-fade': quickFade + 'ms' } : null]">
         <div
           v-for="(sc, i) in scenes"
           :key="sc.id"
@@ -607,6 +631,8 @@ function pick(i) {
 .scene.is-outer.is-unreached { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1s, visibility 0s 1s; }
 .scene.is-outer .scene-label { display: none; }
 .scene.is-wrapped-out { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.8s, visibility 0s 0.8s; }
+/* leaving an `onlyOnStage: { fade }` scene: every card's fade runs that fast, then the camera moves */
+.world.quick-fade .scene { transition-duration: var(--quick-fade) !important; }
 .overview .scene.is-outer { pointer-events: none; }
 
 /* the formation (engine/formation.js): moving cards glide on a transform transition whose timing
