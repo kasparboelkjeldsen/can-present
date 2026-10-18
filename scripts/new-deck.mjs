@@ -380,7 +380,7 @@ function main() {
 Next:
 ${next.map(([c, d]) => `  ${c.padEnd(w)}${d}`).join('\n')}
 Then fill in the scenes (decks/${args.id}/scenes/: ${desc ? 'each has its description in a top comment' : 'add more next to Title.vue'}),
-the palette and fonts in theme.css, and the TODOs in brief.md.`)
+the palette and fonts in theme.css, and the TODOs in brief.md. The workflow: .agents/skills/build-deck/SKILL.md`)
 }
 
 // run as a script (not when imported for its parser)

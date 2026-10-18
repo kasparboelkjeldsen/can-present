@@ -94,6 +94,7 @@ scripts/
   check.mjs                 npm run check: the deck lint
   new-deck.mjs              npm run new-deck: scaffold a deck, optionally from a scene description
 AGENTS.md                   rules and orientation for coding agents (CLAUDE.md points at it)
+.agents/skills/             agent skills: write-talk, build-deck (.claude/skills/ has stubs pointing here)
 ```
 
 Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engine/Step.vue'`). The engine reaches the active deck only through `@deck/deck.js`.
