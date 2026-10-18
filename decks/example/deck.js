@@ -4,7 +4,8 @@
 // (and its deck.js entry) to start your own. Order here = order on stage.
 //
 // Canvas layout (press O): a U-shaped path. The top row goes left to right
-// (title → cards → number → code → diagram), the camera dives into the diagram
+// (title → cards → number → code → diagram; the code card turns over to show
+// what that code makes on its back, code-back), the camera dives into the diagram
 // and rides its wires (inside, canvas), then the bottom row comes back right to
 // left (screens → live → loop → thanks). Below the loop hangs the zoom (deeper),
 // a "powers of ten" dive inside one card, and left of it a QR code to take home
@@ -22,6 +23,8 @@
 //   ghost    → only visible while on stage; with `at: null` it covers the whole canvas
 //   via      → the flight in from the previous scene rides a path (ride(diagram, edge, parentAt, opts))
 //   frames   → per build step, the camera flies to a box of the card ({ cx, cy, w } in its 1920×1080 space)
+//   back     → this scene is the back of that card: no `at`, it sits on its front, and → from the
+//              front's last step turns the card over (flip: { axis: 'y' | 'x', dir: 1 | -1, tilt })
 //   formation → while this scene is on stage, the other cards gather round it ({ shape: 'ring', spin: 60 })
 //   outer    → an outer layer: no `at`, the engine places it round the talk (or the outer card before)
 //              so that hole ({ cx, cy, w } in its 1920×1080 space) lands on it
@@ -36,6 +39,7 @@ import Title from './scenes/Title.vue'
 import Cards from './scenes/Cards.vue'
 import Stat from './scenes/Stat.vue'
 import Walkthrough from './scenes/Walkthrough.vue'
+import CodeBack from './scenes/CodeBack.vue'
 import Arch from './scenes/Arch.vue'
 import Inside from './scenes/Inside.vue'
 import Canvas from './scenes/Canvas.vue'
@@ -64,6 +68,9 @@ export default {
     { id: 'cards', title: 'Cards on clicks', component: Cards, steps: 3, at: { x: 2300, y: 250, r: -2 } },
     { id: 'number', title: 'A big number', component: Stat, steps: 1, at: { x: 4600, y: 0, r: 2 } },
     { id: 'code', title: 'A code walkthrough', component: Walkthrough, steps: 2, at: { x: 6900, y: 300, r: -1 } },
+    // the other side of the code card: → from its last step turns the card over (no `at`: it's
+    // the code card's back); ← turns it back
+    { id: 'code-back', title: 'What that code makes', component: CodeBack, back: 'code', flip: { axis: 'y' } },
     // steps come from the diagram definition, so the scene and deck.js can't disagree
     { id: 'diagram', title: 'A diagram that builds itself', component: Arch, steps: arch.steps, at: ARCH },
     // the dive: inside the diagram's engine box, visible from the step that box appears on.
