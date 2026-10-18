@@ -78,6 +78,8 @@ Open a scene and build step directly with the URL hash: `http://localhost:5173/#
 
 The wrapper works the same in bash and PowerShell. The older form still works: `npm run dev` / `npm run build` with `DECK=example` (bash) or `$env:DECK='example'` (PowerShell) set first. If `node` isn't on PATH on this machine, load fnm first: `fnm env --shell powershell | Out-String | Invoke-Expression`.
 
+**If an edit doesn't show up** in the browser, check the DOM before debugging your code: on this machine Vite's file watcher sometimes misses edits (especially to `.js` files imported by `deck.js`). Restart the dev server and reload the page. Changing only the hash doesn't reload it.
+
 ## Verifying a change
 
 1. `npm run deck -- build <deck>` passes for every deck you touched (and for `example` too if you touched the engine).

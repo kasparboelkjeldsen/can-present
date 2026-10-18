@@ -13,13 +13,15 @@ export const arch = defineDiagram({
   // edges and packets default to ink (for light slides); this scene is dark, so they use paper
   edges: [
     { from: 'deck', to: 'engine', label: 'import', tone: 'paper' }, // boxes don't line up: routed with an elbow
-    { from: 'engine', to: 'browser', label: 'render', tone: 'paper' },
+    // two lanes (offset) so traffic in each direction never crosses
+    { from: 'engine', to: 'browser', label: 'render', tone: 'paper', offset: -24 },
     { from: 'browser', to: 'notes', both: true, label: 'sync', tone: 'paper' }, // stacked boxes: top/bottom sides
+    { from: 'browser', to: 'engine', tone: 'paper', offset: 24 },
   ],
   packets: [
     { edge: 0, label: 'scenes', tone: 'paper' },
     { edge: 1, label: 'flyTo()', tone: 'accent' },
-    { edge: 1, label: '→ key', reverse: true, delay: 1.8, tone: 'paper' },
+    { edge: 3, label: '→ key', delay: 1.8, tone: 'paper' },
   ],
   // the nested `inside` scene sits here: nest(ARCH, arch.slot('inside')) in deck.js
   slots: { inside: { node: 'engine', cx: 260, cy: 252, w: 400 } },
