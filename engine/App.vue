@@ -245,6 +245,10 @@ const els = [] // scene elements by index (the turn writes its CSS variables on 
 const flip = reactive({ front: -1, mode: null }) // the pair turning now (by its front); 'turn' | 'fade'
 const held = ref(null) // while a card turns: the scene that stays active until it lands
 const activeIdx = computed(() => held.value ?? idx.value)
+// the face a turn brought on stage: it turned over already drawn, so its .rise / .fade-in entrances
+// don't replay when it lands (its own further builds and animations still run). Cleared on leaving it
+const flippedIn = ref(-1)
+watch(idx, (i) => { if (i !== flippedIn.value) flippedIn.value = -1 })
 // ms, and the card's look mid-turn; P is the perspective in card px (so it's the same at any scale)
 const FLIP = { pull: 620, turnAt: 300, turn: 950, pushAt: 1030, push: 650, wide: 1.45, drift: 0.04, lift: 0.05, P: 4200, fade: 450 }
 const clamp01 = (v) => Math.min(1, Math.max(0, v))
@@ -300,6 +304,7 @@ function flipTo(t, p, rev) {
   cancelAnimationFrame(raf)
   endRide()
   endFlip()
+  flippedIn.value = rev ? p.front : p.back
   const t0 = performance.now()
   if (reducedMotion?.matches) {
     // no turn and no camera move: the arriving face fades in over the other (the back is on top)
@@ -496,6 +501,7 @@ function pick(i) {
             'is-flipping': flip.mode === 'turn' && turning(i),
             'is-xfade': flip.mode === 'fade' && turning(i),
             'is-back': flipOf[i]?.back === i,
+            'is-flipped-in': i === flippedIn,
           }, fxClass(i)]"
           :style="[sceneStyle(sc, i), revealStyle(sc, i)]"
           :ref="(el) => { els[i] = el }"
@@ -625,10 +631,9 @@ function pick(i) {
   background: linear-gradient(115deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 38%, rgba(5, 10, 30, 0.35) 62%, rgba(5, 10, 30, 0.7));
   opacity: var(--flip-sheen, 0);
 }
-/* the arriving face only goes on stage when it lands: until then its entrances wait unplayed, so
-   they don't show finished during the turn and then start over */
-.scene.is-flipping:not(.is-active) :deep(.rise),
-.scene.is-flipping:not(.is-active) :deep(.fade-in) { opacity: 0; }
+/* the arriving face turns over already drawn, and its entrances don't replay when it goes on stage */
+.scene.is-flipped-in :deep(.rise),
+.scene.is-flipped-in :deep(.fade-in) { animation: none; }
 /* reduced motion: no turn, the arriving face fades in over the other */
 .scene.is-xfade { transition: none; }
 .scene.is-xfade.is-back { opacity: var(--flip-o, 1); }
