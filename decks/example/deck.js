@@ -8,7 +8,8 @@
 // and rides its wires (inside, canvas), then the bottom row comes back right to
 // left (screens → live → loop → thanks). Below the loop hangs the zoom (deeper),
 // a "powers of ten" dive inside one card; the fallback hangs below the live demo;
-// the takeaway is a ghost over everything.
+// the takeaway is a ghost over everything. The finale (thanks) is a formation:
+// every other card leaves its place and orbits the thanks card.
 //
 //   id       → URL hash (#code/2)
 //   steps    → number of build steps inside the scene (0 = none)
@@ -18,6 +19,7 @@
 //   ghost    → only visible while on stage; with `at: null` it covers the whole canvas
 //   via      → the flight in from the previous scene rides a path (ride(diagram, edge, parentAt, opts))
 //   frames   → per build step, the camera flies to a box of the card ({ cx, cy, w } in its 1920×1080 space)
+//   formation → while this scene is on stage, the other cards gather round it ({ shape: 'ring', spin: 60 })
 //   (speaker notes live in notes.json, keyed by id — edit them on /notes)
 // ------------------------------------------------------------------
 import './theme.css'
@@ -80,6 +82,8 @@ export default {
     { id: 'takeaway', title: 'Takeaway', component: Takeaway, ghost: true, at: null },
     // stepped over by → and ←; X (or #fallback) jumps here if the live demo dies
     { id: 'fallback', title: 'Demo fallback', component: Fallback, skip: true, at: { x: 6900, y: 4700 } },
-    { id: 'thanks', title: 'Thanks', component: Thanks, at: { x: 2300, y: 2450, r: -2 } },
+    // the finale: the takeaway is up, the camera already shows the whole talk behind it; then every
+    // other card swings into an orbit round this one (one per deck). Upright, so the ring is too
+    { id: 'thanks', title: 'Thanks (finale)', component: Thanks, at: { x: 2300, y: 2450 }, formation: { shape: 'ring', spin: 60 } },
   ],
 }

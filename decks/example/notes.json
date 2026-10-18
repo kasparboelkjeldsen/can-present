@@ -12,5 +12,5 @@
   "deeper": "One card, four presses deeper. Things appear as we get close.\n[PRESS] a component\n[PRESS] a line of code\n[PRESS] one character\n[PRESS] its dot: the title scene. Scenes all the way down.",
   "takeaway": "Ghost scene: hovers over the whole canvas.\n(pause) Every scene is a file you can copy.",
   "fallback": "Skipped by → and ←; X jumps here.\nScreenshots of the demo, in case it dies.",
-  "thanks": "Thanks!\nCopy decks/example to start your own."
+  "thanks": "(let them fly: the talk pulls back, then every scene orbits this card)\nThanks! Every scene just came back to say goodbye.\nformation: { shape: 'ring', spin: 60 } on this scene in deck.js.\nCopy decks/example to start your own."
 }
