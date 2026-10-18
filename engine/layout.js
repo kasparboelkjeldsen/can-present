@@ -20,11 +20,30 @@ export function nest(parent, slot) {
   }
 }
 
+/**
+ * The bounding box of the talk itself, rotation included: every placed scene except ghosts and outer
+ * layers. The overview frames it and the first outer layer wraps it. → { x, y, w, h } (centre, size).
+ */
+export function talkBounds(scenes) {
+  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+  for (const sc of scenes) {
+    if (sc.ghost || sc.outer) continue
+    const p = { x: 0, y: 0, s: 1, r: 0, ...sc.at }
+    const a = (p.r * Math.PI) / 180
+    const hw = (W / 2) * p.s, hh = (H / 2) * p.s
+    const ex = Math.abs(Math.cos(a)) * hw + Math.abs(Math.sin(a)) * hh
+    const ey = Math.abs(Math.sin(a)) * hw + Math.abs(Math.cos(a)) * hh
+    minX = Math.min(minX, p.x - ex); maxX = Math.max(maxX, p.x + ex)
+    minY = Math.min(minY, p.y - ey); maxY = Math.max(maxY, p.y + ey)
+  }
+  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2, w: maxX - minX, h: maxY - minY }
+}
+
 /** A placement centred on the canvas and big enough to cover every placed scene (plus 8%). */
 export function coverAll(scenes) {
   let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
   for (const sc of scenes) {
-    if (!sc.at) continue
+    if (!sc.at || sc.outer) continue
     const s = sc.at.s ?? 1
     minX = Math.min(minX, sc.at.x - (W / 2) * s); maxX = Math.max(maxX, sc.at.x + (W / 2) * s)
     minY = Math.min(minY, sc.at.y - (H / 2) * s); maxY = Math.max(maxY, sc.at.y + (H / 2) * s)
@@ -39,4 +58,23 @@ export function placeGhosts(scenes) {
   if (!ghosts.length) return
   const at = coverAll(scenes)
   for (const g of ghosts) g.at = { ...at }
+}
+
+/**
+ * Outer layers (`outer: { hole: { cx, cy, w } }` in deck.js): the reverse of nest(). Each outer scene
+ * is scaled and placed so that the hole (a 16:9 box in its own 1920×1080 space) lands on what it
+ * wraps: the first one wraps the talk (talkBounds), each later one the previous outer card. The
+ * wrapped box is fitted inside the hole, centred. Call after placeGhosts (ghosts cover the talk only).
+ */
+export function placeOuter(scenes) {
+  let inner = null
+  for (const sc of scenes) {
+    if (!sc.outer?.hole) continue
+    const b = inner ?? talkBounds(scenes)
+    const { cx, cy, w } = sc.outer.hole
+    if (![cx, cy, w].every(Number.isFinite) || w <= 0) continue // check reports it
+    const s = Math.max(b.w, (b.h * W) / H) / w
+    sc.at = { x: b.x - (cx - W / 2) * s, y: b.y - (cy - H / 2) * s, s, r: 0 }
+    inner = { x: sc.at.x, y: sc.at.y, w: W * s, h: H * s }
+  }
 }

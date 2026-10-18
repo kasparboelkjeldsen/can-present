@@ -58,7 +58,7 @@ const tiles = scenes.flatMap(({ sc, n }) => {
   })
 })
 
-const flags = (sc) => [sc.skip && 'skip', sc.ghost && 'ghost', sc.parent && `in ${sc.parent}`, sc.formation != null && 'formation'].filter(Boolean)
+const flags = (sc) => [sc.skip && 'skip', sc.ghost && 'ghost', sc.outer && 'outer', sc.parent && `in ${sc.parent}`, sc.formation != null && 'formation'].filter(Boolean)
 const href = (t) => `${location.pathname}#${t.sc.id}/${t.step === Infinity ? t.sc.steps ?? 0 : t.step}`
 
 // ---- scale every tile to its column width (like ScenePreview) ----

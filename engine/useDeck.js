@@ -1,11 +1,13 @@
 import { ref, computed, watch } from 'vue'
 import deck from '@deck/deck.js'
 import { resets } from './signals.js'
-import { placeGhosts } from './layout.js'
+import { placeGhosts, placeOuter } from './layout.js'
 
 const scenes = deck.scenes
-// ghost scenes with `at: null` get a placement that covers the whole canvas
+// ghost scenes with `at: null` get a placement that covers the whole canvas (the talk), and then
+// outer layers (`outer`) are placed round the talk, each round the one before
 placeGhosts(scenes)
+placeOuter(scenes)
 
 // One shared deck state per window. Audience + presenter windows sync over BroadcastChannel.
 const idx = ref(0)
@@ -154,6 +156,11 @@ export function nestedVisible(i) {
   if (idx.value > p) return true
   if (idx.value < p) return false
   return step.value >= (sc.revealAt ?? 0)
+}
+
+/** Whether an outer layer (`outer` in deck.js) is shown: only once the deck has reached it. */
+export function outerVisible(i) {
+  return !scenes[i].outer || idx.value >= i
 }
 
 /** The step a scene at index i should render with, given where we are. */

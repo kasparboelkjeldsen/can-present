@@ -4,7 +4,7 @@
 //
 // While that scene is on stage, every other top-level card (not ghosts, not skip scenes) leaves its
 // place on the canvas and swings into a slot around it; nested cards ride along in their parent.
-// Skip and ghost cards fade out. Leaving the scene (or pressing O) sends everything home.
+// Skip, ghost and outer cards fade out. Leaving the scene (or pressing O) sends everything home.
 //
 // Shapes, all centred on the formation scene, slots in deck order:
 //   ring     an oval in the stage's proportions, its size fitted to the card count; `spin` orbits it
@@ -83,7 +83,7 @@ export function formationProblems(scenes, i) {
 /**
  * What each scene does while the formation is up: 'centre' (the formation scene), 'lead' (a top-level
  * card that moves to a slot), 'follow' (nested in a lead, moves with it), 'stay' (nested in the
- * formation scene), 'fade' (skip and ghost cards and what's nested in them; and leads without a slot).
+ * formation scene), 'fade' (skip, ghost and outer cards and what's nested in them; and leads without a slot).
  */
 export function formationRoles(scenes, fIdx) {
   const byId = new Map(scenes.map((s, i) => [s.id, i]))
@@ -96,7 +96,7 @@ export function formationRoles(scenes, fIdx) {
     if (i === fIdx) return 'centre'
     const root = rootOf(i)
     if (root === fIdx) return 'stay'
-    if (sc.ghost || sc.skip || scenes[root].ghost || scenes[root].skip || !sc.at || !scenes[root].at) return 'fade'
+    if (sc.ghost || sc.outer || sc.skip || scenes[root].ghost || scenes[root].skip || !sc.at || !scenes[root].at) return 'fade'
     return root === i ? 'lead' : 'follow'
   })
 }

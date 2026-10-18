@@ -9,13 +9,15 @@
 //   than `steps` allows (unreachable builds), a malformed `via`, malformed `frames` (keys that
 //   aren't build steps 1…steps, boxes that aren't { cx, cy, w } inside the card), a malformed
 //   `formation` (unknown shape or option, bad spin/cols/s/radius/points, a shape function that
-//   returns no { x, y }) or a formation scene that's nested or a ghost.
+//   returns no { x, y }) or a formation scene that's nested or a ghost, a malformed `outer.hole` (not a
+//   { cx, cy, w } box inside the card) or an outer scene with `at`, `parent`, `ghost` or `formation`.
 // WARN: fewer build steps used than `steps` (dead clicks), missing / empty / orphan notes,
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
 //   that don't exist yet in public/, a scene root without class "slide", a `via` that never
 //   plays or rides in from a scene far from its path, more than one formation scene (only the
 //   first counts), frames/via on the formation scene (ignored), points for fewer cards than move,
-//   a <QrCode> url literal that isn't http(s):// or mailto: (or a <QrCode> without a url).
+//   a <QrCode> url literal that isn't http(s):// or mailto: (or a <QrCode> without a url), outer layers
+//   whose total zoom (talk width ÷ outermost card width) is over 10,000×.
 //
 // Build steps are inferred from the SFC source (literal <Step :at/:until>, <BigNumber :at> and <QrCode :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
@@ -31,12 +33,14 @@ import { ROOT, DECKS_DIR } from '../engine/vite.js'
 import { validateVia } from '../engine/ride.js'
 import { validateFrames } from '../engine/frames.js'
 import { formationProblems, planFormation } from '../engine/formation.js'
+import { placeGhosts, placeOuter, talkBounds } from '../engine/layout.js'
 
 const W = 1920
 const H = 1080
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
 const OVERLAP_TOLERANCE = 12 // world px: cards may touch or graze, not overlap
 const NEST_TOLERANCE = 4 // world px
+const OUTER_MAX_RATIO = 10000 // talk width ÷ outermost card width: beyond this, 32-bit compositing gets shaky
 
 // ---------------------------------------------------------------- loading
 
@@ -306,7 +310,7 @@ export async function check(deckId, { json = false } = {}) {
     const id = sc.id ?? '(no id)'
     if (sc.parent != null && !seen.has(sc.parent)) add('error', id, `parent "${sc.parent}" doesn't exist`)
     if (!sc.component) add('error', id, 'no component')
-    if (sc.at == null && !(sc.ghost && sc.at === null)) add('error', id, 'no `at` (only a ghost may use at: null)')
+    if (sc.at == null && !(sc.ghost && sc.at === null) && sc.outer == null) add('error', id, 'no `at` (only a ghost may use at: null)')
 
     const file = sc.component && fileOf.get(sc.component)
     if (!file) {
@@ -377,9 +381,33 @@ export async function check(deckId, { json = false } = {}) {
     if (sc.skip) add('warn', id, 'formation on a skip scene: → and ← step over it, so it only plays from X or #id')
     if (sc.frames != null) add('warn', id, 'frames are ignored on the formation scene: the camera frames the formation')
     if (sc.via != null) add('warn', id, "via is ignored on the formation scene: its flight in is the formation's own")
-    const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].parent).length
+    const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].outer && !scenes[j].parent).length
     if (unplaced) add('warn', id, `formation: ${unplaced} card(s) have no point and fade out instead (points has ${sc.formation.points.length}, ${plan.n + unplaced} cards move)`)
   })
+
+  // outer layers: placed round the talk by the engine (layout.js placeOuter), each round the one before
+  const outers = scenes.filter((sc) => sc.outer != null)
+  let outerOk = true
+  for (const sc of outers) {
+    const id = sc.id ?? '(no id)'
+    const fail = (m) => { add('error', id, `outer: ${m}`); outerOk = false }
+    if (typeof sc.outer !== 'object' || Array.isArray(sc.outer)) { fail('must be an object, e.g. { hole: { cx: 1210, cy: 380, w: 36 } }'); continue }
+    for (const k of Object.keys(sc.outer)) if (k !== 'hole') fail(`unknown option "${k}" (outer is { hole: { cx, cy, w } })`)
+    if (sc.outer.hole == null) fail("needs a hole: { cx, cy, w }, the box in this card's 1920×1080 space that holds what it wraps")
+    else for (const p of validateFrames({ 1: sc.outer.hole }, 1)) fail(`hole${p.replace(/^1:/, ':')}`)
+    if (sc.at != null) fail("no `at`: the engine places an outer scene round what it wraps")
+    if (sc.parent != null) fail("an outer scene can't be nested (no `parent`): it wraps the talk")
+    if (sc.ghost) fail("an outer scene can't be a ghost")
+    if (sc.formation != null) fail("an outer scene can't have a formation")
+  }
+  if (outers.length && outerOk) {
+    placeGhosts(scenes)
+    placeOuter(scenes)
+    const talkW = talkBounds(scenes).w
+    const last = outers[outers.length - 1]
+    const ratio = (W * last.at.s) / talkW
+    if (ratio > OUTER_MAX_RATIO) add('warn', last.id, `outer layers: the outermost card is ${Math.round(ratio).toLocaleString('en')}× the talk's width (over ${OUTER_MAX_RATIO.toLocaleString('en')}×, the browser's 32-bit compositing gets shaky): make the holes bigger or use fewer layers`)
+  }
 
   // notes
   let notes = {}
@@ -396,7 +424,7 @@ export async function check(deckId, { json = false } = {}) {
   for (const key of Object.keys(notes)) if (!seen.has(key)) add('warn', key, 'notes.json entry with no scene')
 
   // layout
-  const top = scenes.filter((sc) => sc.at && !sc.parent && !sc.ghost)
+  const top = scenes.filter((sc) => sc.at && !sc.parent && !sc.ghost && sc.outer == null)
   for (let i = 0; i < top.length; i++) {
     for (let j = i + 1; j < top.length; j++) {
       const d = overlapDepth(corners(top[i].at), corners(top[j].at))

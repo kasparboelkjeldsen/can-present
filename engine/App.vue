@@ -1,6 +1,7 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { useDeck, stepFor, nestedVisible } from './useDeck.js'
+import { useDeck, stepFor, nestedVisible, outerVisible } from './useDeck.js'
+import { talkBounds } from './layout.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './camera.js'
 import { cam } from './cameraState.js'
 import { validateVia, sampleVia, planRide } from './ride.js'
@@ -48,20 +49,10 @@ function viewFor(i, s = 0) {
   return f ? frameView(p, f.box) : { x: p.x, y: p.y, w: W * p.s, r: p.r }
 }
 
+// the whole talk: ghosts and outer layers don't count (layout.js, shared with the first outer layer)
 function overviewView() {
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  for (const sc of scenes) {
-    if (sc.ghost) continue
-    const p = place(sc)
-    const a = (p.r * Math.PI) / 180
-    const hw = (W / 2) * p.s, hh = (H / 2) * p.s
-    const ex = Math.abs(Math.cos(a)) * hw + Math.abs(Math.sin(a)) * hh
-    const ey = Math.abs(Math.sin(a)) * hw + Math.abs(Math.cos(a)) * hh
-    minX = Math.min(minX, p.x - ex); maxX = Math.max(maxX, p.x + ex)
-    minY = Math.min(minY, p.y - ey); maxY = Math.max(maxY, p.y + ey)
-  }
-  const bw = maxX - minX, bh = maxY - minY
-  return { x: (minX + maxX) / 2, y: (minY + maxY) / 2, w: Math.max(bw, (bh * W) / H) * 1.12, r: 0 }
+  const b = talkBounds(scenes)
+  return { x: b.x, y: b.y, w: Math.max(b.w, (b.h * W) / H) * 1.12, r: 0 }
 }
 
 // ---------- camera ----------
@@ -276,17 +267,24 @@ const worldStyle = computed(() => ({
 // (Not on a card the formation moves: the delay would hold back its transform too.)
 const revealStyle = (sc, i) => (sc.revealDelay && nestedVisible(i) && !fx?.transforms[i] ? { transitionDelay: sc.revealDelay + 'ms' } : null)
 
+// outer layers paint under the talk, and each under the one it wraps
+const outerZ = (() => {
+  let k = 0
+  return scenes.map((sc) => (sc.outer ? -1 - k++ : null))
+})()
+
 function sceneStyle(sc, i) {
   if (fx?.transforms[i]) return formationStyle(i)
   const p = place(sc)
-  return { transform: `translate(${p.x - W / 2}px, ${p.y - H / 2}px) rotate(${p.r}deg) scale(${p.s})` }
+  const transform = `translate(${p.x - W / 2}px, ${p.y - H / 2}px) rotate(${p.r}deg) scale(${p.s})`
+  return outerZ[i] != null ? { transform, zIndex: outerZ[i] } : { transform }
 }
 const fxClass = (i) => {
   if (!fx) return null
   const role = fx.roles[i]
   if (role === 'lead' || role === 'follow') return { 'fx-mover': true, 'fx-spin': formation.spin }
   if (role === 'centre') return { 'fx-centre': formation.formed }
-  if (role === 'fade') return { 'fx-gone': formation.formed && !scenes[i].ghost }
+  if (role === 'fade') return { 'fx-gone': formation.formed && !scenes[i].ghost && !scenes[i].outer }
   return null
 }
 
@@ -346,6 +344,8 @@ function pick(i) {
             'is-nested': !!sc.parent,
             'is-hidden': !nestedVisible(i),
             'is-ghost': sc.ghost,
+            'is-outer': !!sc.outer,
+            'is-unreached': !outerVisible(i),
             'is-skip': sc.skip,
           }, fxClass(i)]"
           :style="[sceneStyle(sc, i), revealStyle(sc, i)]"
@@ -429,6 +429,12 @@ function pick(i) {
 .scene.is-ghost { box-shadow: none; border-radius: 0; transition: opacity 1.2s; z-index: 10; }
 .scene.is-ghost:not(.is-active) { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1.2s, visibility 0s 1.2s; }
 .overview .scene.is-ghost .scene-label { display: none; }
+/* outer layers (`outer` in deck.js): text written on the canvas round the talk, so no card shadow
+   or corners (the scene draws no background); they only exist once the deck has reached them */
+.scene.is-outer { box-shadow: none; border-radius: 0; transition: opacity 1s; }
+.scene.is-outer.is-unreached { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1s, visibility 0s 1s; }
+.scene.is-outer .scene-label { display: none; }
+.overview .scene.is-outer { pointer-events: none; }
 
 /* the formation (engine/formation.js): moving cards glide on a transform transition whose timing
    App sets per card and per move (--fx-dur, --fx-delay, --fx-ease); a spinning formation orbits by
