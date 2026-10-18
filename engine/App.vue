@@ -2,11 +2,13 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck, stepFor, nestedVisible } from './useDeck.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './camera.js'
+import { validateVia, sampleVia, planRide } from './ride.js'
 import SceneFrame from './SceneFrame.vue'
+import RidePill from './RidePill.vue'
 
 const W = 1920
 const H = 1080
-const { scenes, idx, step, overview, blackout, go, maxStep, reset } = useDeck()
+const { scenes, idx, step, overview, blackout, go, maxStep, prevIndex, reset } = useDeck()
 
 // ---------- world placement ----------
 const place = (sc) => ({ x: sc.at?.x ?? 0, y: sc.at?.y ?? 0, s: sc.at?.s ?? 1, r: sc.at?.r ?? 0 })
@@ -40,6 +42,7 @@ let raf = 0
 
 function flyTo(t) {
   cancelAnimationFrame(raf)
+  endRide()
   const from = { ...cam }
   const interp = interpolateZoom([from.x, from.y, from.w], [t.x, t.y, t.w])
   const toR = shortestAngle(from.r, t.r)
@@ -56,7 +59,73 @@ function flyTo(t) {
   }
   raf = requestAnimationFrame(tick)
 }
-watch(target, flyTo)
+
+// ---------- rides (`via` in deck.js, engine/ride.js) ----------
+// The flight into a scene with `via` from the previous scene in deck order follows its path, and
+// ← from it plays the same ride backwards. Every other move (overview, hash jumps, Home/End, X,
+// skipping over it, a new move while a ride runs) is a normal flight from wherever the camera is.
+const reducedMotion = typeof matchMedia === 'function' ? matchMedia('(prefers-reduced-motion: reduce)') : null
+const validVia = scenes.map((sc) => {
+  if (sc.via == null) return false
+  const problems = validateVia(sc.via)
+  if (problems.length) console.warn(`[can-present] scene "${sc.id}": via ignored: ${problems.join('; ')}`)
+  return !problems.length
+})
+function rideBetween(from, to) {
+  if (validVia[to] && prevIndex(to) === from) return { via: scenes[to].via, back: false }
+  if (validVia[from] && prevIndex(from) === to) return { via: scenes[from].via, back: true }
+  return null
+}
+
+// the pill rides in the world layer; RidePill reads this object, so App doesn't re-render per frame
+const pill = reactive({ on: false, fading: false, label: '', tone: 'ink', x: 0, y: 0, r: 0, s: 1, k: 1, op: 0 })
+let riding = false
+let fadeTimer = 0
+function endRide() {
+  if (riding && pill.on && pill.op > 0) {
+    // cut short by a new move: the pill fades where it is while the camera flies off
+    Object.assign(pill, { fading: true, op: 0 })
+    fadeTimer = setTimeout(() => Object.assign(pill, { on: false, fading: false }), 300)
+  } else if (!pill.fading) pill.on = false
+  riding = false
+}
+
+function rideTo(t, via, back) {
+  cancelAnimationFrame(raf)
+  let plan
+  try {
+    plan = planRide(sampleVia(via, back), { ...cam }, t)
+  } catch (e) {
+    console.warn('[can-present] ride failed, flying normally:', e)
+    return flyTo(t)
+  }
+  const v = plan.via
+  riding = true
+  clearTimeout(fadeTimer)
+  Object.assign(pill, { on: !!v.label, fading: false, label: v.label, tone: v.tone, r: v.space.r, s: v.space.s, op: 0, k: 0.6 })
+  const t0 = performance.now()
+  flying.value = true
+  const tick = (now) => {
+    const f = plan.at((now - t0) / 1000)
+    cam.x = f.x; cam.y = f.y; cam.w = f.w; cam.r = f.r
+    if (f.pill) { pill.x = f.pill.x; pill.y = f.pill.y; pill.op = f.pill.op; pill.k = f.pill.k }
+    else pill.op = 0
+    if (!f.done) raf = requestAnimationFrame(tick)
+    else { flying.value = false; endRide(); Object.assign(cam, t) }
+  }
+  raf = requestAnimationFrame(tick)
+}
+
+let last = { idx: idx.value, overview: overview.value }
+watch(target, (t) => {
+  const from = last
+  last = { idx: idx.value, overview: overview.value }
+  const ride = !riding && !from.overview && !overview.value && from.idx !== idx.value && !reducedMotion?.matches
+    ? rideBetween(from.idx, idx.value)
+    : null
+  if (ride) rideTo(t, ride.via, ride.back)
+  else flyTo(t)
+})
 
 // Dot grid drawn on the (untransformed) stage and moved with the camera: cheap at any zoom.
 const gridStyle = computed(() => {
@@ -97,6 +166,11 @@ onMounted(() => {
   addEventListener('mousemove', poke)
   setTimeout(() => (showHint.value = false), 5000)
   poke()
+  // measure the ride paths now, so the first ride doesn't spend its first frame on it
+  setTimeout(() => scenes.forEach((sc, i) => {
+    if (!validVia[i]) return
+    try { sampleVia(sc.via); sampleVia(sc.via, true) } catch (e) { console.warn(`[can-present] scene "${sc.id}": via path:`, e) }
+  }), 300)
 })
 onBeforeUnmount(() => {
   removeEventListener('resize', resize)
@@ -145,6 +219,7 @@ function pick(i) {
           />
           <div class="scene-label"><b>{{ i + 1 }}</b> {{ sc.title ?? sc.id }}<i v-if="sc.skip"> (fallback)</i></div>
         </div>
+        <RidePill :pill="pill" />
       </div>
 
       <div class="progress" :style="{ transform: `scaleX(${progress})` }" />

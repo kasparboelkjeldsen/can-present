@@ -136,7 +136,7 @@ function onKey(e) {
 window.addEventListener('keydown', onKey)
 
 export function useDeck() {
-  return { scenes, idx, step, current, overview, blackout, go, next, prev, maxStep, nextIndex, reset, resets }
+  return { scenes, idx, step, current, overview, blackout, go, next, prev, maxStep, nextIndex, prevIndex, reset, resets }
 }
 
 /**

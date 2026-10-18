@@ -74,10 +74,11 @@ engine/                     the engine (talk-agnostic)
   useStep.js Step.vue       build steps inside a scene
   useCount.js               animated numbers
   camera.js layout.js       camera maths; nest() and the ghost "covers the canvas" placement
+  ride.js RidePill.vue      `via` rides: a flight that follows a path with a pill at the centre of the screen
   notes.js signals.js
   SceneFrame.vue ScenePreview.vue
   components/Code.vue Shot.vue BigNumber.vue Diagram.vue
-  diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js
+  diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js; ride()
   styles/engine.css         base styles, <Step> and .rise/.fade-in animations, engine tokens with defaults
   vite.js                   deck selection and the dev-server plugins (used by vite.config.js)
 decks/
@@ -143,6 +144,7 @@ Then run it with `npm run deck -- dev <id>`, or make it the default in `package.
    - Nest a scene inside another with `at: nest(parentAt, { cx, cy, w })` (from `@engine/layout.js`) and `parent: '<id>'`. `revealAt` makes it wait for a build step of the parent; `revealDelay` (ms) delays its fade-in.
    - `skip: true` steps over it in normal navigation (X or `#id` still reaches it).
    - `ghost: true` with `at: null` hovers over the whole canvas and only shows while on stage.
+   - `via` makes the flight into the scene ride a path, usually a diagram edge (see **Rides** under "Building blocks").
 3. For builds, use `<Step :at="n" anim="up|down|left|right|pop|blur|fade|dim">`, or `useStep()` for custom logic.
    Add `class="rise"` (plus `style="--d: n"` to stagger) or `fade-in` for entrance animations that replay each time the scene comes on stage, or hook `.is-active` in scene CSS.
 
@@ -155,8 +157,8 @@ npm run -s check -- [deck] --json # the same findings as JSON
 
 A text lint that loads `deck.js` through Vite, the way the app does, and reads each scene's source. It prints `ERROR  <scene-id>  <message>` or `WARN …` lines and a summary, and exits 1 if there are errors.
 
-- **Errors:** duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable).
-- **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`.
+- **Errors:** a `deck.js` that doesn't load (e.g. `ride()` with an edge index the diagram doesn't have, or `defineDiagram()` with an unknown node), duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable), a malformed `via` (no path, a path that isn't SVG path data, no `space`, an unknown option, a `zoom`, `speed`, `bank` or `tone` out of range).
+- **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`, a `via` that never plays (on the first scene or on a `skip` scene), a `via` whose previous scene isn't the path's scene or nested in it (a ride from far away looks odd), a `via` whose `space` isn't any scene's `at` (so that can't be checked).
 
 Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, `<BigNumber :at="n">`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked. A scene that draws a `<Diagram>` takes its steps from the diagram (`steps: arch.steps` in `deck.js`), so it's listed under "Build steps from a <Diagram>" and not compared.
 
@@ -240,6 +242,28 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
   | slot | `node`, `cx`, `cy` (centre, relative to the node's top-left), `w` (16:9, so `h = w × 9/16`). Drawn as a dark translucent box that appears with its node: the place for a nested scene |
 
   `defineDiagram()` throws a clear error for an unknown node id in an edge, packet or slot, a missing `x`/`y`/`w`/`h`, or an unknown tone. Its helpers: `steps` (steps mode: the highest node or edge `at`; 0 in timer mode), `slot(name)` → `{ cx, cy, w, h }` in the scene's space (for `nest()`), `revealAt(id)` → the step a node appears on, `revealDelay(id)` → timer mode: the ms at which the node's stage appears, plus 150. Every part has a zero-specificity class (`.dg-node`, `.dg-node--accent`, `.dg-label`, `.dg-sub`, `.dg-slot`, `.dg-line`, `.dg-elabel`, `.dg-packet`), so a theme can restyle it.
+- **Rides** (`via` in `deck.js`, `ride()` from `@engine/diagram.js`): the camera *becomes* a packet. Instead of zooming out, panning and zooming back in, the flight into a scene flies to the start of a path at close range, follows it (curves, elbows) at a constant speed with a pill riding at the centre of the screen, and then dives into the scene. It reads as one continuous motion, 1.5–4 s in total.
+
+  ```js
+  import { ride } from '@engine/diagram.js'
+  { id: 'inside', …, parent: 'arch', at: nest(ARCH, arch.slot('inside')),
+    via: ride(arch, 0, ARCH, { label: 'scenes', zoom: 2.2 }) },
+  // any SVG path, in the local 1920×1080 space of a card placed at `space`:
+  { id: 'other', …, via: { path: 'M200 800 C600 200 1200 900 1700 300', space: ARCH, label: 'GET /' } },
+  ```
+
+  `ride(diagram, edgeIndex, parentAt, opts)` rides edge `edgeIndex` of a `defineDiagram()` diagram drawn by the scene placed at `parentAt` (the same transform as `nest()`). It throws for an edge the diagram doesn't have, and returns the lower-level form, `{ path, space, …opts }`.
+
+  | Option | Default | |
+  |---|---|---|
+  | `label` | none | the pill's text; no label, no pill |
+  | `zoom` | `2` | how close the camera rides: the path's card's on-screen scale (1 = the card fills the screen) |
+  | `reverse` | `false` | ride the path from its end (an edge from `to` to `from`) |
+  | `tone` | `'ink'` | pill colour, like packets: `'ink'`, `'paper'`, `'accent'`, `'accent-2'`. The pill uses the packet classes (`.dg-packet`, `.dg-packet--<tone>`), so a theme that restyles packets restyles it |
+  | `speed` | `400` | card px per second along the path (the path's own 1920×1080 units); the total is then fitted into 1.5–4 s |
+  | `bank` | `0` | degrees the camera leans into turns (a few at most; -15 to 15 allowed) |
+
+  When it plays: `via` is the flight **into** its scene from the previous scene in deck order (skip scenes are stepped over, as with →), and ← from it plays the same ride backwards. Every other move (overview, a click there, the URL hash from elsewhere, Home/End, X, skipping over it) is a normal flight, and so is a move made while a ride runs: the ride is cut short, its pill fades and the camera flies from wherever it is. With `prefers-reduced-motion` the flight is always normal, and the presenter view and `?sheet` never ride. The real packets on the edge keep flowing, so give the ride pill its own tone or label.
 - `@engine/useCount.js`: `useCount(trigger, from, to, { duration, delay, decimals })` returns a ref with an animated number that re-runs whenever `trigger` (a ref or getter, e.g. the scene's `active`) becomes true. `useCounter(…)` takes the same arguments and returns `{ value, progress }`, with `progress` the eased 0…1 of the run (what `<BigNumber>`'s ring follows).
 - `docs/presentation-guide.md` plus the deck's `brief.md`: hand both to Claude chat when writing a talk; it produces a `scene-description.md` for the coding agent.
 

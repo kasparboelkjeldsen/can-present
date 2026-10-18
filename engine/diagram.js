@@ -179,3 +179,28 @@ export function defineDiagram(def) {
     },
   }
 }
+
+/**
+ * A `via` for deck.js that rides edge `edgeIndex` of `diagram`: the flight into the scene follows
+ * the edge's line with a pill at the centre of the screen (engine/ride.js). `parentAt` is where
+ * the scene that draws the diagram is placed (the same transform nest() uses).
+ *
+ *   { id: 'inside', …, via: ride(arch, 0, ARCH, { label: 'scenes', zoom: 2.2 }) }
+ *
+ * opts: label (pill text; none = no pill), zoom (the card's on-screen scale while riding, default 2),
+ * reverse (ride the edge from its `to` end), tone ('ink' | 'paper' | 'accent' | 'accent-2'),
+ * speed (card px per second, default 480), bank (degrees the camera leans into turns, default 0).
+ */
+export function ride(diagram, edgeIndex, parentAt, opts = {}) {
+  const fail = (msg) => { throw new Error(`ride(): ${msg}`) }
+  if (!diagram?.edges || !diagram?.nodes) fail('the first argument must be a diagram made with defineDiagram()')
+  const e = diagram.edges[edgeIndex]
+  if (!Number.isInteger(edgeIndex) || !e) {
+    const list = diagram.edges.map((x, i) => `${i}: ${x.from} → ${x.to}`).join(', ')
+    fail(`edge must be the index of an edge (${list || 'the diagram has no edges'}), got ${JSON.stringify(edgeIndex)}`)
+  }
+  if (!parentAt || typeof parentAt !== 'object') fail('the third argument must be the placement of the scene that draws the diagram (its `at`)')
+  if (opts == null || typeof opts !== 'object') fail('opts must be an object ({ label, zoom, reverse, tone, speed, bank })')
+  for (const k of ['path', 'space', 'edge']) if (k in opts) fail(`"${k}" is set by ride() itself`)
+  return { ...opts, path: e.d, space: parentAt, edge: `${edgeIndex} (${e.from} → ${e.to})` }
+}

@@ -4,11 +4,13 @@
 // missing screenshots) without a browser. It loads deck.js exactly as the app does, through
 // Vite (middleware mode + ssrLoadModule), then reads each scene's SFC source.
 //
-// ERROR (exit code 1): duplicate / non-kebab-case ids, unknown parent, missing component or
-//   placement, more build steps used than `steps` allows (unreachable builds).
+// ERROR (exit code 1): deck.js that doesn't load (e.g. ride() with an unknown edge), duplicate /
+//   non-kebab-case ids, unknown parent, missing component or placement, more build steps used
+//   than `steps` allows (unreachable builds), a malformed `via`.
 // WARN: fewer build steps used than `steps` (dead clicks), missing / empty / orphan notes,
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
-//   that don't exist yet in public/, a scene root without class "slide".
+//   that don't exist yet in public/, a scene root without class "slide", a `via` that never
+//   plays or rides in from a scene far from its path.
 //
 // Build steps are inferred from the SFC source (literal <Step :at/:until> and <BigNumber :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
@@ -20,6 +22,7 @@ import path from 'node:path'
 import { createServer } from 'vite'
 import { parse } from 'vue/compiler-sfc'
 import { ROOT, DECKS_DIR } from '../engine/vite.js'
+import { validateVia } from '../engine/ride.js'
 
 const W = 1920
 const H = 1080
@@ -242,10 +245,20 @@ function assetRefs(src) {
 export async function check(deckId, { json = false } = {}) {
   process.env.DECK = deckId
   const deckDir = path.join(DECKS_DIR, deckId)
-  const { deck, fileOf } = await loadDeck(deckDir)
-  const scenes = deck.scenes ?? []
   const findings = []
   const add = (level, scene, message) => findings.push({ level, scene, message })
+  let deck, fileOf
+  try {
+    ({ deck, fileOf } = await loadDeck(deckDir))
+  } catch (e) {
+    // e.g. defineDiagram() or ride() throwing on a bad reference: report it like any other error
+    add('error', '(deck)', `deck.js doesn't load: ${e.message.split('\n')[0]}`)
+    const result = { deck: deckId, scenes: 0, errors: 1, warnings: 0, findings, steps: {} }
+    if (json) console.log(JSON.stringify(result, null, 2))
+    else console.log(`ERROR  (deck)  ${findings[0].message}\n\ncheck ${deckId}: 1 error, 0 warnings`)
+    return result
+  }
+  const scenes = deck.scenes ?? []
   const rel = (f) => path.relative(deckDir, f).split(path.sep).join('/')
 
   // ids
@@ -286,6 +299,28 @@ export async function check(deckId, { json = false } = {}) {
     const hasSlide = cls?.literal && cls.src.split(/\s+/).includes('slide')
     if (!hasSlide) add('warn', id, `template root <${root?.tag ?? '?'}> in ${rel(file)} has no class "slide"`)
   }
+
+  // rides: `via` is the flight in from the previous scene (skip scenes are stepped over)
+  const sameAt = (a, b) => a && b && a.x === b.x && a.y === b.y && (a.s ?? 1) === (b.s ?? 1) && (a.r ?? 0) === (b.r ?? 0)
+  scenes.forEach((sc, i) => {
+    if (sc.via == null) return
+    const id = sc.id ?? '(no id)'
+    const problems = validateVia(sc.via)
+    for (const p of problems) add('error', id, `via: ${p}`)
+    if (problems.length) return
+    let prev = -1
+    for (let j = i - 1; j >= 0; j--) if (!scenes[j].skip) { prev = j; break }
+    if (sc.skip) { add('warn', id, 'via on a skip scene never plays: → and ← step over it, X and #id fly normally'); return }
+    if (prev < 0) { add('warn', id, 'via on the first scene never plays: a ride is the flight in from the previous scene'); return }
+    // the path's own scene: the one placed at `space` (ride(diagram, edge, parentAt) passes the parent's `at`)
+    const owner = scenes.find((s) => sameAt(s.at, sc.via.space))
+    const p = scenes[prev]
+    const near = owner
+      ? p === owner || p.parent === owner.id || owner.parent === p.id || (owner.parent && p.parent === owner.parent)
+      : (sc.parent && (p.id === sc.parent || p.parent === sc.parent))
+    if (!owner) add('warn', id, "via: space isn't the `at` of any scene, so the ride's start can't be checked (pass the parent scene's `at`)")
+    else if (!near) add('warn', id, `via: the ride starts from "${p.id}", which isn't "${owner.id}" (the path's scene) or nested in it: a ride from far away looks odd`)
+  })
 
   // notes
   let notes = {}
