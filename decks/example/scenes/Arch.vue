@@ -3,6 +3,8 @@
 // which takes `steps: arch.steps` from it and nests the `inside` scene in arch.slot('inside').
 // Each node pops in on its step; lines draw once both their boxes are there; packets then loop.
 // A #node-<id> slot replaces a box's default label/sub (slot props: { node, shown }).
+// deck.js rides two of the edges into the nested scenes (via: ride(arch, 0, ARCH, …)): the camera
+// follows the line with a pill instead of zooming out and back in.
 import Diagram from '@engine/components/Diagram.vue'
 import { arch } from './arch.js'
 </script>
@@ -13,9 +15,7 @@ import { arch } from './arch.js'
     <h2 class="h2">How a deck runs</h2>
     <Diagram :diagram="arch">
       <template #node-browser="{ node }">
-        <div class="dg-label">{{ node.label }}</div>
-        <div class="dg-sub">{{ node.sub }}</div>
-        <div class="keys"><kbd>→</kbd><kbd>O</kbd></div>
+        <div class="dg-label">{{ node.label }} <span class="keys"><kbd>→</kbd><kbd>O</kbd></span></div>
       </template>
     </Diagram>
   </div>
@@ -23,6 +23,6 @@ import { arch } from './arch.js'
 
 <style scoped>
 .arch { padding: 100px 140px; gap: 28px; }
-.keys { display: flex; gap: 10px; margin-top: 8px; }
+.keys { display: inline-flex; gap: 10px; margin-left: 10px; vertical-align: 4px; }
 kbd { padding: 2px 14px; border-radius: 10px; background: var(--deck-accent); color: var(--deck-on-accent); font: 700 26px var(--mono); }
 </style>

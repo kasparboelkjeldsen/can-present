@@ -51,6 +51,7 @@ Start from the `theme.css` the template wrote. It already sets every token and t
 | Big number, counting, with a ring | `@engine/components/BigNumber.vue` (`:to`, `ring`, `:at`, `format`, `suffix`, `label`) | `decks/example/scenes/Stat.vue` |
 | Code walkthrough | `@engine/components/Code.vue` with `:focus` and `:callouts` | `decks/example/scenes/Walkthrough.vue` |
 | Diagram, wires, packets, dives | `defineDiagram()` from `@engine/diagram.js` in a `.js` file next to the scene, drawn with `@engine/components/Diagram.vue`; deck.js uses the same definition (`steps: arch.steps`, `nest(…, arch.slot('x'))`, `revealAt` / `revealDelay`) | `decks/example/scenes/Arch.vue` + `arch.js`, nested: `Inside.vue` |
+| Ride a wire / follow the request into a scene | `via: ride(diagram, edgeIndex, PARENT_AT, { label, zoom, tone })` on the scene the line leads into (import `ride` from `@engine/diagram.js`); `via: { path, space }` for a hand-drawn path. The previous scene should be the diagram or a scene nested in it | `decks/example/deck.js` (`inside`, `canvas`) |
 | Screenshot(s), tilted | `@engine/components/Shot.vue` with `src="/shots/x.png"` (placeholder until the file exists) | `decks/example/scenes/Screens.vue` |
 | Live site / launch card | `<Shot live="…">` / `<Shot live="…" external>` | `decks/example/scenes/Live.vue`; launch card: pattern index `LiveDemo.vue` |
 | Looping illustration | inline SVG + CSS keyframes in the scene, coloured with `--deck-*` tokens | `decks/example/scenes/Loop.vue` |
