@@ -136,7 +136,7 @@ pre { margin: 0; padding: 30px 0; font: 400 var(--fs) / var(--lh) var(--mono); c
   background: none;
   color: #fff;
   font-weight: 700;
-  text-decoration: underline wavy var(--deck-accent-2);
+  text-decoration: underline wavy var(--code-mark);
   text-decoration-thickness: 4px;
   text-underline-offset: 10px;
 }

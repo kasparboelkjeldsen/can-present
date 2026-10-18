@@ -21,6 +21,7 @@
   --deck-accent-2: var(--coral);
   --code-bg: #141a26;
   --code-line-hot: rgba(255, 179, 71, 0.1);
+  --code-mark: var(--mint);   /* the underline on a focused token: the same green as the payoff callout */
   --display-font: var(--sans); /* <BigNumber>'s number */
 }
 

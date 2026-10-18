@@ -133,8 +133,9 @@ Then run it with `npm run deck -- dev <id>`, or make it the default in `package.
 | `--deck-ink` | dark UI: default text, reset button, window frames, launch cards, code callout text |
 | `--deck-paper` | light UI: text on ink buttons, code callout background |
 | `--deck-accent` / `--deck-on-accent` | highlights (overview labels, key hints, timer, progress start, live-site ring, code keywords) and text on them |
-| `--deck-accent-2` | progress bar end, error text on /notes, wavy underline on a focused code token |
+| `--deck-accent-2` | progress bar end, error text on /notes, and the wavy underline on a focused code token unless `--code-mark` is set |
 | `--code-bg` / `--code-line-hot` | `<Code>` background and focused-line background |
+| `--code-mark` | optional: the wavy underline on a focused code token (default `--deck-accent-2`); match it to your `callout--green` so it doesn't read as a lint error |
 | `--sans` `--serif` `--mono` `--ease-out` `--ease-spring` `--radius` | type and motion |
 | `--display-font` | font of `<BigNumber>`'s number (optional; unset, it inherits the slide's font) |
 

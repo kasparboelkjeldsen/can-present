@@ -30,6 +30,7 @@
   --deck-accent-2: var(--rose);
   --code-bg: #101217;
   --code-line-hot: rgba(255, 120, 73, 0.12);
+  --code-mark: var(--mint);   /* the underline on a focused token: the same green as the payoff callout */
 
   /* type and motion. Fonts: import a @fontsource package in deck.js and name it here */
   --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;

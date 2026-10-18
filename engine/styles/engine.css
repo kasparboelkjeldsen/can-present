@@ -12,11 +12,12 @@
   --deck-paper: #f4f4f1;         /* light UI: text on ink, code callouts */
   --deck-accent: #5b8cff;        /* highlights: overview labels, keys, timer, progress start, live-site ring */
   --deck-on-accent: #ffffff;     /* text on the accent */
-  --deck-accent-2: #ff6b6b;      /* progress end, error text, wavy underline on a focused code token */
+  --deck-accent-2: #ff6b6b;      /* progress end, error text */
 
   /* <Code> */
   --code-bg: #1f2024;
   --code-line-hot: rgba(91, 140, 255, 0.1); /* background of a focused line */
+  --code-mark: var(--deck-accent-2); /* wavy underline on a focused token */
 
   --serif: Georgia, 'Times New Roman', serif;
   --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
