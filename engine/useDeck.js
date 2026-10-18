@@ -1,6 +1,11 @@
 import { ref, computed, watch } from 'vue'
-import { scenes } from '@deck/deck.js'
+import deck from '@deck/deck.js'
 import { resets } from './signals.js'
+import { placeGhosts } from './layout.js'
+
+const scenes = deck.scenes
+// ghost scenes with `at: null` get a placement that covers the whole canvas
+placeGhosts(scenes)
 
 // One shared deck state per window. Audience + presenter windows sync over BroadcastChannel.
 const idx = ref(0)
@@ -56,14 +61,14 @@ watch([idx, step], () => {
 // Two transports, same messages:
 //  • BroadcastChannel – windows/tabs in the same browser (works in the built version too)
 //  • Vite dev-server websocket – other devices on the network (phone/tablet as notes screen),
-//    relayed by the `deck-sync` plugin in vite.config.js. Only exists under `npm run dev`.
+//    relayed by the `deck-sync` plugin in engine/vite.js. Only exists under `npm run dev`.
 // Every message carries a sender id + sequence number so duplicates/echoes are dropped.
 const clientId = Math.random().toString(36).slice(2)
 const lastSeen = {}
 let seq = 0
 let receiving = false
 
-const channel = 'BroadcastChannel' in window ? new BroadcastChannel('shovel-deck') : null
+const channel = 'BroadcastChannel' in window ? new BroadcastChannel(`can-present:${deck.id}`) : null
 const hot = import.meta.hot
 
 function post(msg) {
@@ -125,7 +130,7 @@ function onKey(e) {
     document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen()
   }
   else if (k === 'p' || k === 'P') {
-    window.open(`${location.pathname}?presenter${location.hash}`, 'shovel-presenter', 'width=1400,height=850')
+    window.open(`${location.pathname}?presenter${location.hash}`, `can-present:${deck.id}:presenter`, 'width=1400,height=850')
   }
 }
 window.addEventListener('keydown', onKey)
@@ -135,8 +140,12 @@ export function useDeck() {
 }
 
 /**
- * Nested scenes (`parent` + `revealAt` in deck.js) only show up once their parent
- * has reached that build step — otherwise they'd sit in boxes the diagram hasn't drawn yet.
+ * Whether a nested scene (one with a `parent` in deck.js) is shown. It's hidden while the
+ * deck is before its parent, and while the parent is on stage it waits until the parent has
+ * reached build step `revealAt` (default 0) — otherwise it'd sit in a box the diagram hasn't
+ * drawn yet. Once past the parent (or in overview) it's always shown.
+ * Timing is separate: `revealDelay` (ms) delays the fade-in itself, so a nested scene can
+ * appear in step with a parent that animates without build steps (applied in App.vue).
  */
 export function nestedVisible(i) {
   const sc = scenes[i]

@@ -6,11 +6,21 @@
 //   at       → place on the canvas: x/y = centre in world px, r = rotation (deg), s = scale
 //   parent / revealDelay → scene sits inside a slot of `parent`; fades in that many ms after the parent comes on stage
 //   skip     → stepped over by next/prev (reachable via #id or the X key)
-//   ghost    → only visible while on stage (the takeaway that hovers over the whole canvas)
+//   ghost    → only visible while on stage (the takeaway that hovers over the whole canvas;
+//              with `at: null` the engine places it over everything)
 //   (speaker notes live in notes.json, keyed by id — edit them on /notes)
 //
 // Canvas regions: Umbraco side (x < -2000) · the bridge (around x = 0) · WordPress side (x > 2000)
 // ------------------------------------------------------------------
+// Bundled locally (not Google Fonts) so the deck works without venue wifi.
+import '@fontsource/libre-caslon-text/400.css'
+import '@fontsource/libre-caslon-text/400-italic.css'
+import '@fontsource/dm-sans/400.css'
+import '@fontsource/dm-sans/700.css'
+import '@fontsource/jetbrains-mono/400.css'
+import '@fontsource/jetbrains-mono/700.css'
+import './theme.css'
+
 import Title from './scenes/Title.vue'
 import TheAsk from './scenes/TheAsk.vue'
 import Iframe from './scenes/Iframe.vue'
@@ -37,7 +47,7 @@ import { SLOTS, nest, REVEAL_MS } from './scenes/map/geometry.js'
 
 const MAP = { x: 0, y: 2700, s: 1.5 }
 
-export const scenes = [
+const scenes = [
   // ---------------- Act 1: out to WordPress land ----------------
   {
     id: 'title', title: 'Title', component: Title,
@@ -127,7 +137,7 @@ export const scenes = [
   },
   {
     id: 'control-plane', title: 'The takeaway', component: ControlPlane, ghost: true,
-    at: null, // computed below: covers the whole canvas
+    at: null, // the engine centres it on the canvas, big enough to cover every scene
   },
   {
     id: 'thanks', title: 'Thanks', component: Thanks,
@@ -135,16 +145,9 @@ export const scenes = [
   },
 ]
 
-// The takeaway hovers over everything: centred on the canvas, big enough to cover it.
-{
-  let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
-  for (const sc of scenes) {
-    if (!sc.at) continue
-    const s = sc.at.s ?? 1
-    minX = Math.min(minX, sc.at.x - 960 * s); maxX = Math.max(maxX, sc.at.x + 960 * s)
-    minY = Math.min(minY, sc.at.y - 540 * s); maxY = Math.max(maxY, sc.at.y + 540 * s)
-  }
-  const ghost = scenes.find((s) => s.ghost)
-  const s = Math.max((maxX - minX) / 1920, (maxY - minY) / 1080) * 1.08
-  ghost.at = { x: (minX + maxX) / 2, y: (minY + maxY) / 2, s }
+export default {
+  id: 'shovelling-umbraco',
+  title: "Shovelling Umbraco Into Other People's WordPress",
+  icon: '🪏',
+  scenes,
 }

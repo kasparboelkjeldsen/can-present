@@ -105,22 +105,22 @@ const callout = computed(() => {
 .code {
   position: relative;
   border-radius: 24px;
-  background: var(--k-dark-deep);
+  background: var(--code-bg);
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3), inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 .title {
   padding: 16px 32px;
   font: 700 22px var(--mono);
-  color: var(--k-green);
+  color: var(--deck-accent);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .body { position: relative; }
 pre { margin: 0; padding: 30px 0; font: 400 var(--fs) / var(--lh) var(--mono); color: #ecebe6; overflow: hidden; border-radius: 0 0 24px 24px; }
 .line { display: block; padding: 0 40px 0 0; transition: opacity 0.4s, background 0.4s; }
 .line.dim { opacity: 0.25; }
-.line.hot { background: rgba(195, 242, 64, 0.08); box-shadow: inset 6px 0 0 var(--k-green); }
+.line.hot { background: var(--code-line-hot); box-shadow: inset 6px 0 0 var(--deck-accent); }
 .ln { display: inline-block; width: 3.2em; padding-right: 1.1em; text-align: right; color: #6d6b66; user-select: none; }
-:deep(.k) { color: var(--k-green); }
+:deep(.k) { color: var(--deck-accent); }
 :deep(.s) { color: #ffb4aa; }
 :deep(.v) { color: #b9c4ff; }
 :deep(.n) { color: #ffd479; }
@@ -136,7 +136,7 @@ pre { margin: 0; padding: 30px 0; font: 400 var(--fs) / var(--lh) var(--mono); c
   background: none;
   color: #fff;
   font-weight: 700;
-  text-decoration: underline wavy var(--k-red);
+  text-decoration: underline wavy var(--deck-accent-2);
   text-decoration-thickness: 4px;
   text-underline-offset: 10px;
 }
@@ -147,8 +147,8 @@ pre { margin: 0; padding: 30px 0; font: 400 var(--fs) / var(--lh) var(--mono); c
   right: 36px;
   max-width: 640px;
   z-index: 2;
-  background: var(--k-sand);
-  color: var(--k-dark);
+  background: var(--deck-paper);
+  color: var(--deck-ink);
 }
 .code-callout::before {
   content: '';

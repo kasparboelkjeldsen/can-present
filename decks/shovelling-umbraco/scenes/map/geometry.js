@@ -25,16 +25,5 @@ export const SLOTS = {
   cache: { cx: 668 + 118, cy: 545 + r(236).h / 2, ...r(236) },
 }
 
-/** World placement for a scene nested in a slot of a parent placed at `parent` ({x, y, s, r}). */
-export function nest(parent, slot) {
-  const p = { s: 1, r: 0, ...parent }
-  const a = (p.r * Math.PI) / 180
-  const dx = (slot.cx - 960) * p.s
-  const dy = (slot.cy - 540) * p.s
-  return {
-    x: p.x + dx * Math.cos(a) - dy * Math.sin(a),
-    y: p.y + dx * Math.sin(a) + dy * Math.cos(a),
-    s: (slot.w / 1920) * p.s,
-    r: p.r,
-  }
-}
+// nest() lives in the engine; re-exported so deck.js can keep importing it from here.
+export { nest } from '@engine/layout.js'

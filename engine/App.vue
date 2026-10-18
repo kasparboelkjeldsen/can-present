@@ -167,7 +167,7 @@ function pick(i) {
   overflow: hidden;
   background:
     radial-gradient(1200px 800px at 20% 10%, rgba(255, 255, 255, 0.06), transparent 70%),
-    var(--k-dark-deep);
+    var(--deck-canvas);
 }
 .viewport.idle { cursor: none; }
 
@@ -190,7 +190,7 @@ function pick(i) {
 .grid {
   position: absolute;
   inset: 0;
-  background-image: radial-gradient(circle, rgba(238, 237, 233, 0.16) 2.5px, transparent 3px);
+  background-image: radial-gradient(circle, var(--deck-grid) 2.5px, transparent 3px);
   pointer-events: none;
 }
 
@@ -216,13 +216,13 @@ function pick(i) {
 .overview .scene.is-ghost .scene-label { display: none; }
 
 .overview .scene { cursor: pointer; }
-.overview .scene:hover { outline: 24px solid var(--k-green); }
+.overview .scene:hover { outline: 24px solid var(--deck-accent); }
 .scene-label {
   position: absolute;
   left: 0;
   bottom: calc(100% + 30px);
   font: 700 72px var(--sans);
-  color: var(--k-green);
+  color: var(--deck-accent);
   white-space: nowrap;
   opacity: 0;
   transition: opacity 0.4s;
@@ -235,8 +235,8 @@ function pick(i) {
   height: 110px;
   margin-right: 20px;
   border-radius: 50%;
-  background: var(--k-green);
-  color: var(--k-dark);
+  background: var(--deck-accent);
+  color: var(--deck-on-accent);
 }
 .overview .scene:not(.is-nested) .scene-label { opacity: 1; }
 
@@ -246,7 +246,7 @@ function pick(i) {
   bottom: 0;
   height: 8px;
   width: 100%;
-  background: linear-gradient(90deg, var(--k-green), var(--k-red));
+  background: linear-gradient(90deg, var(--deck-accent), var(--deck-accent-2));
   transform-origin: 0 50%;
   transition: transform 0.6s var(--ease-out);
   z-index: 10;
@@ -271,8 +271,8 @@ function pick(i) {
   padding: 12px 22px;
   border: 0;
   border-radius: 999px;
-  background: var(--k-dark);
-  color: var(--k-green);
+  background: var(--deck-ink);
+  color: var(--deck-accent);
   font: 700 22px var(--sans);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
   cursor: pointer;
@@ -302,8 +302,8 @@ function pick(i) {
   padding: 4px 10px;
   margin: 0 6px 0 18px;
   border-radius: 8px;
-  background: var(--k-green);
-  color: var(--k-dark);
+  background: var(--deck-accent);
+  color: var(--deck-on-accent);
 }
 .hint kbd:first-child { margin-left: 0; }
 .hint-leave-active { transition: opacity 0.8s, transform 0.8s; }

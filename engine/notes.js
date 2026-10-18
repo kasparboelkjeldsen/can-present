@@ -1,7 +1,7 @@
 import { reactive, ref } from 'vue'
 
-// Speaker notes, keyed by scene id. Source of truth: notes.json in the project root,
-// served by the deck-notes plugin in vite.config.js (and copied into production builds).
+// Speaker notes, keyed by scene id. Source of truth: decks/<deck>/notes.json,
+// served by the deck-notes plugin in engine/vite.js (and copied into production builds).
 // Edits are saved through the dev server and pushed live to every open window.
 
 export const notes = reactive({})

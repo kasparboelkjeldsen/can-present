@@ -4,7 +4,7 @@
 // Arrow keys / clicker work here too and drive the deck.
 //
 // Edit mode (✎ Edit button or the E key, dev server only): the notes become a text box for the
-// current scene. Typing autosaves to notes.json; changing scene saves and switches to that scene.
+// current scene. Typing autosaves to the deck's notes.json; changing scene saves and switches to that scene.
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck } from './useDeck.js'
 import { notes, saveNote, canEdit } from './notes.js'
@@ -169,8 +169,8 @@ header {
 header b { color: #bbb; }
 .next { flex: 1; text-align: center; overflow: hidden; text-overflow: ellipsis; }
 .clock { margin-left: auto; font-family: var(--mono); }
-.status { color: #c3f240; font-family: var(--mono); }
-.status.err { color: #ff8071; white-space: normal; }
+.status { color: var(--deck-accent); font-family: var(--mono); }
+.status.err { color: var(--deck-accent-2); white-space: normal; }
 main {
   flex: 1;
   min-height: 0;
@@ -186,7 +186,7 @@ main {
   height: 100%;
   resize: none;
   padding: 1.2em 1.4em;
-  border: 2px solid #c3f240;
+  border: 2px solid var(--deck-accent);
   border-radius: 12px;
   outline: none;
   background: #111;
@@ -204,5 +204,5 @@ footer { padding: 0 3vw 2vh; margin-top: -1.5vh; color: #555; font: 400 max(12px
   font: inherit;
   cursor: pointer;
 }
-.btn:hover, .btn.on { color: #000; background: #c3f240; border-color: #c3f240; }
+.btn:hover, .btn.on { color: #000; background: var(--deck-accent); border-color: var(--deck-accent); }
 </style>

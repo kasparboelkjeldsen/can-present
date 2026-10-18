@@ -79,12 +79,12 @@ addEventListener('keydown', (e) => {
   color: #dfe3ff;
 }
 header { display: flex; align-items: center; gap: 30px; }
-.timer { font: 700 44px var(--mono); color: var(--k-green); cursor: pointer; }
+.timer { font: 700 44px var(--mono); color: var(--deck-accent); cursor: pointer; }
 .pos { flex: 1; font-size: 22px; display: flex; align-items: center; gap: 18px; }
 .pos b { color: #fff; font-size: 28px; }
 .dots { display: inline-flex; gap: 8px; }
 .dots i { width: 12px; height: 12px; border-radius: 50%; background: #2b3566; }
-.dots i.on { background: var(--k-green); }
+.dots i.on { background: var(--deck-accent); }
 .clock { font: 400 30px var(--mono); opacity: 0.7; }
 main { flex: 1; min-height: 0; display: grid; grid-template-columns: 1.7fr 1fr; gap: 24px; }
 .now { min-width: 0; }
@@ -102,6 +102,6 @@ button {
   color: #dfe3ff;
   cursor: pointer;
 }
-button.primary { background: var(--k-green); color: var(--k-dark); }
-button.on { background: #000; outline: 2px solid var(--k-green); }
+button.primary { background: var(--deck-accent); color: var(--deck-on-accent); }
+button.on { background: #000; outline: 2px solid var(--deck-accent); }
 </style>

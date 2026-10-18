@@ -1,7 +1,7 @@
 <script setup>
 // Screenshot OR live website in a frame.
-//   <Shot src="/shots/foo.png" />                       image (put files in /public/shots)
-//   <Shot live="https://www.kjeldsen.dev/" />           real, clickable iframe
+//   <Shot src="/shots/foo.png" />                       image (put files in decks/<deck>/public/shots)
+//   <Shot live="https://example.com/" />                real, clickable iframe
 //   <Shot live="https://…" external src="/shots/x.png" />   site that can't run in an iframe (e.g. a logged-in
 //                                                       backoffice): a launch card that opens it in a new tab
 //   <Shot />                                            placeholder that says what goes there
@@ -137,7 +137,7 @@ onBeforeUnmount(() => {
   box-shadow: 0 30px 80px rgba(10, 16, 50, 0.35), 0 0 0 1px rgba(10, 16, 50, 0.06);
   transition: box-shadow 0.3s;
 }
-.shot.interacting { box-shadow: 0 30px 80px rgba(10, 16, 50, 0.35), 0 0 0 6px var(--k-green); }
+.shot.interacting { box-shadow: 0 30px 80px rgba(10, 16, 50, 0.35), 0 0 0 6px var(--deck-accent); }
 .shot--none { border-radius: 16px; }
 .bar {
   display: flex;
@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
   border-bottom: 1px solid #dde1ee;
   flex: none;
 }
-.shot--window .bar { background: var(--k-dark); border-color: transparent; }
+.shot--window .bar { background: var(--deck-ink); border-color: transparent; }
 .dots { display: flex; gap: 10px; }
 .dots i { width: 15px; height: 15px; border-radius: 50%; background: #f28b82; }
 .dots i:nth-child(2) { background: #f6c86b; }
@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
 }
 .live-dot { width: 10px; height: 10px; flex: none; border-radius: 50%; background: #e5484d; box-shadow: 0 0 0 0 rgba(229, 72, 77, 0.6); animation: pulse 1.8s infinite; }
 @keyframes pulse { 70% { box-shadow: 0 0 0 10px rgba(229, 72, 77, 0); } 100% { box-shadow: 0 0 0 0 rgba(229, 72, 77, 0); } }
-.mode { font: 700 16px var(--sans); color: var(--k-dark); background: var(--k-green); padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
+.mode { font: 700 16px var(--sans); color: var(--deck-on-accent); background: var(--deck-accent); padding: 6px 14px; border-radius: 999px; white-space: nowrap; }
 .home {
   display: inline-flex;
   align-items: center;
@@ -180,16 +180,16 @@ onBeforeUnmount(() => {
   padding: 0 16px 0 12px;
   border: 0;
   border-radius: 999px;
-  background: var(--k-dark);
-  color: var(--k-sand);
+  background: var(--deck-ink);
+  color: var(--deck-paper);
   font: 700 17px var(--sans);
   cursor: pointer;
   flex: none;
 }
 .home:hover { background: #000; }
-.home.ghost { background: transparent; color: var(--k-dark); box-shadow: inset 0 0 0 2px var(--k-dark); }
-.home.ghost:hover { background: var(--k-dark); color: var(--k-sand); }
-.launch { position: absolute; inset: 0; display: grid; place-items: center; background: var(--k-dark); }
+.home.ghost { background: transparent; color: var(--deck-ink); box-shadow: inset 0 0 0 2px var(--deck-ink); }
+.home.ghost:hover { background: var(--deck-ink); color: var(--deck-paper); }
+.launch { position: absolute; inset: 0; display: grid; place-items: center; background: var(--deck-ink); }
 .launch img { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0.35; filter: grayscale(0.4) blur(1px); }
 .launch-btn {
   position: relative;
@@ -200,8 +200,8 @@ onBeforeUnmount(() => {
   padding: 34px 52px;
   border: 0;
   border-radius: 24px;
-  background: var(--k-green);
-  color: var(--k-dark);
+  background: var(--deck-accent);
+  color: var(--deck-on-accent);
   font: 700 40px var(--sans);
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
   cursor: pointer;
