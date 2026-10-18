@@ -72,6 +72,7 @@ decks/
   example/                  a four-scene starter deck
 docs/
   presentation-guide.md     what the engine can do, for writing a talk with Claude chat
+AGENTS.md                   rules and orientation for coding agents (CLAUDE.md points at it)
 ```
 
 Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engine/Step.vue'`). The engine reaches the active deck only through `@deck/deck.js`.
