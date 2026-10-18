@@ -43,7 +43,7 @@ The building blocks below exist already. The agent can also build new things, bu
 |---|---|---|
 | **Headline + kicker** | big text with a small pill label above | section openers, statements |
 | **Cards** | rounded cards side by side, each popping in on a click | comparisons, "three things", personas |
-| **Big number** | huge animated number (count up/down), optionally with a ring drawn around it | punchlines, stats |
+| **Big number** | huge number that counts up or down when the scene comes on stage (or on a click), re-counting every time you come back. Optionally a ring draws itself around it in sync. Thousands separators (6,836), decimals (99.9), a prefix or suffix ($, %, ×) and a short label underneath | punchlines, stats |
 | **Code block** | syntax-highlighted code; specific lines (or one token) light up per click while the rest dims, with a speech-bubble callout per click | walking through code |
 | **Screenshot** | image in a browser or app-window frame, optionally tilted | showing UI. The speaker supplies the PNGs. |
 | **Live site** | real iframe in a browser frame, clickable; or a launch card that opens it in a new tab | demos without leaving the deck |

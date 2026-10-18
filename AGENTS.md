@@ -45,7 +45,7 @@ Read the one file you need instead of searching. The files in `decks/shovelling-
 | Minimal deck: theme, deck.js, notes, nesting | `decks/example/` |
 | Code walkthrough: line/token focus, callouts | `decks/example/scenes/Walkthrough.vue`, `shovelling-umbraco/scenes/WhoAmI.vue` |
 | Diagram: wires that draw themselves, flowing packets, nested scenes in its boxes | `shovelling-umbraco/scenes/Map.vue` + `scenes/map/geometry.js` |
-| Big number counting, with a ring | `shovelling-umbraco/scenes/OneInstance.vue`; two stats with phases: `Numbers.vue` |
+| Big number counting, with a ring | `engine/components/BigNumber.vue` (props in `README.md`); more elaborate: `shovelling-umbraco/scenes/OneInstance.vue`, two stats with phases: `Numbers.vue` |
 | Cards popping in on clicks | `shovelling-umbraco/scenes/WhatHappened.vue`, `DangerousBits.vue` |
 | Typed snippet plus captions that replace each other (`<Step :until>`) | `shovelling-umbraco/scenes/OneLine.vue` |
 | Screenshot with per-step highlights | `shovelling-umbraco/scenes/TheSection.vue` |

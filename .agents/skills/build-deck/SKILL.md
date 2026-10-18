@@ -51,7 +51,7 @@ Start from the `theme.css` the template wrote. It already sets every token and t
 | Code walkthrough | `@engine/components/Code.vue` with `:focus` and `:callouts` | `decks/example/scenes/Walkthrough.vue` |
 | Screenshot | `@engine/components/Shot.vue` with `src="/shots/x.png"` (placeholder until the file exists) | `decks/example/scenes/Screenshot.vue` |
 | Live site / launch card | `<Shot live="…">` / `<Shot live="…" external>` | pattern index: `LiveDemo.vue` |
-| Big number | `@engine/useCount.js` | pattern index: `OneInstance.vue` |
+| Big number, counting, with a ring | `@engine/components/BigNumber.vue` (`:to`, `ring`, `:at`, `format`, `suffix`, `label`) | README "Building blocks"; more elaborate: pattern index `OneInstance.vue` |
 | Diagram, wires, packets, dives | SVG paths with `stroke-dashoffset` transitions; nested scenes in its boxes | pattern index: `Map.vue` + `map/geometry.js` |
 | Takeaway over everything | `ghost: true, at: null` | pattern index: `ControlPlane.vue` |
 | Demo fallback | `skip: true` (X jumps to it) | `README.md` |

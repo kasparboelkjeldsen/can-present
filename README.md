@@ -76,7 +76,7 @@ engine/                     the engine (talk-agnostic)
   camera.js layout.js       camera maths; nest() and the ghost "covers the canvas" placement
   notes.js signals.js
   SceneFrame.vue ScenePreview.vue
-  components/Code.vue Shot.vue
+  components/Code.vue Shot.vue BigNumber.vue
   styles/engine.css         base styles, <Step> and .rise/.fade-in animations, engine tokens with defaults
   vite.js                   deck selection and the dev-server plugins (used by vite.config.js)
 decks/
@@ -131,6 +131,7 @@ Then run it with `npm run deck -- dev <id>`, or make it the default in `package.
 | `--deck-accent-2` | progress bar end, error text on /notes, wavy underline on a focused code token |
 | `--code-bg` / `--code-line-hot` | `<Code>` background and focused-line background |
 | `--sans` `--serif` `--mono` `--ease-out` `--ease-spring` `--radius` | type and motion |
+| `--display-font` | font of `<BigNumber>`'s number (optional; unset, it inherits the slide's font) |
 
 `<Code>` callouts also use the deck's `.callout` class for their shape (and `.callout--green` for `tone: 'green'`), so define those in your theme.
 
@@ -175,7 +176,29 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
 - `@engine/components/Shot.vue`: a screenshot in a browser or window frame. Put images in `decks/<deck>/public/shots/` and pass `src="/shots/x.png"`; with no `src` it shows a placeholder.
   `live="https://…"` embeds a real, clickable site instead (`zoom` < 1 shows more of the page). It loads when its scene is on stage or one away. While you're clicking in the site, keys go to the site; move the mouse off the frame and the deck keys work again. The site must allow framing (no `X-Frame-Options` / `frame-ancestors`); for sites that don't, `external` shows a launch card that opens it in a reused new tab.
 - `@engine/components/Code.vue`: code with simple highlighting, per-step line focus (`:focus="{ 1: [3], 2: { lines: [5], token: 'foo' } }"`) and per-step callouts.
-- `@engine/useCount.js`: an animated number that re-runs whenever its scene comes on stage.
+- `@engine/components/BigNumber.vue`: a huge number that counts, optionally inside a ring that draws itself in sync.
+
+  ```vue
+  <BigNumber :to="6836" ring label="loads" />
+  <BigNumber :from="10" :to="1" :size="330" :at="1" tone="accent-2" suffix="×" />
+  ```
+
+  | Prop | Default | |
+  |---|---|---|
+  | `to` | (required) | the final value |
+  | `from` | `0` | where the count starts |
+  | `at` | `0` | build step that starts the count; `0` = when the scene comes on stage. Before it, the number shows `from` |
+  | `duration` / `delay` | `1400` / `300` | ms |
+  | `ring` | `false` | a circle around the number and label, drawn in sync with the count. With a ring the component is a square as big as the ring |
+  | `tone` | `'accent'` | ring colour: `'accent'` (`--deck-accent`) or `'accent-2'` (`--deck-accent-2`) |
+  | `format` | `'grouped'` | `'grouped'` (6,836, `Intl.NumberFormat('en-US')`), `'plain'` (6836) or a function `(n) => string` |
+  | `decimals` | `0` | digits after the point, while counting too |
+  | `prefix` / `suffix` | `''` | e.g. `prefix="$"`, `suffix="%"` |
+  | `label` | `''` | line under the number (or a `#label` slot); inherits the text colour |
+  | `size` | `240` | font size of the number, px |
+
+  It re-counts every time its scene comes on stage, and shows the final value when the scene is past, in the overview and in thumbnails. The number uses `var(--display-font, inherit)` with tabular numerals. Its parts have zero-specificity classes (`.big-number`, `.bn-num`, `.bn-label`, `.bn-ring`), so a theme can restyle them.
+- `@engine/useCount.js`: `useCount(trigger, from, to, { duration, delay, decimals })` returns a ref with an animated number that re-runs whenever `trigger` (a ref or getter, e.g. the scene's `active`) becomes true. `useCounter(…)` takes the same arguments and returns `{ value, progress }`, with `progress` the eased 0…1 of the run (what `<BigNumber>`'s ring follows).
 - `docs/presentation-guide.md` plus the deck's `brief.md`: hand both to Claude chat when writing a talk; it produces a `scene-description.md` for the coding agent.
 
 ## Speaker notes and sync
