@@ -2,9 +2,6 @@ import { createApp } from 'vue'
 import './styles/engine.css'
 // The active deck (picked in vite.config.js). Its deck.js imports the deck's own theme and fonts.
 import deck from '@deck/deck.js'
-import App from './App.vue'
-import Presenter from './Presenter.vue'
-import Notes from './Notes.vue'
 
 // Title and favicon come from the deck (Presenter and Notes prefix the title when they mount).
 document.title = deck.title ?? deck.id
@@ -15,9 +12,14 @@ if (deck.icon) {
   link.href = 'data:image/svg+xml,' + encodeURIComponent(svg)
 }
 
+// Pages load on demand: App, Presenter and Notes share useDeck.js, which binds keys, the URL hash
+// and window sync as soon as it's imported. ?sheet (Sheet.vue) must not get any of that.
+const params = new URLSearchParams(location.search)
 const page = location.pathname.replace(/\/+$/, '').endsWith('/notes')
-  ? Notes
-  : new URLSearchParams(location.search).has('presenter')
-    ? Presenter
-    : App
-createApp(page).mount('#app')
+  ? import('./Notes.vue')
+  : params.has('sheet')
+    ? import('./Sheet.vue')
+    : params.has('presenter')
+      ? import('./Presenter.vue')
+      : import('./App.vue')
+page.then((m) => createApp(m.default).mount('#app'))

@@ -78,7 +78,7 @@ onBeforeUnmount(() => {
     :style="{ width: px(width), height: px(height) }"
     @mouseleave="releaseFocus"
   >
-    <div v-if="frame !== 'none'" class="bar">
+    <div v-if="frame !== 'none'" class="bar" data-audit="ignore">
       <span class="dots"><i /><i /><i /></span>
       <span v-if="frame === 'browser'" class="url">
         <span v-if="live" class="live-dot" />{{ shownUrl }}
@@ -95,7 +95,7 @@ onBeforeUnmount(() => {
         <img v-if="src" :src="src" alt="" :style="{ objectFit: fit, objectPosition: position }" />
         <button class="launch-btn" @click="openTab">
           <span>Open {{ shownUrl.split('/')[0] }} ↗</span>
-          <small>opens in a new tab · Ctrl+Tab back here</small>
+          <small data-audit="ignore">opens in a new tab · Ctrl+Tab back here</small>
         </button>
       </div>
       <template v-else-if="live && !preview">

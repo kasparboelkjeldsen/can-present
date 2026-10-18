@@ -65,8 +65,10 @@ The wrapper works the same in bash and PowerShell. The older form still works: `
 
 Open a scene and build step directly with the URL hash: `http://localhost:5173/#<scene-id>/<step>`. `/notes` is the notes screen, `?presenter` the presenter view.
 
+**`?sheet`** (`http://localhost:5173/?sheet`) shows every scene in a grid at its last build step: the whole deck in one screenshot. `&steps` gives one tile per build step, `&only=id1,id2` limits it, `&cols=3` changes the grid. About 1.5 s after load it audits every tile for text under 26px, text outside the card and an overflowing `.slide`. Findings appear as a plain-text list at the top (`<scene-id>/<step>: <kind> "<text>" <size>px`, so `get_page_text` is enough), as red badges and outlines on the tiles, and in `window.__deckAudit`. Engine chrome that's small on purpose carries `data-audit="ignore"`.
+
 ## Verifying a change
 
 1. `npm run build` passes for every deck you touched (and for `DECK=example` if you touched the engine).
-2. Look at what you changed in a browser at its hash, at its last build step, and in the overview (O). Check that text fits, nothing overflows the card, and the flight into the scene looks right.
+2. `npm run check -- <deck>` has no errors, and its warnings are fixed or explained. Then open `?sheet` (and `?sheet&steps&only=<id>` for scenes with builds) and read the audit list: fix or explain each finding. Only then take screenshots: the scene at its hash at its last build step, the flight into it, and the overview (O).
 3. If you changed the engine, the grep in rule 2 returns nothing, and `docs/presentation-guide.md` and `README.md` say what's new.

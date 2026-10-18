@@ -79,7 +79,7 @@ const callout = computed(() => {
 
 <template>
   <div class="code" :class="{ 'token-mode': current?.token }" :style="{ '--fs': size + 'px', '--lh': LH }">
-    <div v-if="title" class="title">{{ title }}</div>
+    <div v-if="title" class="title" data-audit="ignore">{{ title }}</div>
     <div class="body">
       <pre><code><span
         v-for="(l, i) in lines"

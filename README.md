@@ -62,9 +62,10 @@ The same works for `npm run build` (output goes to `dist/<deck>/`), `npm run pre
 
 ```
 engine/                     the engine (talk-agnostic)
-  main.js                   entry: picks the deck view, /notes or ?presenter; sets title and favicon from the deck
+  main.js                   entry: picks the deck view, /notes, ?sheet or ?presenter; sets title and favicon from the deck
   App.vue                   the canvas, camera, overview, progress bar
   Presenter.vue Notes.vue   ?presenter and /notes
+  Sheet.vue                 ?sheet: every scene in a grid, with the text-size/overflow audit
   useDeck.js                shared state, keys, URL hash, sync between windows
   useStep.js Step.vue       build steps inside a scene
   useCount.js               animated numbers
@@ -137,6 +138,18 @@ A text lint that loads `deck.js` through Vite, the way the app does, and reads e
 - **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`.
 
 Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked.
+
+## The sheet: the whole deck on one page
+
+Open **`?sheet`** (e.g. http://localhost:5173/?sheet) to see every scene in a grid, in deck order, each at its last build step (a scene without builds shows its finished state, as in the overview). Live sites stay placeholders. Under each tile: number, id, title, `steps` and flags (`skip`, `ghost`, `in <parent>`). Click a tile to open that scene.
+
+| Query | |
+|---|---|
+| `?sheet&cols=3` | number of columns (default 4) |
+| `?sheet&steps` | one tile per build step (0…steps), for checking builds |
+| `?sheet&only=id1,id2` | just these scenes |
+
+About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px, text that sticks out of the 1920×1080 card, and a `.slide` whose content overflows. Each tile gets a red badge with its count and outlines around the offenders; the full list is plain text at the top of the page (`<scene-id>/<step>: <kind> "<text>" <size>px`), in `window.__deckAudit` and in the console. Anything inside `data-audit="ignore"` is skipped; the engine uses it for small chrome such as `<Shot>`'s URL bar and `<Code>`'s title bar.
 
 ## Building blocks
 
