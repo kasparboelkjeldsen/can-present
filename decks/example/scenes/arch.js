@@ -8,7 +8,8 @@ export const arch = defineDiagram({
     deck: { x: 80, y: 690, w: 320, h: 200, label: 'decks/example', sub: 'scenes, theme, notes', at: 1 },
     engine: { x: 700, y: 440, w: 520, h: 400, label: 'engine/', sub: 'Vue 3 + Vite', at: 2, tone: 'accent' },
     // big enough for a slot: the `canvas` scene lives in it
-    browser: { x: 1440, y: 420, w: 400, h: 390, label: 'Browser', at: 3, tone: 'ghost' },
+    // up in the corner, so the edges from the engine climb a long way (the `canvas` ride follows one)
+    browser: { x: 1440, y: 60, w: 400, h: 390, label: 'Browser', at: 3, tone: 'ghost' },
     notes: { x: 1440, y: 900, w: 400, h: 110, label: '/notes', at: 4 },
   },
   // edges and packets default to ink (for light slides); this scene is dark, so they use paper

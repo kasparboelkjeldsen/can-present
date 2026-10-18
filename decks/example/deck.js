@@ -85,7 +85,7 @@ export default {
     {
       id: 'canvas', title: 'One big canvas', component: Canvas, steps: 2,
       at: nest(ARCH, arch.slot('canvas')), parent: 'diagram', revealAt: arch.revealAt('browser'),
-      via: ride(arch, 1, ARCH, { label: 'scenes', tone: 'accent-2', zoom: 2.2 }),
+      via: ride(arch, 1, ARCH, { label: 'scenes', tone: 'accent-2', zoom: 2.2, speed: 280 }),
     },
     // ---- bottom row, right to left ----
     { id: 'screens', title: 'Screenshots', component: Screens, at: { x: 9300, y: 2300, r: 2 } },
