@@ -52,7 +52,7 @@ Start from the `theme.css` the template wrote. It already sets every token and t
 | Screenshot | `@engine/components/Shot.vue` with `src="/shots/x.png"` (placeholder until the file exists) | `decks/example/scenes/Screenshot.vue` |
 | Live site / launch card | `<Shot live="…">` / `<Shot live="…" external>` | pattern index: `LiveDemo.vue` |
 | Big number, counting, with a ring | `@engine/components/BigNumber.vue` (`:to`, `ring`, `:at`, `format`, `suffix`, `label`) | README "Building blocks"; more elaborate: pattern index `OneInstance.vue` |
-| Diagram, wires, packets, dives | SVG paths with `stroke-dashoffset` transitions; nested scenes in its boxes | pattern index: `Map.vue` + `map/geometry.js` |
+| Diagram, wires, packets, dives | `defineDiagram()` from `@engine/diagram.js` in a `.js` file next to the scene, drawn with `@engine/components/Diagram.vue`; deck.js uses the same definition (`steps: arch.steps`, `nest(…, arch.slot('x'))`, `revealAt` / `revealDelay`) | README "Building blocks"; more elaborate: pattern index `Map.vue` |
 | Takeaway over everything | `ghost: true, at: null` | pattern index: `ControlPlane.vue` |
 | Demo fallback | `skip: true` (X jumps to it) | `README.md` |
 | Logo, mascot, one-off art | a component in `decks/<id>/components/`, listed in `brief.md` | `AGENTS.md` rule 3 |

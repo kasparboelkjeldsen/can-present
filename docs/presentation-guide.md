@@ -47,7 +47,7 @@ The building blocks below exist already. The agent can also build new things, bu
 | **Code block** | syntax-highlighted code; specific lines (or one token) light up per click while the rest dims, with a speech-bubble callout per click | walking through code |
 | **Screenshot** | image in a browser or app-window frame, optionally tilted | showing UI. The speaker supplies the PNGs. |
 | **Live site** | real iframe in a browser frame, clickable; or a launch card that opens it in a new tab | demos without leaving the deck |
-| **Diagram** | boxes/logos connected by lines that draw themselves, with little packets flowing along them | architecture, data flow |
+| **Diagram** | boxes (or logos) connected by arrows. The diagram builds itself: each box pops in on a click, or on a timer when the scene comes on stage (no clicks needed), and each line draws itself once both of its boxes are there. Little labelled packets ("GET /jobs", "200 OK") flow along the lines in either direction. A box can hold a slot where a nested scene lives, so the camera can dive into it | architecture, data flow, "zoom into this part" |
 | **Custom SVG animation** | the agent draws and animates a small illustration | title, section breaks, jokes. One per few scenes, not more. |
 
 The deck may have its own components too (logos, mascots, recurring motifs). The brief lists them.
@@ -56,8 +56,8 @@ The deck may have its own components too (logos, mascots, recurring motifs). The
 
 **Entrance animations** play every time a scene comes on stage: staggered text rising in, a line or underline drawing itself, a number counting.
 
-**Cheap:** text, cards, code, screenshots, live sites, builds, diagrams of boxes and arrows.
-**Medium:** a custom looping SVG illustration, a bespoke diagram with flowing data.
+**Cheap:** text, cards, big numbers, code, screenshots, live sites, builds, diagrams of boxes and arrows (with flowing packets and nested slots).
+**Medium:** a custom looping SVG illustration, a bespoke diagram that goes beyond boxes and arrows (curves, logos as nodes, custom shapes).
 **Ask first:** anything that needs real data at runtime, video, sound or 3D.
 
 ## Screenshots and assets
@@ -113,6 +113,6 @@ Rules for the scene list:
 - **Builds** are numbered in click order. A scene with no builds advances with a single click.
 - **Notes** go on the notes screen, one block per scene: 2–5 short cue bullets, not a script. Mark jokes as `(joke)` and add timing cues like `(pause)`.
 - For **code**, include the actual code and say which lines light up on which click.
-- For **diagrams**, list the nodes, the connections and the reveal order.
+- For **diagrams**, list the nodes, the connections (with labels), the reveal order (box by box on clicks, or timed so it builds itself), the packets that flow (label and direction) and any box that holds a nested scene.
 - For **nested scenes**, say which scene and which element they live inside.
 - Mark anything unknown as `TODO:` instead of guessing.

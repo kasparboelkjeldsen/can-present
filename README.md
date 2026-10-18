@@ -76,7 +76,8 @@ engine/                     the engine (talk-agnostic)
   camera.js layout.js       camera maths; nest() and the ghost "covers the canvas" placement
   notes.js signals.js
   SceneFrame.vue ScenePreview.vue
-  components/Code.vue Shot.vue BigNumber.vue
+  components/Code.vue Shot.vue BigNumber.vue Diagram.vue
+  diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js
   styles/engine.css         base styles, <Step> and .rise/.fade-in animations, engine tokens with defaults
   vite.js                   deck selection and the dev-server plugins (used by vite.config.js)
 decks/
@@ -198,6 +199,47 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
   | `size` | `240` | font size of the number, px |
 
   It re-counts every time its scene comes on stage, and shows the final value when the scene is past, in the overview and in thumbnails. The number uses `var(--display-font, inherit)` with tabular numerals. Its parts have zero-specificity classes (`.big-number`, `.bn-num`, `.bn-label`, `.bn-ring`), so a theme can restyle them.
+- `@engine/components/Diagram.vue` + `@engine/diagram.js`: boxes connected by lines that draw themselves, packets flowing along them, and 16:9 slots for nested scenes. The definition lives in a plain `.js` file next to the scene, so the scene and `deck.js` share it:
+
+  ```js
+  // decks/<deck>/scenes/arch.js
+  import { defineDiagram } from '@engine/diagram.js'
+  export const arch = defineDiagram({
+    reveal: 'steps',                          // or { timer: [1000, 1300, 1600] }
+    nodes: {
+      browser: { x: 100,  y: 450, w: 260, h: 180, label: 'Browser', at: 1 },
+      api:     { x: 700,  y: 380, w: 440, h: 320, label: 'API', sub: 'Node 22', at: 2, tone: 'accent' },
+      db:      { x: 1450, y: 450, w: 260, h: 180, label: 'Postgres', at: 3, tone: 'ghost' },
+    },
+    edges: [
+      { from: 'browser', to: 'api', label: 'HTTPS' },
+      { from: 'api', to: 'db', both: true, offset: -20 },
+    ],
+    packets: [
+      { edge: 0, label: 'GET /jobs' },
+      { edge: 0, label: '200 OK', reverse: true, delay: 1.8 },
+    ],
+    slots: { inside: { node: 'api', cx: 220, cy: 200, w: 300 } },
+  })
+  ```
+
+  The scene draws it with `<Diagram :diagram="arch" />`. It covers the whole slide, in the scene's 1920×1080 space. A `#node-<id>` slot (slot props `{ node, shown }`) replaces a box's label and sub with your own content. In `deck.js`:
+
+  ```js
+  { id: 'arch', component: Arch, steps: arch.steps, at: ARCH },
+  { id: 'inside', component: Inside, parent: 'arch', at: nest(ARCH, arch.slot('inside')), revealAt: arch.revealAt('api') },
+  // timer mode: revealDelay: arch.revealDelay('api') instead of revealAt
+  ```
+
+  | | Fields |
+  |---|---|
+  | `reveal` | `'steps'` (default): each node and edge appears on its build step, following the scene's `step` (past and overview show everything). `{ timer: [ms, …] }`: no clicks; stage n appears that many ms after the scene comes on stage, coming back from a later scene shows everything at once, and thumbnails show the final state |
+  | node | `x`, `y`, `w`, `h` (required, the box), `label` (bold), `sub`, `at` (step, or timer stage; default 1), `tone`: `'default'` (`--deck-paper` box, `--deck-ink` text), `'ink'` (inverse), `'accent'` (`--deck-accent` / `--deck-on-accent`), `'ghost'` (dashed outline in the text colour); `class` (extra classes). Boxes pop in |
+  | edge | `from`, `to` (node ids), `at` (default: the later of its nodes; never earlier), `label` (26px, at the midpoint), `both` (arrowheads at both ends), `arrow: false` (none), `offset` (px, shifts both ends along their sides for parallel lanes), `path` (an SVG path string instead of the auto-route), `tone`: `'ink'` (default, `--deck-ink`), `'paper'`, `'accent'`, `'accent-2'`, `'current'` (the text colour). Auto-routing joins the facing side midpoints (left/right if the boxes are further apart horizontally than vertically, else top/bottom), with an elbow halfway if they don't line up. The line draws itself once both boxes are there; arrowheads and label follow |
+  | packet | `edge` (index into `edges`), `label`, `reverse` (flows `to` → `from`), `dur` (s, default 3.6), `delay` (s), `tone`: `'ink'` (default: `--deck-ink` pill, `--deck-paper` text), `'paper'`, `'accent'`, `'accent-2'`. Pills loop along the edge once it has drawn, fading in and out at the ends; not in thumbnails |
+  | slot | `node`, `cx`, `cy` (centre, relative to the node's top-left), `w` (16:9, so `h = w × 9/16`). Drawn as a dark translucent box that appears with its node: the place for a nested scene |
+
+  `defineDiagram()` throws a clear error for an unknown node id in an edge, packet or slot, a missing `x`/`y`/`w`/`h`, or an unknown tone. Its helpers: `steps` (steps mode: the highest node or edge `at`; 0 in timer mode), `slot(name)` → `{ cx, cy, w, h }` in the scene's space (for `nest()`), `revealAt(id)` → the step a node appears on, `revealDelay(id)` → timer mode: the ms at which the node's stage appears, plus 150. Every part has a zero-specificity class (`.dg-node`, `.dg-node--accent`, `.dg-label`, `.dg-sub`, `.dg-slot`, `.dg-line`, `.dg-elabel`, `.dg-packet`), so a theme can restyle it.
 - `@engine/useCount.js`: `useCount(trigger, from, to, { duration, delay, decimals })` returns a ref with an animated number that re-runs whenever `trigger` (a ref or getter, e.g. the scene's `active`) becomes true. `useCounter(…)` takes the same arguments and returns `{ value, progress }`, with `progress` the eased 0…1 of the run (what `<BigNumber>`'s ring follows).
 - `docs/presentation-guide.md` plus the deck's `brief.md`: hand both to Claude chat when writing a talk; it produces a `scene-description.md` for the coding agent.
 
