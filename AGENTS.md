@@ -26,6 +26,7 @@ Two skills hold the workflows. Claude Code finds them through `.claude/skills/` 
    `grep -rniE "k-(dark|green|red|sand|grey|light)|kraftvaerk|umbraco|wordpress|dsa|shovel" engine/`
 3. **Deck-specific things stay in the deck.** Logos, mascots and one-off illustrations go in `decks/<deck>/components/`, and are listed in that deck's `brief.md`. Promote something to `engine/components/` only when it's generic and themed through tokens.
 4. **`decks/shovelling-umbraco` is a real talk.** Don't change how it looks or behaves unless asked. Read its files for patterns (index below), but don't copy its Kraftvaerk styling into other decks.
+5. **Keep verification in proportion.** This is a personal playground, not enterprise software. For engine features and the example deck, a build, `check`, the `?sheet` audit, one look in the browser and one decisive test where it matters (e.g. "does the QR code scan") are enough. Say what you didn't check rather than proving everything. Frame-by-frame regression recordings and timing tables are only worth it when a deck has a real talk coming up and an engine change could affect it.
 
 ## Scene rules (the ones that break most often)
 
@@ -80,9 +81,9 @@ Open a scene and build step directly with the URL hash: `http://localhost:5173/#
 
 **`?sheet`** (`http://localhost:5173/?sheet`) shows every scene in a grid at its last build step: the whole deck in one screenshot. `&steps` gives one tile per build step, `&only=id1,id2` limits it, `&cols=3` changes the grid. About 1.5 s after load it audits every tile for text under 26px, text outside the card and an overflowing `.slide`. Findings appear as a plain-text list at the top (`<scene-id>/<step>: <kind> "<text>" <size>px`, so `get_page_text` is enough), as red badges and outlines on the tiles, and in `window.__deckAudit`. Engine chrome that's small on purpose carries `data-audit="ignore"`.
 
-The wrapper works the same in bash and PowerShell. The older form still works: `npm run dev` / `npm run build` with `DECK=example` (bash) or `$env:DECK='example'` (PowerShell) set first. If `node` isn't on PATH on this machine, load fnm first: `fnm env --shell powershell | Out-String | Invoke-Expression`.
+The wrapper works the same in bash and PowerShell. The older form still works: `npm run dev` / `npm run build` with `DECK=example` (bash) or `$env:DECK='example'` (PowerShell) set first. If `node` isn't on PATH (on Kaspar's home machine Node comes from fnm, which tool shells don't load), load fnm first: `fnm env --shell powershell | Out-String | Invoke-Expression`.
 
-**If an edit doesn't show up** in the browser, check the DOM before debugging your code: on this machine Vite's file watcher sometimes misses edits (especially to `.js` files imported by `deck.js`). Restart the dev server and reload the page. Changing only the hash doesn't reload it.
+**If an edit doesn't show up** in the browser, check the DOM before debugging your code: on Windows, Vite's file watcher sometimes misses edits (especially to `.js` files imported by `deck.js`). Restart the dev server and reload the page. Changing only the hash doesn't reload it.
 
 ## Verifying a change
 
