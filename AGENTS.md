@@ -51,12 +51,14 @@ Read the one file you need instead of searching. The files in `decks/shovelling-
 
 ```bash
 npm install
-npm run dev                         # default deck (package.json "canPresent.deck"), http://localhost:5173
-DECK=example npm run dev            # another deck (bash)
-npm run build                       # → dist/<deck>/
+npm run deck -- dev [deck]          # dev server, http://localhost:5173 (deck defaults to package.json "canPresent.deck")
+npm run deck -- dev example --port 5180   # extra args go to Vite (--port, --host, --open, --strictPort)
+npm run deck -- lan [deck]          # dev server on the network
+npm run deck -- build [deck]        # → dist/<deck>/
+npm run deck -- preview [deck]      # serve the build
 ```
 
-In PowerShell: `$env:DECK='example'; npm run dev`. If `node` isn't on PATH on this machine, load fnm first: `fnm env --shell powershell | Out-String | Invoke-Expression`.
+The wrapper works the same in bash and PowerShell. The older form still works: `npm run dev` / `npm run build` with `DECK=example` (bash) or `$env:DECK='example'` (PowerShell) set first. If `node` isn't on PATH on this machine, load fnm first: `fnm env --shell powershell | Out-String | Invoke-Expression`.
 
 Open a scene and build step directly with the URL hash: `http://localhost:5173/#<scene-id>/<step>`. `/notes` is the notes screen, `?presenter` the presenter view.
 

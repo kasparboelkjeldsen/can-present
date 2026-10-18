@@ -6,7 +6,8 @@ The engine lives in `engine/` and knows nothing about any particular talk. Each 
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run dev                      # default deck, http://localhost:5173
+npm run deck -- dev example      # any deck (see "Choosing a deck")
 ```
 
 ## Keys
@@ -33,7 +34,18 @@ The default deck is set in `package.json`:
 "canPresent": { "deck": "shovelling-umbraco" }
 ```
 
-Override it for one command with the `DECK` environment variable:
+Pick another deck with the `deck` wrapper (same syntax in every shell):
+
+```bash
+npm run deck -- dev [deck]        # dev server
+npm run deck -- lan [deck]        # dev server on the network (--host)
+npm run deck -- build [deck]      # → dist/<deck>/
+npm run deck -- preview [deck]    # serve the build
+```
+
+`[deck]` defaults to `canPresent.deck`. Options after the deck name go to Vite for `dev`, `lan` and `preview`: `--port 5180`, `--host [address]`, `--open`, `--strictPort`. `scripts/deck.mjs` drives Vite's JavaScript API with the normal `vite.config.js`.
+
+Or override it for one command with the `DECK` environment variable:
 
 ```powershell
 $env:DECK='example'; npm run dev      # PowerShell (stays set for that window; Remove-Item Env:DECK to clear)
@@ -72,6 +84,8 @@ decks/
   example/                  a four-scene starter deck
 docs/
   presentation-guide.md     what the engine can do, for writing a talk with Claude chat
+scripts/
+  deck.mjs                  npm run deck: dev / lan / build / preview for any deck
 AGENTS.md                   rules and orientation for coding agents (CLAUDE.md points at it)
 ```
 
