@@ -7,7 +7,8 @@
 // (title → cards → number → code → diagram), the camera dives into the diagram
 // and rides its wires (inside, canvas), then the bottom row comes back right to
 // left (screens → live → loop → thanks). Below the loop hangs the zoom (deeper),
-// a "powers of ten" dive inside one card; the fallback hangs below the live demo;
+// a "powers of ten" dive inside one card, and left of it a QR code to take home
+// (get-the-code), under the thanks card; the fallback hangs below the live demo;
 // the takeaway is a ghost over everything. The finale (thanks) is a formation:
 // every other card leaves its place and orbits the thanks card.
 //
@@ -38,6 +39,7 @@ import Screens from './scenes/Screens.vue'
 import Live from './scenes/Live.vue'
 import Loop from './scenes/Loop.vue'
 import Deeper from './scenes/Deeper.vue'
+import GetTheCode from './scenes/GetTheCode.vue'
 import Takeaway from './scenes/Takeaway.vue'
 import Fallback from './scenes/Fallback.vue'
 import Thanks from './scenes/Thanks.vue'
@@ -78,6 +80,9 @@ export default {
     // powers of ten: each press flies the camera deeper into the card (frames, from deeper.js, which
     // the scene shares), and <Detail>s show what's readable at each zoom. It ends inside a dot.
     { id: 'deeper', title: 'Powers of ten', component: Deeper, steps: 4, frames: deeperFrames, at: { x: 4600, y: 4650 } },
+    // a link to take home: the QR code's dots fall onto the card as it arrives. Left of the zoom,
+    // under the thanks card, so the path turns up into the finale
+    { id: 'get-the-code', title: 'A QR code', component: GetTheCode, at: { x: 2300, y: 4700, r: -2 } },
     // hovers over the whole canvas while on stage: the camera pulls back and the talk shows behind it
     { id: 'takeaway', title: 'Takeaway', component: Takeaway, ghost: true, at: null },
     // stepped over by → and ←; X (or #fallback) jumps here if the live demo dies

@@ -49,6 +49,7 @@ Start from the `theme.css` the template wrote. It already sets every token and t
 | Captions that replace each other | `<Step :at :until>` | pattern index: `OneLine.vue` |
 | Cards side by side | `.card` in a flex row, one `<Step anim="pop">` each | `decks/example/scenes/Cards.vue` |
 | Big number, counting, with a ring | `@engine/components/BigNumber.vue` (`:to`, `ring`, `:at`, `format`, `suffix`, `label`) | `decks/example/scenes/Stat.vue` |
+| QR code: a link with a short label (slides, feedback form, repo) | `@engine/components/QrCode.vue` (`url`, `label`, `layout`, `:at`, `:size`); the real URL comes from the description. Keep it on stage long enough to scan | `decks/example/scenes/GetTheCode.vue` |
 | Code walkthrough | `@engine/components/Code.vue` with `:focus` and `:callouts` | `decks/example/scenes/Walkthrough.vue` |
 | Diagram, wires, packets, dives | `defineDiagram()` from `@engine/diagram.js` in a `.js` file next to the scene, drawn with `@engine/components/Diagram.vue`; deck.js uses the same definition (`steps: arch.steps`, `nest(…, arch.slot('x'))`, `revealAt` / `revealDelay`) | `decks/example/scenes/Arch.vue` + `arch.js`, nested: `Inside.vue` |
 | Ride a wire / follow the request into a scene | `via: ride(diagram, edgeIndex, PARENT_AT, { label, zoom, tone })` on the scene the line leads into (import `ride` from `@engine/diagram.js`); `via: { path, space }` for a hand-drawn path. The previous scene should be the diagram or a scene nested in it | `decks/example/deck.js` (`inside`, `canvas`) |
