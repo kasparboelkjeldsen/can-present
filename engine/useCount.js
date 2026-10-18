@@ -24,7 +24,7 @@ export function useCounter(trigger, from, to, { duration = 1400, delay = 300, de
     timer = setTimeout(() => {
       const t0 = performance.now()
       const tick = (now) => {
-        const k = Math.min(1, (now - t0) / duration)
+        const k = Math.min(1, Math.max(0, (now - t0) / duration)) // a frame can be stamped before t0
         progress.value = ease(k)
         value.value = round(a + (b - a) * ease(k))
         if (k < 1) raf = requestAnimationFrame(tick)

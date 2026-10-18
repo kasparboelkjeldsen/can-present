@@ -68,7 +68,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => ro?.disconnect())
 const STROKE = 6
-const diameter = computed(() => Math.ceil(Math.hypot(box.value.w, box.value.h) + props.size * 0.2 + STROKE * 2))
+const diameter = computed(() => Math.ceil(Math.hypot(box.value.w, box.value.h) + props.size * 0.5 + STROKE * 2))
 const hasLabel = computed(() => !!(props.label || slots.label))
 </script>
 
