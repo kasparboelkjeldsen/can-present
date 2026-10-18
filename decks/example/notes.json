@@ -1,0 +1,6 @@
+{
+  "title": "This is the example deck.\nPress → to fly to the next scene, O for the overview.",
+  "inside": "Nested scene: placed with nest() inside the title's dashed box.\n[PRESS] twice for the builds",
+  "code": "<Code> with per-step line focus and callouts.\n[PRESS] lines 6–8\n[PRESS] the nest token",
+  "screenshot": "<Shot> with no src shows a placeholder.\nEdit these notes on /notes (E)."
+}

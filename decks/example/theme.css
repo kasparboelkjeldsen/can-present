@@ -1,0 +1,62 @@
+/* ------------------------------------------------------------------
+   Example theme. The engine supplies the base page styles, <Step> and
+   .rise/.fade-in animations and neutral defaults for its tokens
+   (engine/styles/engine.css); a deck sets the tokens it cares about
+   and defines its own slide look.
+   ------------------------------------------------------------------ */
+:root {
+  --ink: #1d2433;
+  --paper: #f5f1e8;
+  --amber: #ffb347;
+  --mint: #7bd389;
+
+  /* engine tokens */
+  --deck-canvas: #141a26;
+  --deck-grid: rgba(245, 241, 232, 0.12);
+  --deck-ink: var(--ink);
+  --deck-paper: var(--paper);
+  --deck-accent: var(--amber);
+  --deck-on-accent: var(--ink);
+  --deck-accent-2: #ff6f61;
+  --code-bg: #141a26;
+  --code-line-hot: rgba(255, 179, 71, 0.1);
+}
+
+/* every scene root is a .slide (a fixed 1920×1080 card) */
+.slide {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding: 120px 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+.slide--dark { background: var(--ink); color: var(--paper); }
+.slide--light { background: var(--paper); color: var(--ink); }
+
+.kicker {
+  align-self: flex-start;
+  padding: 12px 26px;
+  border-radius: 999px;
+  font: 700 24px var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--deck-accent);
+  color: var(--deck-on-accent);
+}
+.h1, .h2 { margin: 0; font-family: var(--sans); font-weight: 800; letter-spacing: -0.02em; }
+.h1 { font-size: 140px; line-height: 1.02; }
+.h2 { font-size: 100px; line-height: 1.05; }
+.lead { margin: 0; font-size: 44px; line-height: 1.35; max-width: 1400px; }
+.accent { color: var(--deck-accent); }
+
+/* <Code> callouts take their shape from .callout; tone: 'green' adds .callout--green */
+.callout {
+  display: inline-block;
+  padding: 18px 26px;
+  border-radius: 18px;
+  font: 700 32px/1.25 var(--sans);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+.callout--green { background: var(--mint) !important; color: var(--ink) !important; }
