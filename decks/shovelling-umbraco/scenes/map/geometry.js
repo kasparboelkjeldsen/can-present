@@ -25,5 +25,32 @@ export const SLOTS = {
   cache: { cx: 668 + 118, cy: 545 + r(236).h / 2, ...r(236) },
 }
 
+// A polyline with rounded corners, as an SVG path (so the camera riding along it turns smoothly).
+function rounded(points, r = 36) {
+  let d = `M${points[0][0]} ${points[0][1]}`
+  for (let i = 1; i < points.length - 1; i++) {
+    const [px, py] = points[i - 1], [x, y] = points[i], [nx, ny] = points[i + 1]
+    const a = Math.min(r, Math.hypot(x - px, y - py) / 2), b = Math.min(r, Math.hypot(nx - x, ny - y) / 2)
+    const ux = Math.sign(x - px), uy = Math.sign(y - py), vx = Math.sign(nx - x), vy = Math.sign(ny - y)
+    d += ` L${x - ux * a} ${y - uy * a} Q${x} ${y} ${x + vx * b} ${y + vy * b}`
+  }
+  const [lx, ly] = points[points.length - 1]
+  return d + ` L${lx} ${ly}`
+}
+const c = (s) => [s.cx, Math.round(s.cy)] // a slot's centre
+
+// "Let's look closer": the red pill's routes between the dives (deck.js `via`), along the map's own
+// wires: in from the partner site, down the "who am I?" lane, out and back round the letterbox, along
+// the "what do I wear?" lane into Umbraco, under its two slots, and up the config wire to the
+// backoffice (the remote control, the next scene). Each one pulls back out of the dive first.
+export const RIDES = {
+  bootstrap: rounded([[1805, 600], [1470, 600], c(SLOTS.bootstrap)]),
+  whoAmI: rounded([c(SLOTS.bootstrap), [1470, 664], [1140, 664], c(SLOTS.whoAmI)]),
+  policy: rounded([c(SLOTS.whoAmI), [1300, 494], [1300, 596], c(SLOTS.policy)], 50),
+  wear: rounded([c(SLOTS.policy), [1140, 710], [534, 710], c(SLOTS.wear)]),
+  cache: rounded([c(SLOTS.wear), [534, 724], [786, 724], c(SLOTS.cache)], 50),
+  section: rounded([c(SLOTS.cache), [786, 500], [660, 500], [660, 275]]),
+}
+
 // nest() lives in the engine; re-exported so deck.js can keep importing it from here.
 export { nest } from '@engine/layout.js'

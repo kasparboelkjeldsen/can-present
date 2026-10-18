@@ -32,6 +32,9 @@ import Shot from '@engine/components/Shot.vue'
 .frame { flex: 1; min-height: 0; }
 .is-active .left { animation: in-left 1s var(--ease-out) 0.2s both; }
 .is-active .right { animation: in-right 1s var(--ease-out) 0.35s both; }
+/* turned over onto from live-kicker: the card arrives already drawn, so no slide-in */
+/* (one :global() round the whole selector: Vue drops whatever follows a :global(…) prefix) */
+:global(.scene.is-flipped-in .live-demo .pane) { animation: none; }
 @keyframes in-left { from { opacity: 0; transform: translateX(-300px); } }
 @keyframes in-right { from { opacity: 0; transform: translateX(300px); } }
 </style>

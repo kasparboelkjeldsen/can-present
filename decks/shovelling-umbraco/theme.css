@@ -32,6 +32,7 @@
   --deck-accent-2: var(--k-red);               /* #ff8071 */
   --code-bg: var(--k-dark-deep);               /* #2c2c2e */
   --code-line-hot: rgba(195, 242, 64, 0.08);   /* green, 8% */
+  --code-mark: var(--k-green);                 /* underline on a focused code token: the callout green, not a lint-error red */
 }
 
 /* ------------------------------------------------------------------

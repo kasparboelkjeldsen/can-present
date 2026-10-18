@@ -6,6 +6,8 @@
 //   at       → place on the canvas: x/y = centre in world px, r = rotation (deg), s = scale
 //   parent / revealDelay → scene sits inside a slot of `parent`; fades in that many ms after the parent comes on stage
 //   skip     → stepped over by next/prev (reachable via #id or the X key)
+//   via      → the flight in from the previous scene rides a path with a pill (the map's "Let's look closer")
+//   back     → the scene is the other side of that card: → turns the card over (live-kicker → live-demo)
 //   ghost    → only visible while on stage (the takeaway that hovers over the whole canvas;
 //              with `at: null` the engine places it over everything)
 //   (speaker notes live in notes.json, keyed by id — edit them on /notes)
@@ -43,9 +45,11 @@ import Numbers from './scenes/Numbers.vue'
 import Tomorrow from './scenes/Tomorrow.vue'
 import ControlPlane from './scenes/ControlPlane.vue'
 import Thanks from './scenes/Thanks.vue'
-import { SLOTS, nest, REVEAL_MS } from './scenes/map/geometry.js'
+import { SLOTS, nest, REVEAL_MS, RIDES } from './scenes/map/geometry.js'
 
 const MAP = { x: 0, y: 2700, s: 1.5 }
+// the red pill that carries the camera between the map's dives, along its wires (RIDES in geometry.js)
+const closer = (path) => ({ path, space: MAP, label: "Let's look closer", tone: 'accent-2', zoom: 1.8 })
 
 const scenes = [
   // ---------------- Act 1: out to WordPress land ----------------
@@ -82,26 +86,32 @@ const scenes = [
   {
     id: 'bootstrap', title: 'The component wakes up', component: Bootstrap, steps: 1, // 1–4 build on a timer, the click is the catch
     at: nest(MAP, SLOTS.bootstrap), parent: 'map', revealDelay: REVEAL_MS[0] + 150,
+    via: closer(RIDES.bootstrap),
   },
   {
     id: 'who-am-i', title: 'Who am I?', component: WhoAmI, steps: 3,
     at: nest(MAP, SLOTS.whoAmI), parent: 'map', revealDelay: REVEAL_MS[1] + 150,
+    via: closer(RIDES.whoAmI),
   },
   {
     id: 'the-policy', title: 'The policy, at runtime', component: ThePolicy, steps: 5,
     at: nest(MAP, SLOTS.policy), parent: 'map', revealDelay: REVEAL_MS[1] + 150,
+    via: closer(RIDES.policy),
   },
   {
     id: 'what-to-wear', title: 'What do I wear?', component: WhatToWear, steps: 4,
     at: nest(MAP, SLOTS.wear), parent: 'map', revealDelay: REVEAL_MS[2] + 150,
+    via: closer(RIDES.wear),
   },
   {
     id: 'cache', title: 'Cached, but not stale', component: Cache, steps: 2,
     at: nest(MAP, SLOTS.cache), parent: 'map', revealDelay: REVEAL_MS[2] + 150,
+    via: closer(RIDES.cache),
   },
   {
     id: 'the-section', title: 'The remote control', component: TheSection, steps: 8, // 7 fields zoomed in, then zoom out
     at: { x: -3400, y: 2500, r: -2 },
+    via: closer(RIDES.section), // up the config wire to the backoffice, then off to the remote control
   },
   {
     id: 'one-instance', title: 'One instance', component: OneInstance, steps: 1,
@@ -118,16 +128,17 @@ const scenes = [
     at: { x: 15000, y: 3000 },
   },
   {
+    // the back of the "This is DSA's production" card: → turns it over onto the live demo
     id: 'live-demo', title: 'Punching a hole', component: LiveDemo,
-    at: { x: 17800, y: 3000, s: 1.3 },
+    back: 'live-kicker',
   },
   {
     id: 'fallback', title: 'Fallback', component: Fallback, skip: true,
-    at: { x: 17800, y: 4900, r: 2 },
+    at: { x: 15000, y: 4900, r: 2 },
   },
   {
     id: 'numbers', title: 'The numbers', component: Numbers, steps: 2,
-    at: { x: 20600, y: 3000 },
+    at: { x: 17800, y: 3000 }, // where the live demo used to be: it's on the back of live-kicker now
   },
 
   // ---------------- Act 4: home ----------------
