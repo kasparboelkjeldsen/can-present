@@ -5,7 +5,8 @@ import UmbracoMark from './UmbracoMark.vue'
 import WordPressMark from './WordPressMark.vue'
 import Shovel from './Shovel.vue'
 
-defineProps({ target: { type: Boolean, default: true } })
+// cut: the background the WordPress mark sits on (its cut-out lines take that colour)
+defineProps({ target: { type: Boolean, default: true }, cut: { type: String, default: 'var(--k-dark)' } })
 </script>
 
 <template>
@@ -19,7 +20,7 @@ defineProps({ target: { type: Boolean, default: true } })
     <g v-if="target" transform="translate(650 250)">
       <g class="wp-gulp">
         <circle r="150" class="wp-halo" />
-        <g transform="scale(2.1)"><WordPressMark inline cut="var(--k-dark)" /></g>
+        <g transform="scale(2.1)"><WordPressMark inline :cut="cut" /></g>
       </g>
       <g class="sparks">
         <line v-for="a in 10" :key="a" x1="0" y1="-120" x2="0" y2="-150" :transform="`rotate(${a * 36})`" />
