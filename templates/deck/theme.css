@@ -1,0 +1,109 @@
+/* ------------------------------------------------------------------
+   Theme for __DECK_TITLE__.
+
+   A neutral starting point: near-black ink, warm paper, one orange
+   accent. To brand it, change the four palette colours below (and the
+   fonts), then check contrast: text on --orange must stay dark, and the
+   accent on light slides needs its own darker shade (--accent-on-light).
+
+   The engine supplies base page styles, <Step> and .rise/.fade-in
+   animations, and defaults for every --deck-* / --code-* token
+   (engine/styles/engine.css). They are all set here so nothing falls
+   back to the engine's blue.
+   ------------------------------------------------------------------ */
+:root {
+  /* palette: change these for a brand */
+  --ink: #17191f;            /* dark slides, text on light and accent slides */
+  --paper: #f5f3ee;          /* light slides, text on dark slides */
+  --orange: #ff7849;         /* the accent: kickers, highlights, the important word */
+  --accent-on-light: #c2410c; /* the accent as text on paper (orange is too light there) */
+  --mint: #7bd389;           /* the "payoff" callout (callout--green) */
+  --rose: #ff5d73;           /* second accent: progress end, error text, focused-token underline */
+
+  /* engine tokens */
+  --deck-canvas: #0f1115;
+  --deck-grid: rgba(245, 243, 238, 0.1);
+  --deck-ink: var(--ink);
+  --deck-paper: var(--paper);
+  --deck-accent: var(--orange);
+  --deck-on-accent: var(--ink);
+  --deck-accent-2: var(--rose);
+  --code-bg: #101217;
+  --code-line-hot: rgba(255, 120, 73, 0.12);
+
+  /* type and motion. Fonts: import a @fontsource package in deck.js and name it here */
+  --sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --serif: Georgia, 'Times New Roman', serif;
+  --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  --radius: 28px;
+}
+
+/* every scene root is a .slide (a fixed 1920×1080 card) */
+.slide {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding: 120px 140px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  font-family: var(--sans);
+}
+
+/* backgrounds: alternate them so the flights look good. Each sets --accent for .accent and .kicker */
+.slide--dark { background: var(--ink); color: var(--paper); --accent: var(--orange); --on-accent: var(--ink); }
+.slide--light { background: var(--paper); color: var(--ink); --accent: var(--accent-on-light); --on-accent: var(--paper); }
+.slide--accent { background: var(--orange); color: var(--ink); --accent: var(--ink); --on-accent: var(--orange); }
+
+/* small pill above a headline: a section marker. 26px is the smallest text on a card */
+.kicker {
+  align-self: flex-start;
+  padding: 12px 28px;
+  border-radius: 999px;
+  font: 700 26px var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.h1, .h2 { margin: 0; font-family: var(--sans); font-weight: 800; letter-spacing: -0.02em; }
+.h1 { font-size: 140px; line-height: 1.02; }
+.h2 { font-size: 100px; line-height: 1.05; }
+.lead { margin: 0; font-size: 44px; line-height: 1.35; max-width: 1400px; }
+.accent { color: var(--accent); }
+
+/* speech bubble. <Code> callouts take their shape from .callout (and .callout--green for tone: 'green') */
+.callout {
+  display: inline-block;
+  padding: 18px 26px;
+  border-radius: 18px;
+  font: 700 32px/1.25 var(--sans);
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+.slide--dark .callout { background: var(--paper); color: var(--ink); }
+.callout--green { background: var(--mint) !important; color: var(--ink) !important; }
+
+/* rounded card: comparisons, "three things" */
+.card {
+  padding: 44px 48px;
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--ink);
+  font-size: 40px;
+  line-height: 1.3;
+  box-shadow: 0 24px 60px rgba(10, 12, 20, 0.18);
+}
+.slide--dark .card { background: #23262e; color: var(--paper); box-shadow: 0 24px 60px rgba(0, 0, 0, 0.4); }
+
+/* small print, bottom-right: "abridged", sources */
+.fineprint {
+  position: absolute;
+  right: 80px;
+  bottom: 60px;
+  margin: 0;
+  font-size: 26px;
+  opacity: 0.7;
+}

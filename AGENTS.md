@@ -57,7 +57,10 @@ npm run deck -- lan [deck]          # dev server on the network
 npm run deck -- build [deck]        # → dist/<deck>/
 npm run deck -- preview [deck]      # serve the build
 npm run check -- [deck]             # text lint: ids, steps vs builds, notes, overlaps, nesting, missing shots (--json too)
+npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from scene-description.md]   # scaffold decks/<id> from templates/deck/
 ```
+
+`new-deck --from` turns a scene description (format: `docs/presentation-guide.md`, example: `docs/examples/scene-description.example.md`) into stub scenes that already render and navigate: one `.vue` per scene with the description in a top comment, the slide variant, the title and one `<Step>` per build; `deck.js` on a default path; `notes.json`; the assets list in `brief.md`. It never overwrites a deck.
 
 `npm run check` prints one line per finding (`ERROR  <scene-id>  <message>` / `WARN …`) and exits 1 on errors. Errors: duplicate or non-kebab ids, unknown `parent`, no `component`/`at`, builds that `steps` can't reach. Warnings: dead clicks, missing or empty notes, overlapping top-level cards, a nested card outside its parent, `/shots/…` or `/assets/…` files not in `public/` yet (a TODO for the speaker), a scene root without `class="slide"`. Build steps are inferred from literal `<Step :at>`/`:until`, `:focus`/`:callouts` keys and `step >= n` checks; scenes with non-literal ones are listed as "not inferred" for you to check by hand.
 

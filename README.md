@@ -84,11 +84,15 @@ decks/
     scenes/ components/
     public/                 served at / (shots/, assets/)
   example/                  a four-scene starter deck
+templates/
+  deck/                     what npm run new-deck copies (not a deck itself)
 docs/
   presentation-guide.md     what the engine can do, for writing a talk with Claude chat
+  examples/                 scene-description.example.md: the format, and new-deck's test fixture
 scripts/
   deck.mjs                  npm run deck: dev / lan / build / preview / check for any deck
   check.mjs                 npm run check: the deck lint
+  new-deck.mjs              npm run new-deck: scaffold a deck, optionally from a scene description
 AGENTS.md                   rules and orientation for coding agents (CLAUDE.md points at it)
 ```
 
@@ -96,9 +100,19 @@ Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engi
 
 ## Make a new deck
 
-1. Copy `decks/example` to `decks/<your-deck>`.
-2. In `deck.js`, set `id`, `title` and `icon` (an emoji; it becomes the favicon).
-3. Run it with `DECK=<your-deck>`, or make it the default in `package.json`.
+```bash
+npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from path/to/scene-description.md]
+```
+
+This copies `templates/deck/` to `decks/<id>/` and fills in the id, title and icon. It never overwrites an existing deck. The template has `deck.js`, a neutral `theme.css` (every engine token set, `slide--dark` / `slide--light` / `slide--accent`, `.kicker`, `.h1`, `.h2`, `.lead`, `.accent`, `.callout`, `.callout--green`, `.card`, `.fineprint`), `notes.json`, a `brief.md` with `TODO:`s, `scenes/Title.vue` and `public/shots/`.
+
+With `--from`, it reads a scene description in the format of `docs/presentation-guide.md` (example: `docs/examples/scene-description.example.md`) and scaffolds the whole deck:
+
+- one scene file per scene (`the-check` → `scenes/TheCheck.vue`) with On screen, Animation, Builds and Position copied into a top comment, the slide variant from **Background** (anything that isn't dark, light or accent becomes `slide--dark` with a TODO), the title as the `.h2`, and one `<Step :at="n">` per numbered build;
+- `deck.js` entries with `steps`, laid out left to right 2300px apart (a scene whose Position says "inside …" gets a `// TODO: nest inside …` comment);
+- `notes.json` from the **Notes** bullets, the "Assets needed" list in `brief.md`, and a copy of the description at `decks/<id>/scene-description.md`.
+
+Then run it with `npm run deck -- dev <id>`, or make it the default in `package.json`. You can also copy `decks/example` by hand.
 
 `deck.js` imports the deck's own CSS and fonts. `theme.css` defines the look of a `.slide` and sets the engine tokens (all optional, defaults in `engine/styles/engine.css`):
 

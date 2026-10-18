@@ -12,7 +12,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "deck": "node scripts/deck.mjs",
-    "check": "node scripts/deck.mjs check"
+    "check": "node scripts/deck.mjs check",
+    "new-deck": "node scripts/new-deck.mjs"
   },
   "dependencies": {
     "@fontsource/dm-sans": "^5.3.0",
