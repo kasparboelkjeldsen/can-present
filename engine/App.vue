@@ -1,6 +1,6 @@
 <script setup>
 import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { useDeck, stepFor, nestedVisible, outerVisible } from './useDeck.js'
+import { useDeck, stepFor, nestedVisible, outerVisible, flips } from './useDeck.js'
 import { talkBounds } from './layout.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './camera.js'
 import { cam } from './cameraState.js'
@@ -75,6 +75,7 @@ let raf = 0
 function flyTo(t, { dur: fixed, then } = {}) {
   cancelAnimationFrame(raf)
   endRide()
+  endFlip()
   const from = { ...cam }
   const interp = interpolateZoom([from.x, from.y, from.w], [t.x, t.y, t.w])
   const toR = shortestAngle(from.r, t.r)
@@ -124,6 +125,7 @@ function endRide() {
 
 function rideTo(t, via, back) {
   cancelAnimationFrame(raf)
+  endFlip()
   let plan
   try {
     plan = planRide(sampleVia(via, back), { ...cam }, t)
@@ -170,6 +172,7 @@ const near = (a, b, tol) => Math.hypot(a.x - b.x, a.y - b.y) < tol * b.w && Math
 function formationMove(t) {
   cancelAnimationFrame(raf)
   endRide()
+  endFlip()
   const T = fx.timing
   if (reducedMotion?.matches) { setFormed(fxOn.value, 'cut'); return flyTo(t) }
   if (fxOn.value) {
@@ -226,6 +229,140 @@ const fxWorldVars = fx?.spin
     })()
   : null
 
+// ---------- cards that turn over (`back` / `flip` in deck.js, engine/flip.js) ----------
+// A front and its back are two ordinary scene elements at the same place. At rest the face that's
+// down is hidden and both keep their plain 2D transform. The move from the front to its back (→ from
+// the front's last step, the back next in deck order) turns the card over instead of flying, and ←
+// turns it back; every other move snaps the faces to the rule (backUp) and flies as usual.
+// The turn: (1) the camera pulls back until the card is an object on the canvas, (2) the card turns,
+// starting halfway through the pull, lifting a little, with a wobble on the other axis and a sheen,
+// (3) the camera pushes back in, overlapping the end of the turn. The scene being left stays
+// is-active until the card lands, so the arriving scene's entrance plays on the visible face.
+// Only the start and the end re-render App: per frame, CSS variables are written on the two elements.
+const flipOf = []
+for (const p of flips) { flipOf[p.front] = p; flipOf[p.back] = p }
+const els = [] // scene elements by index (the turn writes its CSS variables on them)
+const flip = reactive({ front: -1, mode: null }) // the pair turning now (by its front); 'turn' | 'fade'
+const held = ref(null) // while a card turns: the scene that stays active until it lands
+const activeIdx = computed(() => held.value ?? idx.value)
+// ms, and the card's look mid-turn; P is the perspective in card px (so it's the same at any scale)
+const FLIP = { pull: 620, turnAt: 300, turn: 950, pushAt: 1030, push: 650, wide: 1.45, drift: 0.04, lift: 0.05, P: 4200, fade: 450 }
+const clamp01 = (v) => Math.min(1, Math.max(0, v))
+const smooth = (v) => v * v * (3 - 2 * v)
+// ease in and out, then a small overshoot that settles: the card lands rather than stops
+const turnEase = (k) => easeInOutCubic(k) + 0.045 * Math.sin(Math.PI * clamp01((k - 0.7) / 0.3)) ** 2
+
+const turning = (i) => !!flipOf[i] && flip.front === flipOf[i].front
+// the back is up from the moment the deck reaches it, before that the front. In a formation the
+// front moves into the ring (the back fades), so there the front is up
+const backUp = (p) => idx.value >= p.back && !(formation.formed && fx?.roles[p.front] !== 'fade')
+function faceDown(i) {
+  const p = flipOf[i]
+  if (!p || turning(i)) return false
+  return backUp(p) ? i === p.front : i === p.back
+}
+function flipBetween(from, to) {
+  const p = flipOf[to]
+  if (!p || p !== flipOf[from]) return null
+  if (to === p.back && prevIndex(to) === from) return { p, rev: false }
+  if (to === p.front && prevIndex(from) === to) return { p, rev: true }
+  return null
+}
+// appended to the card's own 2D transform while it turns; the back is the same card, half a turn on
+function flipTransform(i) {
+  if (flip.mode !== 'turn' || !turning(i)) return ''
+  const p = flipOf[i]
+  const [main, other] = p.axis === 'x' ? ['X', 'Y'] : ['Y', 'X']
+  return ` scale(var(--flip-lift, 1)) perspective(${FLIP.P}px) rotate${main}(var(--flip-a, 0deg)) rotate${other}(var(--flip-t, 0deg))` +
+    (i === p.back ? ` rotate${main}(180deg)` : '')
+}
+// a: the card's turn (deg, 0 = front up), tilt (deg); lift and env 0…1 (lifted, camera pulled back)
+function writeTurn(p, a, tilt, lift, env) {
+  const sheen = Math.abs(Math.sin((a * Math.PI) / 180))
+  for (const i of [p.front, p.back]) {
+    const st = els[i]?.style
+    if (!st) continue
+    st.setProperty('--flip-a', `${a.toFixed(3)}deg`)
+    st.setProperty('--flip-t', `${tilt.toFixed(3)}deg`)
+    st.setProperty('--flip-lift', (1 + FLIP.lift * lift).toFixed(4))
+    st.setProperty('--flip-l', lift.toFixed(4))
+    st.setProperty('--flip-e', env.toFixed(4))
+    st.setProperty('--flip-sheen', sheen.toFixed(4))
+  }
+}
+function endFlip() {
+  if (flip.mode == null) return
+  Object.assign(flip, { front: -1, mode: null })
+  held.value = null
+}
+
+function flipTo(t, p, rev) {
+  cancelAnimationFrame(raf)
+  endRide()
+  endFlip()
+  const t0 = performance.now()
+  if (reducedMotion?.matches) {
+    // no turn and no camera move: the arriving face fades in over the other (the back is on top)
+    flying.value = false
+    Object.assign(cam, t)
+    const st = els[p.back]?.style
+    st?.setProperty('--flip-o', rev ? '1' : '0')
+    Object.assign(flip, { front: p.front, mode: 'fade' })
+    const tick = (now) => {
+      const k = clamp01((now - t0) / FLIP.fade)
+      st?.setProperty('--flip-o', String(rev ? 1 - k : k))
+      if (k < 1) raf = requestAnimationFrame(tick)
+      else endFlip()
+    }
+    raf = requestAnimationFrame(tick)
+    return
+  }
+  const card = place(scenes[p.front])
+  const wide = { x: card.x, y: card.y, w: W * card.s * FLIP.wide, r: card.r }
+  const from = { ...cam }
+  const pull = interpolateZoom([from.x, from.y, from.w], [wide.x, wide.y, wide.w])
+  const rPull = shortestAngle(from.r, wide.r)
+  const push = interpolateZoom([wide.x, wide.y, wide.w * (1 + FLIP.drift)], [t.x, t.y, t.w])
+  const rPush = shortestAngle(wide.r, t.r)
+  const half = p.dir * 180
+  const end = FLIP.pushAt + FLIP.push
+  held.value = rev ? p.back : p.front
+  writeTurn(p, rev ? half : 0, 0, 0, 0) // before App renders the turn's transform
+  Object.assign(flip, { front: p.front, mode: 'turn' })
+  flying.value = true
+  const tick = (now) => {
+    const ms = now - t0
+    // the camera: pull back, drift a touch further while the card turns, push back in
+    let env
+    if (ms < FLIP.pull) {
+      const e = easeInOutCubic(ms / FLIP.pull)
+      const [x, y, w] = pull(e)
+      Object.assign(cam, { x, y, w, r: from.r + (rPull - from.r) * e })
+      env = e
+    } else if (ms < FLIP.pushAt) {
+      const d = smooth((ms - FLIP.pull) / (FLIP.pushAt - FLIP.pull))
+      Object.assign(cam, { x: wide.x, y: wide.y, w: wide.w * (1 + FLIP.drift * d), r: wide.r })
+      env = 1
+    } else {
+      const e = easeInOutCubic(clamp01((ms - FLIP.pushAt) / FLIP.push))
+      const [x, y, w] = push(e)
+      Object.assign(cam, { x, y, w, r: wide.r + (rPush - wide.r) * e })
+      env = 1 - e
+    }
+    // the card
+    const k = clamp01((ms - FLIP.turnAt) / FLIP.turn)
+    const e = turnEase(k)
+    const lift = Math.sin(Math.PI * clamp01((ms - FLIP.turnAt + 120) / (FLIP.turn + 240)))
+    writeTurn(p, half * (rev ? 1 - e : e), p.tilt * Math.sin(Math.PI * clamp01(e)), lift, env)
+    // touchdown (where the settle starts): the arriving scene goes on stage, and its entrances (which
+    // start after 200 ms) play as the card comes to rest
+    if (k >= 0.7 && held.value != null) held.value = null
+    if (ms < end) raf = requestAnimationFrame(tick)
+    else { flying.value = false; Object.assign(cam, t); endFlip() }
+  }
+  raf = requestAnimationFrame(tick)
+}
+
 let last = { idx: idx.value, overview: overview.value }
 watch(camKey, () => {
   const t = target()
@@ -233,10 +370,14 @@ watch(camKey, () => {
   last = { idx: idx.value, overview: overview.value }
   // to the formation scene, or away from it while the cards are out (or on their way out)
   if (fx && (fxOn.value || formation.formed)) return formationMove(t)
+  // between a card's two faces: turn it over (not while a turn runs: then the faces snap)
+  const turn = flip.mode == null && !from.overview && !overview.value && from.idx !== idx.value ? flipBetween(from.idx, idx.value) : null
+  if (turn) return flipTo(t, turn.p, turn.rev)
   // a new frame within the same scene: with reduced motion, cut straight to it
   if (!from.overview && !overview.value && from.idx === idx.value && reducedMotion?.matches) {
     cancelAnimationFrame(raf)
     endRide()
+    endFlip()
     flying.value = false
     Object.assign(cam, t)
     return
@@ -274,9 +415,13 @@ const outerZ = (() => {
 })()
 
 function sceneStyle(sc, i) {
-  if (fx?.transforms[i]) return formationStyle(i)
+  const turn = flipTransform(i)
+  if (fx?.transforms[i]) {
+    const st = formationStyle(i)
+    return turn ? { ...st, transform: st.transform + turn } : st
+  }
   const p = place(sc)
-  const transform = `translate(${p.x - W / 2}px, ${p.y - H / 2}px) rotate(${p.r}deg) scale(${p.s})`
+  const transform = `translate(${p.x - W / 2}px, ${p.y - H / 2}px) rotate(${p.r}deg) scale(${p.s})` + turn
   return outerZ[i] != null ? { transform, zIndex: outerZ[i] } : { transform }
 }
 const fxClass = (i) => {
@@ -339,7 +484,7 @@ function pick(i) {
           :key="sc.id"
           class="scene"
           :class="[{
-            'is-active': i === idx && !overview,
+            'is-active': i === activeIdx && !overview,
             'is-past': i < idx,
             'is-nested': !!sc.parent,
             'is-hidden': !nestedVisible(i),
@@ -347,14 +492,19 @@ function pick(i) {
             'is-outer': !!sc.outer,
             'is-unreached': !outerVisible(i),
             'is-skip': sc.skip,
+            'is-face-down': faceDown(i),
+            'is-flipping': flip.mode === 'turn' && turning(i),
+            'is-xfade': flip.mode === 'fade' && turning(i),
+            'is-back': flipOf[i]?.back === i,
           }, fxClass(i)]"
           :style="[sceneStyle(sc, i), revealStyle(sc, i)]"
+          :ref="(el) => { els[i] = el }"
           @click="pick(i)"
         >
           <SceneFrame
             :scene="sc"
             :step="stepFor(i)"
-            :active="i === idx && !overview"
+            :active="i === activeIdx && !overview"
             :near="Math.abs(i - idx) <= 1"
           />
           <div class="scene-label"><b>{{ i + 1 }}</b> {{ sc.title ?? sc.id }}<i v-if="sc.skip"> (fallback)</i></div>
@@ -452,6 +602,36 @@ function pick(i) {
 .scene.fx-gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.5s, visibility 0s 0.5s; }
 .scene.fx-centre { z-index: 2; }
 .scene.is-active.fx-centre { border-radius: 48px; box-shadow: 0 60px 160px rgba(5, 10, 30, 0.55); }
+
+/* cards that turn over (`back` in deck.js, engine/flip.js): at rest the face that's down is hidden.
+   While the card turns, both faces hide their back side, the corners round and the shadow grows as
+   the camera pulls back (--flip-e), more as it lifts (--flip-l), with a sheen as it goes edge-on
+   (--flip-sheen). App writes the variables per frame; the transform reads --flip-a/-t/-lift */
+.scene.is-face-down { visibility: hidden; pointer-events: none; }
+.scene.is-flipping {
+  z-index: 3;
+  backface-visibility: hidden;
+  transition: none;
+  border-radius: calc(48px * var(--flip-e, 0));
+  box-shadow: 0 calc(60px * var(--flip-e, 0) + 90px * var(--flip-l, 0)) calc(160px * var(--flip-e, 0) + 160px * var(--flip-l, 0))
+    rgba(5, 10, 30, calc(0.55 * var(--flip-e, 0) - 0.15 * var(--flip-l, 0)));
+}
+.scene.is-flipping::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(115deg, rgba(255, 255, 255, 0.45), rgba(255, 255, 255, 0) 38%, rgba(5, 10, 30, 0.35) 62%, rgba(5, 10, 30, 0.7));
+  opacity: var(--flip-sheen, 0);
+}
+/* the arriving face only goes on stage when it lands: until then its entrances wait unplayed, so
+   they don't show finished during the turn and then start over */
+.scene.is-flipping:not(.is-active) :deep(.rise),
+.scene.is-flipping:not(.is-active) :deep(.fade-in) { opacity: 0; }
+/* reduced motion: no turn, the arriving face fades in over the other */
+.scene.is-xfade { transition: none; }
+.scene.is-xfade.is-back { opacity: var(--flip-o, 1); }
 
 .overview .scene { cursor: pointer; }
 .overview .scene:hover { outline: 24px solid var(--deck-accent); }

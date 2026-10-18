@@ -83,7 +83,8 @@ export function formationProblems(scenes, i) {
 /**
  * What each scene does while the formation is up: 'centre' (the formation scene), 'lead' (a top-level
  * card that moves to a slot), 'follow' (nested in a lead, moves with it), 'stay' (nested in the
- * formation scene), 'fade' (skip, ghost and outer cards and what's nested in them; and leads without a slot).
+ * formation scene), 'fade' (skip, ghost and outer cards and what's nested in them, the back of a card that
+ * turns over (flip.js: the pair counts as one card, its front moves); and leads without a slot).
  */
 export function formationRoles(scenes, fIdx) {
   const byId = new Map(scenes.map((s, i) => [s.id, i]))
@@ -96,7 +97,7 @@ export function formationRoles(scenes, fIdx) {
     if (i === fIdx) return 'centre'
     const root = rootOf(i)
     if (root === fIdx) return 'stay'
-    if (sc.ghost || sc.outer || sc.skip || scenes[root].ghost || scenes[root].skip || !sc.at || !scenes[root].at) return 'fade'
+    if (sc.ghost || sc.outer || sc.skip || sc.back != null || scenes[root].ghost || scenes[root].skip || !sc.at || !scenes[root].at) return 'fade'
     return root === i ? 'lead' : 'follow'
   })
 }

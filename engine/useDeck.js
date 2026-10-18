@@ -2,10 +2,17 @@ import { ref, computed, watch } from 'vue'
 import deck from '@deck/deck.js'
 import { resets } from './signals.js'
 import { placeGhosts, placeOuter } from './layout.js'
+import { flipProblems, flipPairs, placeBacks } from './flip.js'
 
 const scenes = deck.scenes
 // ghost scenes with `at: null` get a placement that covers the whole canvas (the talk), and then
-// outer layers (`outer`) are placed round the talk, each round the one before
+// outer layers (`outer`) are placed round the talk, each round the one before. Back scenes (`back`,
+// flip.js) sit on their front first.
+const flipIssues = flipProblems(scenes)
+for (const p of flipIssues) console.warn(`[can-present] scene "${scenes[p.i].id}": ${p.message} (flip ignored)`)
+/** cards that turn over: [{ front, back, axis, dir, tilt }] (scene indexes; flip.js) */
+export const flips = flipPairs(scenes, flipIssues)
+placeBacks(scenes)
 placeGhosts(scenes)
 placeOuter(scenes)
 

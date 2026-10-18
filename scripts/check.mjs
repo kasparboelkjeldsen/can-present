@@ -10,14 +10,17 @@
 //   aren't build steps 1…steps, boxes that aren't { cx, cy, w } inside the card), a malformed
 //   `formation` (unknown shape or option, bad spin/cols/s/radius/points, a shape function that
 //   returns no { x, y }) or a formation scene that's nested or a ghost, a malformed `outer.hole` (not a
-//   { cx, cy, w } box inside the card) or an outer scene with `at`, `parent`, `ghost` or `formation`.
+//   { cx, cy, w } box inside the card) or an outer scene with `at`, `parent`, `ghost` or `formation`,
+//   a bad `back` / `flip` (engine/flip.js: unknown front, two backs for one card, a front or back that
+//   isn't an ordinary top-level card, nested scenes in either, a back with its own `at`, bad options).
 // WARN: fewer build steps used than `steps` (dead clicks), missing / empty / orphan notes,
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
 //   that don't exist yet in public/, a scene root without class "slide", a `via` that never
 //   plays or rides in from a scene far from its path, more than one formation scene (only the
 //   first counts), frames/via on the formation scene (ignored), points for fewer cards than move,
 //   a <QrCode> url literal that isn't http(s):// or mailto: (or a <QrCode> without a url), outer layers
-//   whose total zoom (talk width ÷ outermost card width) is over 10,000×.
+//   whose total zoom (talk width ÷ outermost card width) is over 10,000×, a back that doesn't come
+//   right after its front (the card never turns over). Backs don't count for the overlap warnings.
 //
 // Build steps are inferred from the SFC source (literal <Step :at/:until>, <BigNumber :at> and <QrCode :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
@@ -34,6 +37,7 @@ import { validateVia } from '../engine/ride.js'
 import { validateFrames } from '../engine/frames.js'
 import { formationProblems, planFormation } from '../engine/formation.js'
 import { placeGhosts, placeOuter, talkBounds } from '../engine/layout.js'
+import { flipProblems, placeBacks } from '../engine/flip.js'
 
 const W = 1920
 const H = 1080
@@ -310,7 +314,7 @@ export async function check(deckId, { json = false } = {}) {
     const id = sc.id ?? '(no id)'
     if (sc.parent != null && !seen.has(sc.parent)) add('error', id, `parent "${sc.parent}" doesn't exist`)
     if (!sc.component) add('error', id, 'no component')
-    if (sc.at == null && !(sc.ghost && sc.at === null) && sc.outer == null) add('error', id, 'no `at` (only a ghost may use at: null)')
+    if (sc.at == null && !(sc.ghost && sc.at === null) && sc.outer == null && sc.back == null) add('error', id, 'no `at` (only a ghost may use at: null)')
 
     const file = sc.component && fileOf.get(sc.component)
     if (!file) {
@@ -381,9 +385,20 @@ export async function check(deckId, { json = false } = {}) {
     if (sc.skip) add('warn', id, 'formation on a skip scene: → and ← step over it, so it only plays from X or #id')
     if (sc.frames != null) add('warn', id, 'frames are ignored on the formation scene: the camera frames the formation')
     if (sc.via != null) add('warn', id, "via is ignored on the formation scene: its flight in is the formation's own")
-    const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].outer && !scenes[j].parent).length
+    const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].outer && !scenes[j].parent && scenes[j].back == null).length
     if (unplaced) add('warn', id, `formation: ${unplaced} card(s) have no point and fade out instead (points has ${sc.formation.points.length}, ${plan.n + unplaced} cards move)`)
   })
+
+  // cards that turn over: `back` sits on its front (flip.js placeBacks), `flip` only on the back
+  for (const p of flipProblems(scenes)) add('error', scenes[p.i].id ?? '(no id)', p.message)
+  scenes.forEach((sc, i) => {
+    if (sc.back == null) return
+    const f = scenes.findIndex((s) => s.id === sc.back)
+    let prev = -1
+    for (let j = i - 1; j >= 0; j--) if (!scenes[j].skip) { prev = j; break }
+    if (f >= 0 && prev !== f) add('warn', sc.id, `the card only turns over when its back comes right after "${sc.back}" in deck order (other moves just fly to it)`)
+  })
+  placeBacks(scenes)
 
   // outer layers: placed round the talk by the engine (layout.js placeOuter), each round the one before
   const outers = scenes.filter((sc) => sc.outer != null)
@@ -424,7 +439,8 @@ export async function check(deckId, { json = false } = {}) {
   for (const key of Object.keys(notes)) if (!seen.has(key)) add('warn', key, 'notes.json entry with no scene')
 
   // layout
-  const top = scenes.filter((sc) => sc.at && !sc.parent && !sc.ghost && sc.outer == null)
+  // (a back lies on its front on purpose)
+  const top = scenes.filter((sc) => sc.at && !sc.parent && !sc.ghost && sc.outer == null && sc.back == null)
   for (let i = 0; i < top.length; i++) {
     for (let j = i + 1; j < top.length; j++) {
       const d = overlapDepth(corners(top[i].at), corners(top[j].at))
