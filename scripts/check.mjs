@@ -407,7 +407,12 @@ export async function check(deckId, { json = false } = {}) {
     const id = sc.id ?? '(no id)'
     const fail = (m) => { add('error', id, `outer: ${m}`); outerOk = false }
     if (typeof sc.outer !== 'object' || Array.isArray(sc.outer)) { fail('must be an object, e.g. { hole: { cx: 1210, cy: 380, w: 36 } }'); continue }
-    for (const k of Object.keys(sc.outer)) if (k !== 'hole') fail(`unknown option "${k}" (outer is { hole: { cx, cy, w } })`)
+    for (const k of Object.keys(sc.outer)) if (k !== 'hole' && k !== 'wraps') fail(`unknown option "${k}" (outer is { hole: { cx, cy, w }, wraps?: '<scene id>' })`)
+    if (sc.outer.wraps != null) {
+      const t = scenes.find((o) => o.id === sc.outer.wraps)
+      if (!t) fail(`wraps "${sc.outer.wraps}": no scene with that id`)
+      else if (!t.at || t.parent || t.ghost || t.outer != null || t.back != null) fail(`wraps "${sc.outer.wraps}": it must be an ordinary top-level card with its own at`)
+    }
     if (sc.outer.hole == null) fail("needs a hole: { cx, cy, w }, the box in this card's 1920×1080 space that holds what it wraps")
     else for (const p of validateFrames({ 1: sc.outer.hole }, 1)) fail(`hole${p.replace(/^1:/, ':')}`)
     if (sc.at != null) fail("no `at`: the engine places an outer scene round what it wraps")

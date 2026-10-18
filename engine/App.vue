@@ -62,10 +62,13 @@ function overviewView() {
 const camKey = computed(() => {
   if (overview.value) return 'o'
   const list = frameLists[idx.value]
+  if (fxUntil && idx.value === fx.index) return `${idx.value}|${fxOn.value ? 'fx' : 'card'}`
   return list ? `${idx.value}|${frameAt(list, step.value)?.step ?? 0}` : `${idx.value}`
 })
-// the formation is up while its scene is on stage (the overview shows the normal layout)
-const fxOn = computed(() => !!fx && idx.value === fx.index && !overview.value)
+// the formation is up while its scene is on stage (the overview shows the normal layout), and with
+// `until: n` only before build step n: on n the cards go home and the camera moves in on the card
+const fxUntil = fx ? scenes[fx.index].formation.until ?? null : null
+const fxOn = computed(() => !!fx && idx.value === fx.index && !overview.value && !(fxUntil && step.value >= fxUntil))
 const target = () => (overview.value ? overviewView() : fxOn.value ? { ...fx.view } : viewFor(idx.value, step.value))
 Object.assign(cam, target())
 const flying = ref(false)
@@ -184,7 +187,8 @@ function formationMove(t) {
   } else {
     const back = () => {
       setFormed(false, 'back')
-      if (overview.value) flyTo(t, { dur: T.backTotal })
+      // released by `until` (still on the formation scene): straight in on the card as they go
+      if (overview.value || idx.value === fx.index) flyTo(t, { dur: T.backTotal })
       else flyTo(overviewView(), { dur: T.backTotal, then: () => flyTo(t) })
     }
     if (!formation.spin) return back()
@@ -257,6 +261,17 @@ const smooth = (v) => v * v * (3 - 2 * v)
 const turnEase = (k) => easeInOutCubic(k) + 0.045 * Math.sin(Math.PI * clamp01((k - 0.7) / 0.3)) ** 2
 
 const turning = (i) => !!flipOf[i] && flip.front === flipOf[i].front
+
+// ---------- outer layers round one card (`outer: { wraps }`) ----------
+// While such a layer (or a later one round it) is on stage, the rest of the talk fades away, so only
+// the wrapped card sits in the hole. Moving on to an ordinary scene brings it back.
+const wrapsIdx = scenes.map((sc) => (sc.outer?.wraps != null ? scenes.findIndex((o) => o.id === sc.outer.wraps) : -1))
+const keptCard = computed(() => {
+  if (overview.value || !scenes[idx.value]?.outer) return -1
+  for (let j = idx.value; j >= 0 && scenes[j].outer; j--) if (wrapsIdx[j] >= 0) return wrapsIdx[j]
+  return -1
+})
+const wrappedOut = (i) => keptCard.value >= 0 && i !== keptCard.value && !scenes[i].outer && !scenes[i].ghost
 // the back is up from the moment the deck reaches it, before that the front. In a formation the
 // front moves into the ring (the back fades), so there the front is up
 const backUp = (p) => idx.value >= p.back && !(formation.formed && fx?.roles[p.front] !== 'fade')
@@ -496,6 +511,7 @@ function pick(i) {
             'is-ghost': sc.ghost,
             'is-outer': !!sc.outer,
             'is-unreached': !outerVisible(i),
+            'is-wrapped-out': wrappedOut(i),
             'is-skip': sc.skip,
             'is-face-down': faceDown(i),
             'is-flipping': flip.mode === 'turn' && turning(i),
@@ -590,6 +606,7 @@ function pick(i) {
 .scene.is-outer { box-shadow: none; border-radius: 0; transition: opacity 1s; }
 .scene.is-outer.is-unreached { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1s, visibility 0s 1s; }
 .scene.is-outer .scene-label { display: none; }
+.scene.is-wrapped-out { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.8s, visibility 0s 0.8s; }
 .overview .scene.is-outer { pointer-events: none; }
 
 /* the formation (engine/formation.js): moving cards glide on a transform transition whose timing

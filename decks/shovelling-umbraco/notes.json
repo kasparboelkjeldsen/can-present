@@ -20,5 +20,8 @@
   "numbers": "• Loads, counted only from the component's own origins (remember the crawlers)\n• Click 2 is the payoff for the whole remote-control bet (pause)",
   "tomorrow": "• Not in the UI yet; only one payload. Technically a component can serve a different script\n• Membership needs real auth, not an Origin header. Dangerous bit #1 still applies",
   "control-plane": "• One sentence. Don't add to it. (pause)",
+  "thank-dsa": "• Thank DSA. Let the ring spin\n[PRESS] the card goes green",
+  "one-more": "• Pull back: the green was the 1. One more thing",
+  "festival": "• I'm speaking at Umbraco DK Festival, 25 November\n[PRESS] speakers + ticket QR",
   "thanks": "• Expected Qs: Origin spoofing (card 1) · credentials (no) · multi-instance (no, one, see DR) · why not iframe (scene 3)"
 }

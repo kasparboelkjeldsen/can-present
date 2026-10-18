@@ -70,7 +70,9 @@ export function placeOuter(scenes) {
   let inner = null
   for (const sc of scenes) {
     if (!sc.outer?.hole) continue
-    const b = inner ?? talkBounds(scenes)
+    // `wraps: '<id>'` wraps that one card instead of what came before (the talk, or the last layer)
+    const card = sc.outer.wraps != null && scenes.find((o) => o.id === sc.outer.wraps)?.at
+    const b = card ? { x: card.x, y: card.y, w: W * (card.s ?? 1), h: H * (card.s ?? 1) } : inner ?? talkBounds(scenes)
     const { cx, cy, w } = sc.outer.hole
     if (![cx, cy, w].every(Number.isFinite) || w <= 0) continue // check reports it
     const s = Math.max(b.w, (b.h * W) / H) / w

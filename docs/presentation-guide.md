@@ -88,6 +88,8 @@ Give each scene a rough position in plain words. The agent turns that into coord
 - "on click n the camera zooms into its <element>" (a zoom within the scene; say what appears at that zoom)
 - "label only readable from far away" (shown in the overview, gone up close)
 - "outer layer: the whole talk is the dot of the i in '<sentence>'" (after the last scene; each further layer says which spot of its card holds the layer before, e.g. "the full stop")
+- "outer layer round <scene>: that one card is <spot> of '<sentence>'" (e.g. a card that turns green is the stem of a green "1"; the rest of the talk fades while it's up)
+- "formation, until click n": the cards orbit the scene, and on click n they go home while the camera moves in on it
 - "region: …" if you've defined regions
 - "finale: the other scenes gather round it as a ring / grid / spiral / <shape>" (on the last scene; place it where the pull-back over the whole talk reads well, e.g. back near the start)
 

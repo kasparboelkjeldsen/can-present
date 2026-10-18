@@ -44,6 +44,11 @@ import Fallback from './scenes/Screens.vue'
 import Numbers from './scenes/Numbers.vue'
 import Tomorrow from './scenes/Tomorrow.vue'
 import ControlPlane from './scenes/ControlPlane.vue'
+import ThankDsa from './scenes/ThankDsa.vue'
+import OneMore from './scenes/OneMore.vue'
+import { HOLE as ONE_MORE_HOLE } from './scenes/oneMore.js'
+import Festival from './scenes/Festival.vue'
+import { HOLE as FESTIVAL_HOLE } from './scenes/festival.js'
 import Thanks from './scenes/Thanks.vue'
 import { SLOTS, nest, REVEAL_MS, RIDES } from './scenes/map/geometry.js'
 
@@ -149,6 +154,23 @@ const scenes = [
   {
     id: 'control-plane', title: 'The takeaway', component: ControlPlane, ghost: true,
     at: null, // the engine centres it on the canvas, big enough to cover every scene
+  },
+  // every other card orbits the thank-you; the click sends them home and floods the card green …
+  {
+    id: 'thank-dsa', title: 'Thank you, DSA', component: ThankDsa, steps: 1,
+    at: { x: -2400, y: 1230 },
+    formation: { shape: 'ring', spin: 60, until: 1 },
+  },
+  // … and pulling back, the green was the stem of a "1": "1 more thing" (the rest of the talk fades)
+  {
+    id: 'one-more', title: '1 more thing', component: OneMore,
+    outer: { wraps: 'thank-dsa', hole: ONE_MORE_HOLE },
+  },
+  // … and further out, "1 more thing" was the dot on the i of "speaking": I'm speaking at Umbraco DK
+  // Festival (black, their blue). The click: the speakers form a ring round a QR code to the tickets
+  {
+    id: 'festival', title: 'Umbraco DK Festival', component: Festival, steps: 1,
+    outer: { hole: FESTIVAL_HOLE },
   },
   {
     id: 'thanks', title: 'Thanks', component: Thanks,
