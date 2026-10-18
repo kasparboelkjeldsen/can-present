@@ -7,11 +7,14 @@
 // ERROR (exit code 1): deck.js that doesn't load (e.g. ride() with an unknown edge), duplicate /
 //   non-kebab-case ids, unknown parent, missing component or placement, more build steps used
 //   than `steps` allows (unreachable builds), a malformed `via`, malformed `frames` (keys that
-//   aren't build steps 1…steps, boxes that aren't { cx, cy, w } inside the card).
+//   aren't build steps 1…steps, boxes that aren't { cx, cy, w } inside the card), a malformed
+//   `formation` (unknown shape or option, bad spin/cols/s/radius/points, a shape function that
+//   returns no { x, y }) or a formation scene that's nested or a ghost.
 // WARN: fewer build steps used than `steps` (dead clicks), missing / empty / orphan notes,
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
 //   that don't exist yet in public/, a scene root without class "slide", a `via` that never
-//   plays or rides in from a scene far from its path.
+//   plays or rides in from a scene far from its path, more than one formation scene (only the
+//   first counts), frames/via on the formation scene (ignored), points for fewer cards than move.
 //
 // Build steps are inferred from the SFC source (literal <Step :at/:until> and <BigNumber :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
@@ -26,6 +29,7 @@ import { parse } from 'vue/compiler-sfc'
 import { ROOT, DECKS_DIR } from '../engine/vite.js'
 import { validateVia } from '../engine/ride.js'
 import { validateFrames } from '../engine/frames.js'
+import { formationProblems, planFormation } from '../engine/formation.js'
 
 const W = 1920
 const H = 1080
@@ -334,6 +338,24 @@ export async function check(deckId, { json = false } = {}) {
       : (sc.parent && (p.id === sc.parent || p.parent === sc.parent))
     if (!owner) add('warn', id, "via: space isn't the `at` of any scene, so the ride's start can't be checked (pass the parent scene's `at`)")
     else if (!near) add('warn', id, `via: the ride starts from "${p.id}", which isn't "${owner.id}" (the path's scene) or nested in it: a ride from far away looks odd`)
+  })
+
+  // the formation: one scene per deck whose cards gather round it while it's on stage
+  const fIdx = scenes.flatMap((sc, i) => (sc.formation != null ? [i] : []))
+  fIdx.forEach((i, n) => {
+    const sc = scenes[i]
+    const id = sc.id ?? '(no id)'
+    if (n > 0) { add('warn', id, `a second formation: only the first ("${scenes[fIdx[0]].id}") is used`); return }
+    const problems = formationProblems(scenes, i)
+    for (const p of problems) add('error', id, `formation: ${p}`)
+    if (problems.length) return
+    let plan
+    try { plan = planFormation(scenes, i) } catch (e) { add('error', id, `formation: ${e.message}`); return }
+    if (sc.skip) add('warn', id, 'formation on a skip scene: → and ← step over it, so it only plays from X or #id')
+    if (sc.frames != null) add('warn', id, 'frames are ignored on the formation scene: the camera frames the formation')
+    if (sc.via != null) add('warn', id, "via is ignored on the formation scene: its flight in is the formation's own")
+    const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].parent).length
+    if (unplaced) add('warn', id, `formation: ${unplaced} card(s) have no point and fade out instead (points has ${sc.formation.points.length}, ${plan.n + unplaced} cards move)`)
   })
 
   // notes

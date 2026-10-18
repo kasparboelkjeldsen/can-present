@@ -1,10 +1,11 @@
 <script setup>
-import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck, stepFor, nestedVisible } from './useDeck.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './camera.js'
 import { cam } from './cameraState.js'
 import { validateVia, sampleVia, planRide } from './ride.js'
 import { validateFrames, normalizeFrames, frameAt, frameView } from './frames.js'
+import { formationProblems, planFormation, formationTransforms, formationTiming, SPRING, SPRING_FALLBACK } from './formation.js'
 import SceneFrame from './SceneFrame.vue'
 import RidePill from './RidePill.vue'
 
@@ -17,8 +18,25 @@ const place = (sc) => ({ x: sc.at?.x ?? 0, y: sc.at?.y ?? 0, s: sc.at?.s ?? 1, r
 
 // `frames` in deck.js (engine/frames.js): per build step, the camera shows a box of the card
 // instead of the whole card. Invalid frames are ignored with a warning (check reports them).
-const frameLists = scenes.map((sc) => {
+// `formation` in deck.js (engine/formation.js): while that scene is on stage, the other cards gather
+// round it. One per deck (check warns about more); an invalid one is ignored with a warning.
+const fx = (() => {
+  const i = scenes.findIndex((sc) => sc.formation != null)
+  if (i < 0) return null
+  const problems = formationProblems(scenes, i)
+  if (problems.length) { console.warn(`[can-present] scene "${scenes[i].id}": formation ignored: ${problems.join('; ')}`); return null }
+  try {
+    const plan = planFormation(scenes, i)
+    return { ...plan, transforms: formationTransforms(scenes, plan), timing: formationTiming(plan.n) }
+  } catch (e) {
+    console.warn(`[can-present] scene "${scenes[i].id}": formation ignored:`, e)
+    return null
+  }
+})()
+
+const frameLists = scenes.map((sc, i) => {
   if (sc.frames == null) return null
+  if (fx?.index === i) { console.warn(`[can-present] scene "${sc.id}": frames ignored on the formation scene`); return null }
   const problems = validateFrames(sc.frames, sc.steps ?? 0)
   if (problems.length) console.warn(`[can-present] scene "${sc.id}": frames ignored: ${problems.join('; ')}`)
   return problems.length ? null : normalizeFrames(sc.frames)
@@ -55,18 +73,21 @@ const camKey = computed(() => {
   const list = frameLists[idx.value]
   return list ? `${idx.value}|${frameAt(list, step.value)?.step ?? 0}` : `${idx.value}`
 })
-const target = () => (overview.value ? overviewView() : viewFor(idx.value, step.value))
+// the formation is up while its scene is on stage (the overview shows the normal layout)
+const fxOn = computed(() => !!fx && idx.value === fx.index && !overview.value)
+const target = () => (overview.value ? overviewView() : fxOn.value ? { ...fx.view } : viewFor(idx.value, step.value))
 Object.assign(cam, target())
 const flying = ref(false)
 let raf = 0
 
-function flyTo(t) {
+// `dur` (ms) overrides the flight's own duration; `then` runs when it lands (not when it's cut short)
+function flyTo(t, { dur: fixed, then } = {}) {
   cancelAnimationFrame(raf)
   endRide()
   const from = { ...cam }
   const interp = interpolateZoom([from.x, from.y, from.w], [t.x, t.y, t.w])
   const toR = shortestAngle(from.r, t.r)
-  const dur = Math.min(2400, Math.max(650, interp.duration * 0.85))
+  const dur = fixed ?? Math.min(2400, Math.max(650, interp.duration * 0.85))
   const t0 = performance.now()
   flying.value = true
   const tick = (now) => {
@@ -75,7 +96,7 @@ function flyTo(t) {
     const [x, y, w] = interp(e)
     Object.assign(cam, { x, y, w, r: from.r + (toR - from.r) * e })
     if (k < 1) raf = requestAnimationFrame(tick)
-    else { flying.value = false; Object.assign(cam, t) }
+    else { flying.value = false; Object.assign(cam, t); then?.() }
   }
   raf = requestAnimationFrame(tick)
 }
@@ -136,11 +157,91 @@ function rideTo(t, via, back) {
   raf = requestAnimationFrame(tick)
 }
 
+// ---------- the formation's choreography ----------
+// Entering: (1) the camera pulls back to the whole talk, (2) the cards leave home one after another on
+// a springy CSS transition while the camera eases to frame the formation, (3) a spinning one starts
+// to orbit (a CSS animation of --fx-spin, delayed until the cards have landed). Leaving: the cards go
+// home while the camera pulls back to the whole talk, then the normal flight. The overview counts as
+// leaving. With reduced motion the cards jump and the camera flies normally.
+// Only these few state changes re-render App; the motion itself is CSS (no per-frame JS per card).
+const formation = reactive({ formed: false, mode: 'cut', spin: false, hold: null })
+const springEase = typeof CSS !== 'undefined' && CSS.supports?.('transition-timing-function', SPRING) ? SPRING : SPRING_FALLBACK
+// ms: phase 1, about 700 ms (a little longer for a long way back); even when the camera is nearly
+// there already (a ghost takeaway shows the whole talk), it's a beat for the scene before to fade
+const PULL_BACK = [700, 950]
+
+function setFormed(on, mode) {
+  const spin = on && !!fx.spin && !reducedMotion?.matches
+  Object.assign(formation, { formed: on, mode, spin, hold: on ? null : formation.hold })
+}
+const near = (a, b, tol) => Math.hypot(a.x - b.x, a.y - b.y) < tol * b.w && Math.abs(a.w / b.w - 1) < tol && Math.abs(a.r - b.r) < 0.5
+
+function formationMove(t) {
+  cancelAnimationFrame(raf)
+  endRide()
+  const T = fx.timing
+  if (reducedMotion?.matches) { setFormed(fxOn.value, 'cut'); return flyTo(t) }
+  if (fxOn.value) {
+    const go = () => { setFormed(true, 'go'); flyTo(t, { dur: T.goTotal * 0.85 }) }
+    const ov = overviewView()
+    if (near(cam, ov, 0.005)) return go() // already looking at the whole talk (back from the overview)
+    const d = interpolateZoom([cam.x, cam.y, cam.w], [ov.x, ov.y, ov.w]).duration * 0.5
+    flyTo(ov, { dur: Math.min(PULL_BACK[1], Math.max(PULL_BACK[0], d)), then: go })
+  } else {
+    const back = () => {
+      setFormed(false, 'back')
+      if (overview.value) flyTo(t, { dur: T.backTotal })
+      else flyTo(overviewView(), { dur: T.backTotal, then: () => flyTo(t) })
+    }
+    if (!formation.spin) return back()
+    // A transition starts from the card's style without its animations, i.e. from the unspun ring.
+    // So first freeze the orbit where it is: stop the animation and write its current angle inline
+    // (instantly, mode 'cut'), let the browser take that in, and only then send the cards home.
+    const el = document.querySelector('.scene.fx-spin')
+    const angle = el ? getComputedStyle(el).getPropertyValue('--fx-spin').trim() : ''
+    Object.assign(formation, { spin: false, hold: angle || null, mode: 'cut' })
+    nextTick(() => {
+      if (el) getComputedStyle(el).transform // flush styles: the frozen ring is now the starting point
+      back()
+    })
+  }
+}
+// opened straight onto the formation scene (URL hash, reload): already in formation
+if (fxOn.value) setFormed(true, 'cut')
+
+// per moving card: its transform, and the transition timing it uses for the current move
+function formationStyle(i) {
+  const tr = fx.transforms[i]
+  const T = fx.timing
+  const o = fx.order[i] ?? 0
+  const m = formation.mode
+  return {
+    transform: formation.formed ? tr.formed : tr.home,
+    '--fx-dur': m === 'go' ? `${T.go}ms` : m === 'back' ? `${T.back}ms` : '0s',
+    '--fx-delay': m === 'go' ? `${Math.round(o * T.stagger)}ms` : m === 'back' ? `${Math.round((fx.n - 1 - o) * T.backStagger)}ms` : '0s',
+    '--fx-ease': m === 'go' ? springEase : 'cubic-bezier(0.55, 0, 0.25, 1)',
+    '--fx-spin-delay': m === 'go' ? `${Math.round(T.spinAt)}ms` : '0s',
+    '--fx-spin': formation.hold,
+  }
+}
+// constants for the orbit (on .world, inherited by the cards): the spin eases in over spinIn and then
+// turns at a constant speed; the ease-in ends at that speed, so the hand-over is seamless
+const fxWorldVars = fx?.spin
+  ? (() => {
+      const dir = Math.sign(fx.spin), period = Math.abs(fx.spin), spinIn = fx.timing.spinIn
+      // cubic-bezier(0.5, 0, 0.75, 0.5) ends at twice its average speed: spinIn covers half a constant-speed stretch
+      const a = ((360 / period) * (spinIn / 1000)) / 2
+      return { '--fx-period': `${period}s`, '--fx-turn': `${360 * dir}deg`, '--fx-spin-a': `${+(a * dir).toFixed(3)}deg`, '--fx-spin-in': `${spinIn}ms` }
+    })()
+  : null
+
 let last = { idx: idx.value, overview: overview.value }
 watch(camKey, () => {
   const t = target()
   const from = last
   last = { idx: idx.value, overview: overview.value }
+  // to the formation scene, or away from it while the cards are out (or on their way out)
+  if (fx && (fxOn.value || formation.formed)) return formationMove(t)
   // a new frame within the same scene: with reduced motion, cut straight to it
   if (!from.overview && !overview.value && from.idx === idx.value && reducedMotion?.matches) {
     cancelAnimationFrame(raf)
@@ -171,12 +272,22 @@ const worldStyle = computed(() => ({
   transform: `translate(${W / 2}px, ${H / 2}px) scale(${W / cam.w}) rotate(${-cam.r}deg) translate(${-cam.x}px, ${-cam.y}px)`,
 }))
 
-// nested scenes fade in on their parent's schedule (revealDelay in deck.js), but vanish at once
-const revealStyle = (sc, i) => (sc.revealDelay && nestedVisible(i) ? { transitionDelay: sc.revealDelay + 'ms' } : null)
+// nested scenes fade in on their parent's schedule (revealDelay in deck.js), but vanish at once.
+// (Not on a card the formation moves: the delay would hold back its transform too.)
+const revealStyle = (sc, i) => (sc.revealDelay && nestedVisible(i) && !fx?.transforms[i] ? { transitionDelay: sc.revealDelay + 'ms' } : null)
 
-function sceneStyle(sc) {
+function sceneStyle(sc, i) {
+  if (fx?.transforms[i]) return formationStyle(i)
   const p = place(sc)
   return { transform: `translate(${p.x - W / 2}px, ${p.y - H / 2}px) rotate(${p.r}deg) scale(${p.s})` }
+}
+const fxClass = (i) => {
+  if (!fx) return null
+  const role = fx.roles[i]
+  if (role === 'lead' || role === 'follow') return { 'fx-mover': true, 'fx-spin': formation.spin }
+  if (role === 'centre') return { 'fx-centre': formation.formed }
+  if (role === 'fade') return { 'fx-gone': formation.formed && !scenes[i].ghost }
+  return null
 }
 
 // ---------- fit 1920x1080 stage into the window ----------
@@ -224,20 +335,20 @@ function pick(i) {
   <div class="viewport" :class="{ idle, overview }">
     <div class="stage" :style="{ transform: `translate(-50%, -50%) scale(${fit})` }">
       <div class="grid" :style="gridStyle" />
-      <div class="world" :style="worldStyle">
+      <div class="world" :style="[worldStyle, fxWorldVars]">
         <div
           v-for="(sc, i) in scenes"
           :key="sc.id"
           class="scene"
-          :class="{
+          :class="[{
             'is-active': i === idx && !overview,
             'is-past': i < idx,
             'is-nested': !!sc.parent,
             'is-hidden': !nestedVisible(i),
             'is-ghost': sc.ghost,
             'is-skip': sc.skip,
-          }"
-          :style="[sceneStyle(sc), revealStyle(sc, i)]"
+          }, fxClass(i)]"
+          :style="[sceneStyle(sc, i), revealStyle(sc, i)]"
           @click="pick(i)"
         >
           <SceneFrame
@@ -318,6 +429,23 @@ function pick(i) {
 .scene.is-ghost { box-shadow: none; border-radius: 0; transition: opacity 1.2s; z-index: 10; }
 .scene.is-ghost:not(.is-active) { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 1.2s, visibility 0s 1.2s; }
 .overview .scene.is-ghost .scene-label { display: none; }
+
+/* the formation (engine/formation.js): moving cards glide on a transform transition whose timing
+   App sets per card and per move (--fx-dur, --fx-delay, --fx-ease); a spinning formation orbits by
+   animating --fx-spin, which both rotations in their transform add */
+.scene.fx-mover { transition: border-radius 0.7s var(--ease-out), box-shadow 0.7s, opacity 0.6s, transform var(--fx-dur, 0s) var(--fx-ease, ease) var(--fx-delay, 0s); }
+.scene.fx-mover.is-hidden { transition: opacity 0.6s, visibility 0s 0.6s, transform var(--fx-dur, 0s) var(--fx-ease, ease) var(--fx-delay, 0s); }
+.scene.fx-spin {
+  animation:
+    fx-spin-in var(--fx-spin-in) cubic-bezier(0.5, 0, 0.75, 0.5) var(--fx-spin-delay, 0s),
+    fx-spin var(--fx-period) linear calc(var(--fx-spin-delay, 0s) + var(--fx-spin-in)) infinite;
+}
+@keyframes fx-spin-in { to { --fx-spin: var(--fx-spin-a); } }
+@keyframes fx-spin { from { --fx-spin: var(--fx-spin-a); } to { --fx-spin: calc(var(--fx-spin-a) + var(--fx-turn)); } }
+/* skip cards step aside; the formation scene keeps its card shape and stays on top of the others */
+.scene.fx-gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.5s, visibility 0s 0.5s; }
+.scene.fx-centre { z-index: 2; }
+.scene.is-active.fx-centre { border-radius: 48px; box-shadow: 0 60px 160px rgba(5, 10, 30, 0.55); }
 
 .overview .scene { cursor: pointer; }
 .overview .scene:hover { outline: 24px solid var(--deck-accent); }
@@ -423,4 +551,10 @@ function pick(i) {
   z-index: 20;
 }
 .blackout.on { opacity: 1; }
+</style>
+
+<style>
+/* the formation's orbit angle (engine/formation.js): registered so CSS can animate it, and not
+   inherited, so animating it on a card restyles only that card */
+@property --fx-spin { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
 </style>
