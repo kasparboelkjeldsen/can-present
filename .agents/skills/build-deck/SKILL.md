@@ -26,7 +26,7 @@ No scene description yet? If the user only has a topic, run the **write-talk** s
 - Rotations within ±3°. Alternate the sign so the path wiggles gently.
 - A long flight (5000px or more, or a jump to another region) marks an act change. Keep scenes within an act close together.
 - Regions tell the story in the overview: e.g. "problem" on the left, "solution" on the right, a bridge between them. Write the regions in a comment at the top of `deck.js`.
-- Nested slots: the **parent** draws the box (a dashed frame, a diagram node), and the box is 16:9. Place the child with `nest(parentAt, { cx, cy, w })` and `parent: '<id>'`. Keep `cx/cy/w` in one constant shared by the parent's CSS and `deck.js` (see `decks/example`).
+- Nested slots: the **parent** draws the box (a dashed frame, a diagram node), and the box is 16:9. Place the child with `nest(parentAt, { cx, cy, w })` and `parent: '<id>'`. Keep `cx/cy/w` in one place shared by the parent and `deck.js`: a `<Diagram>` slot does that for you (`nest(ARCH, arch.slot('inside'))` in `decks/example`).
 - `s` > 1 for "bigger than normal" (a diagram the camera pulls back to see); 1.3–1.6 is plenty.
 - `check` warns about overlapping cards and nested cards that stick out of their parent. Trust it.
 
@@ -47,17 +47,18 @@ Start from the `theme.css` the template wrote. It already sets every token and t
 | Headline + kicker, statement | `.kicker`, `.h1`/`.h2`, `.lead`, `class="rise" style="--d: n"` | `decks/example/scenes/Title.vue` |
 | Things appearing on clicks | `<Step :at="n" anim="up\|pop\|…">` | `decks/example/scenes/Inside.vue` |
 | Captions that replace each other | `<Step :at :until>` | pattern index: `OneLine.vue` |
-| Cards side by side | `.card` in a flex row, one `<Step>` each | pattern index: `WhatHappened.vue` |
+| Cards side by side | `.card` in a flex row, one `<Step anim="pop">` each | `decks/example/scenes/Cards.vue` |
+| Big number, counting, with a ring | `@engine/components/BigNumber.vue` (`:to`, `ring`, `:at`, `format`, `suffix`, `label`) | `decks/example/scenes/Stat.vue` |
 | Code walkthrough | `@engine/components/Code.vue` with `:focus` and `:callouts` | `decks/example/scenes/Walkthrough.vue` |
-| Screenshot | `@engine/components/Shot.vue` with `src="/shots/x.png"` (placeholder until the file exists) | `decks/example/scenes/Screenshot.vue` |
-| Live site / launch card | `<Shot live="…">` / `<Shot live="…" external>` | pattern index: `LiveDemo.vue` |
-| Big number, counting, with a ring | `@engine/components/BigNumber.vue` (`:to`, `ring`, `:at`, `format`, `suffix`, `label`) | README "Building blocks"; more elaborate: pattern index `OneInstance.vue` |
-| Diagram, wires, packets, dives | `defineDiagram()` from `@engine/diagram.js` in a `.js` file next to the scene, drawn with `@engine/components/Diagram.vue`; deck.js uses the same definition (`steps: arch.steps`, `nest(…, arch.slot('x'))`, `revealAt` / `revealDelay`) | README "Building blocks"; more elaborate: pattern index `Map.vue` |
-| Takeaway over everything | `ghost: true, at: null` | pattern index: `ControlPlane.vue` |
-| Demo fallback | `skip: true` (X jumps to it) | `README.md` |
+| Diagram, wires, packets, dives | `defineDiagram()` from `@engine/diagram.js` in a `.js` file next to the scene, drawn with `@engine/components/Diagram.vue`; deck.js uses the same definition (`steps: arch.steps`, `nest(…, arch.slot('x'))`, `revealAt` / `revealDelay`) | `decks/example/scenes/Arch.vue` + `arch.js`, nested: `Inside.vue` |
+| Screenshot(s), tilted | `@engine/components/Shot.vue` with `src="/shots/x.png"` (placeholder until the file exists) | `decks/example/scenes/Screens.vue` |
+| Live site / launch card | `<Shot live="…">` / `<Shot live="…" external>` | `decks/example/scenes/Live.vue`; launch card: pattern index `LiveDemo.vue` |
+| Looping illustration | inline SVG + CSS keyframes in the scene, coloured with `--deck-*` tokens | `decks/example/scenes/Loop.vue` |
+| Takeaway over everything | `ghost: true, at: null` | `decks/example/scenes/Takeaway.vue` |
+| Demo fallback | `skip: true` (X jumps to it) | `decks/example/scenes/Fallback.vue` |
 | Logo, mascot, one-off art | a component in `decks/<id>/components/`, listed in `brief.md` | `AGENTS.md` rule 3 |
 
-"Pattern index" means the table in `AGENTS.md`. Those files use another deck's theme classes: copy the structure, not the styling. Anything the engine can't do yet is an engine change (`AGENTS.md` rule 1). Ask before making one.
+"Pattern index" means the table in `AGENTS.md`; its talk files are more elaborate versions. Those files use another deck's theme classes: copy the structure, not the styling. Anything the engine can't do yet is an engine change (`AGENTS.md` rule 1). Ask before making one.
 
 ## Definition of done
 

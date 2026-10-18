@@ -1,0 +1,26 @@
+// The diagram on the `diagram` scene, shared with deck.js (steps, and the slot `inside` lives in).
+// Coordinates are in the scene's 1920×1080 space; slot cx/cy are relative to their node.
+import { defineDiagram } from '@engine/diagram.js'
+
+export const arch = defineDiagram({
+  reveal: 'steps', // one node per click; { timer: [1000, 1300, 1600, 1900] } would build it by itself
+  nodes: {
+    deck: { x: 80, y: 690, w: 320, h: 200, label: 'decks/example', sub: 'scenes, theme, notes', at: 1 },
+    engine: { x: 700, y: 440, w: 520, h: 400, label: 'engine/', sub: 'Vue 3 + Vite', at: 2, tone: 'accent' },
+    browser: { x: 1540, y: 530, w: 280, h: 220, label: 'Browser', sub: 'one big canvas', at: 3, tone: 'ghost' },
+    notes: { x: 1540, y: 880, w: 280, h: 130, label: '/notes', at: 4 },
+  },
+  // edges and packets default to ink (for light slides); this scene is dark, so they use paper
+  edges: [
+    { from: 'deck', to: 'engine', label: 'import', tone: 'paper' }, // boxes don't line up: routed with an elbow
+    { from: 'engine', to: 'browser', label: 'render', tone: 'paper' },
+    { from: 'browser', to: 'notes', both: true, label: 'sync', tone: 'paper' }, // stacked boxes: top/bottom sides
+  ],
+  packets: [
+    { edge: 0, label: 'scenes', tone: 'paper' },
+    { edge: 1, label: 'flyTo()', tone: 'accent' },
+    { edge: 1, label: '→ key', reverse: true, delay: 1.8, tone: 'paper' },
+  ],
+  // the nested `inside` scene sits here: nest(ARCH, arch.slot('inside')) in deck.js
+  slots: { inside: { node: 'engine', cx: 260, cy: 252, w: 400 } },
+})

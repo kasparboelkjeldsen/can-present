@@ -7,7 +7,7 @@ can-present is a Vue 3 + Vite engine for talks on an infinite canvas. Every scen
 | Task | Read | Skip |
 |---|---|---|
 | **Writing a talk** (story, scenes, `scene-description.md`) | the write-talk skill (`.agents/skills/write-talk/SKILL.md`), `docs/presentation-guide.md`, then the deck's `brief.md` | all code |
-| **Building or editing a deck** | the build-deck skill (`.agents/skills/build-deck/SKILL.md`), `README.md` (deck.js fields, tokens, building blocks), `decks/example/` (a complete small deck) | `engine/` internals, `decks/shovelling-umbraco/` (see the pattern index below) |
+| **Building or editing a deck** | the build-deck skill (`.agents/skills/build-deck/SKILL.md`), `README.md` (deck.js fields, tokens, building blocks), `decks/example/` (the kitchen sink: one scene per building block) | `engine/` internals, `decks/shovelling-umbraco/` (see the pattern index below) |
 | **Changing the engine** | `README.md`, the engine files you touch, `docs/presentation-guide.md` | other decks |
 
 `docs/presentation-guide.md` is the canonical list of what a talk can do. It's written for a model that can't see the code (e.g. Claude chat), and it defines the `scene-description.md` format that a coding agent turns into a deck. If you're asked to make a deck from a topic and there's no scene description yet, follow the guide's process with the user first.
@@ -42,17 +42,18 @@ Read the one file you need instead of searching. The files in `decks/shovelling-
 
 | Pattern | File |
 |---|---|
-| Minimal deck: theme, deck.js, notes, nesting | `decks/example/` |
-| Code walkthrough: line/token focus, callouts | `decks/example/scenes/Walkthrough.vue`, `shovelling-umbraco/scenes/WhoAmI.vue` |
-| Diagram: wires that draw themselves, flowing packets, nested scenes in its boxes | `engine/components/Diagram.vue` + `engine/diagram.js` (`defineDiagram`, see `README.md`); more elaborate, hand-drawn: `shovelling-umbraco/scenes/Map.vue` + `scenes/map/geometry.js` |
-| Big number counting, with a ring | `engine/components/BigNumber.vue` (props in `README.md`); more elaborate: `shovelling-umbraco/scenes/OneInstance.vue`, two stats with phases: `Numbers.vue` |
-| Cards popping in on clicks | `shovelling-umbraco/scenes/WhatHappened.vue`, `DangerousBits.vue` |
+| Every building block, one scene each: theme, deck.js, notes, nesting | `decks/example/` (kitchen sink) |
+| Code walkthrough: line/token focus, callouts | `decks/example/scenes/Walkthrough.vue`; more elaborate: `shovelling-umbraco/scenes/WhoAmI.vue` |
+| Diagram: wires that draw themselves, flowing packets, nested scenes in its boxes | `decks/example/scenes/Arch.vue` + `scenes/arch.js` (`<Diagram>` / `defineDiagram`, props in `README.md`), nested scene `Inside.vue`; more elaborate, hand-drawn: `shovelling-umbraco/scenes/Map.vue` + `scenes/map/geometry.js` |
+| Big number counting, with a ring | `decks/example/scenes/Stat.vue` (`<BigNumber>`, props in `README.md`); more elaborate: `shovelling-umbraco/scenes/OneInstance.vue`, two stats with phases: `Numbers.vue` |
+| Cards popping in on clicks | `decks/example/scenes/Cards.vue`; more elaborate: `shovelling-umbraco/scenes/WhatHappened.vue`, `DangerousBits.vue` |
 | Typed snippet plus captions that replace each other (`<Step :until>`) | `shovelling-umbraco/scenes/OneLine.vue` |
 | Screenshot with per-step highlights | `shovelling-umbraco/scenes/TheSection.vue` |
-| Two tilted screenshots | `shovelling-umbraco/scenes/TwoOutfits.vue` |
-| Live site next to a launch card | `shovelling-umbraco/scenes/LiveDemo.vue` |
-| Ghost takeaway over the whole canvas | `shovelling-umbraco/scenes/ControlPlane.vue` (+ `ghost: true, at: null` in deck.js) |
-| Looping SVG illustration | `shovelling-umbraco/components/ShovelLoop.vue`; a hand-drawn scribble: `scenes/TheAsk.vue` |
+| Two tilted screenshots | `decks/example/scenes/Screens.vue`; more elaborate: `shovelling-umbraco/scenes/TwoOutfits.vue` |
+| Live site | `decks/example/scenes/Live.vue`; next to a launch card: `shovelling-umbraco/scenes/LiveDemo.vue` |
+| Ghost takeaway over the whole canvas | `decks/example/scenes/Takeaway.vue` (+ `ghost: true, at: null` in deck.js); more elaborate: `shovelling-umbraco/scenes/ControlPlane.vue` |
+| Looping SVG illustration | `decks/example/scenes/Loop.vue`; more elaborate: `shovelling-umbraco/components/ShovelLoop.vue`, a hand-drawn scribble: `scenes/TheAsk.vue` |
+| Demo fallback (`skip: true`, X jumps to it) | `decks/example/scenes/Fallback.vue` |
 
 ## Commands
 

@@ -50,7 +50,7 @@ The building blocks below exist already. The agent can also build new things, bu
 | **Diagram** | boxes (or logos) connected by arrows. The diagram builds itself: each box pops in on a click, or on a timer when the scene comes on stage (no clicks needed), and each line draws itself once both of its boxes are there. Little labelled packets ("GET /jobs", "200 OK") flow along the lines in either direction. A box can hold a slot where a nested scene lives, so the camera can dive into it | architecture, data flow, "zoom into this part" |
 | **Custom SVG animation** | the agent draws and animates a small illustration | title, section breaks, jokes. One per few scenes, not more. |
 
-The deck may have its own components too (logos, mascots, recurring motifs). The brief lists them.
+Every block above has a working scene in the engine's example deck (`decks/example`), so the coding agent has something to copy. The deck may have its own components too (logos, mascots, recurring motifs). The brief lists them.
 
 **Build animations** for elements that appear on a click: `up` (slide up), `down`, `left`, `right`, `pop` (springy scale), `blur` (focus in), `fade`, `dim` (always visible, faded until its turn).
 

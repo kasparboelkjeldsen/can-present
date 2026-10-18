@@ -1,4 +1,7 @@
 <script setup>
+// Nested scene: lives in the diagram's slot (deck.js: at: nest(ARCH, arch.slot('inside')),
+// parent: 'diagram', revealAt: arch.revealAt('engine')). It shows up in the box on the step the
+// engine box appears, and → from the diagram dives the camera into it. steps: 2 in deck.js.
 import Step from '@engine/Step.vue'
 </script>
 
@@ -13,5 +16,4 @@ import Step from '@engine/Step.vue'
 
 <style scoped>
 .inside { justify-content: center; }
-code { font: 700 0.9em var(--mono); }
 </style>
