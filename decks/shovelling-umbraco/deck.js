@@ -80,7 +80,7 @@ const scenes = [
     at: MAP,
   },
   {
-    id: 'bootstrap', title: 'The component wakes up', component: Bootstrap, steps: 3,
+    id: 'bootstrap', title: 'The component wakes up', component: Bootstrap, steps: 1, // 1–4 build on a timer, the click is the catch
     at: nest(MAP, SLOTS.bootstrap), parent: 'map', revealDelay: REVEAL_MS[0] + 150,
   },
   {
@@ -96,11 +96,11 @@ const scenes = [
     at: nest(MAP, SLOTS.wear), parent: 'map', revealDelay: REVEAL_MS[2] + 150,
   },
   {
-    id: 'cache', title: 'Cached, but not stale', component: Cache, steps: 3,
+    id: 'cache', title: 'Cached, but not stale', component: Cache, steps: 2,
     at: nest(MAP, SLOTS.cache), parent: 'map', revealDelay: REVEAL_MS[2] + 150,
   },
   {
-    id: 'the-section', title: 'The remote control', component: TheSection, steps: 7,
+    id: 'the-section', title: 'The remote control', component: TheSection, steps: 8, // 7 fields zoomed in, then zoom out
     at: { x: -3400, y: 2500, r: -2 },
   },
   {

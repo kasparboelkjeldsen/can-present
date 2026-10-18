@@ -32,7 +32,6 @@ public Task StartAsync(CancellationToken ct) =>
       <Code :code="warm" :size="27" title="warmup (IHostedService)" />
     </Step>
 
-    <Step :at="3" anim="pop" class="sticker">Commandment 4 compliant ✅</Step>
     <div class="fineprint">Abridged. The real thing has more ifs.</div>
   </div>
 </template>
@@ -42,17 +41,4 @@ public Task StartAsync(CancellationToken ct) =>
 .block { position: relative; z-index: 2; width: 1250px; }
 .warm { position: absolute; right: 120px; bottom: 140px; z-index: 3; }
 .warm :deep(.code) { box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55), 0 0 0 3px var(--k-green); }
-.sticker {
-  position: absolute;
-  top: 90px;
-  right: 110px;
-  z-index: 4;
-  padding: 26px 36px;
-  border-radius: 20px;
-  background: var(--k-green);
-  color: var(--k-dark);
-  font: 700 40px var(--sans);
-  rotate: 5deg;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
-}
 </style>

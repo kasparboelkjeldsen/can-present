@@ -1,11 +1,9 @@
 <script setup>
 import Step from '@engine/Step.vue'
-import DiagonalLine from '../components/DiagonalLine.vue'
 </script>
 
 <template>
   <div class="slide slide--dark iframe-scene">
-    <DiagonalLine :x1="0" :y1="1080" :x2="300" :y2="828" />
 
     <div class="heads">
       <Step :at="0" :until="1" anim="down" class="head">
@@ -19,6 +17,17 @@ import DiagonalLine from '../components/DiagonalLine.vue'
 
     <!-- an iframe, trying its best -->
     <svg class="art" viewBox="-40 -60 820 660">
+      <!-- the Kraftvaerk line (our styling) runs at the iframe and can't get in: it hits the frame
+           with a splash, and only comes out the other side. It runs *under* the frame, so the frame's
+           edge cuts it off even while it's being resized. Art coords: slide x − 1050, y − 270 -->
+      <g class="brand">
+        <line class="seg seg--in" x1="-340" y1="810" x2="160" y2="377" pathLength="1" />
+        <line class="seg seg--out" x1="520" y1="68" x2="870" y2="-235" pathLength="1" />
+        <g class="splash" transform="translate(42 480)">
+          <circle class="ring" r="34" />
+          <line v-for="a in 7" :key="a" x1="0" y1="-26" x2="0" y2="-48" :transform="`rotate(${-150 + a * 30})`" />
+        </g>
+      </g>
       <g class="frame">
         <rect width="640" height="480" rx="20" fill="var(--wp)" />
         <rect width="640" height="52" rx="20" fill="#2a46c9" />
@@ -63,6 +72,18 @@ import DiagonalLine from '../components/DiagonalLine.vue'
 .is-shown .second { animation: rise 0.8s var(--ease-out) 0.6s both; }
 
 .art { position: absolute; right: 90px; top: 210px; width: 820px; height: 660px; overflow: visible; }
+
+/* the brand line: draws up to the frame (0.3–1.1s), splashes against it, then the far side draws */
+.seg { stroke: var(--k-green); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 1; }
+.splash { stroke: var(--k-green); stroke-width: 4; stroke-linecap: round; fill: none; opacity: 0; }
+.is-active .seg--in { animation: draw 0.8s cubic-bezier(0.5, 0, 0.9, 0.6) 0.3s both; }
+.is-active .seg--out { animation: draw 0.7s var(--ease-out) 1.45s both; }
+.is-active .splash { animation: splash 0.6s var(--ease-out) 1.1s both; }
+.splash .ring { transform-box: fill-box; transform-origin: center; }
+.is-active .splash .ring { animation: ring 0.6s var(--ease-out) 1.1s both; }
+@keyframes draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes splash { 0% { opacity: 0; transform: translate(42px, 480px) scale(0.4); } 20% { opacity: 1; } 100% { opacity: 0; transform: translate(42px, 480px) scale(1.25); } }
+@keyframes ring { from { transform: scale(0.3); } to { transform: scale(1.4); } }
 
 /* 6s loop: idle → try to paint → denied → settle for resizing */
 .frame, .paint, .nope, .cursor { animation-duration: 6s; animation-iteration-count: infinite; }

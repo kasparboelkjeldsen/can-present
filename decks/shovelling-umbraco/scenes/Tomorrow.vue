@@ -8,7 +8,7 @@ import DiagonalLine from '../components/DiagonalLine.vue'
     <DiagonalLine />
     <h1 class="h1 rise">Today it's a carousel.</h1>
     <Step :at="1" anim="up" class="line">Umbraco also decides which JavaScript it serves.</Step>
-    <Step :at="2" anim="up" class="line strong">Tomorrow: your DSA membership, on their site.</Step>
+    <Step :at="2" anim="up" class="line strong">We can serve forms, membership info, campaigns, you name it.</Step>
   </div>
 </template>
 
