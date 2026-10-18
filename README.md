@@ -158,11 +158,11 @@ A text lint that loads `deck.js` through Vite, the way the app does, and reads e
 - **Errors:** duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable).
 - **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`.
 
-Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked.
+Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, `<BigNumber :at="n">`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked. A scene that draws a `<Diagram>` takes its steps from the diagram (`steps: arch.steps` in `deck.js`), so it's listed under "Build steps from a <Diagram>" and not compared.
 
 ## The sheet: the whole deck on one page
 
-Open **`?sheet`** (e.g. http://localhost:5173/?sheet) to see every scene in a grid, in deck order, each at its last build step (a scene without builds shows its finished state, as in the overview). Live sites stay placeholders. Under each tile: number, id, title, `steps` and flags (`skip`, `ghost`, `in <parent>`). Click a tile to open that scene.
+Open **`?sheet`** (e.g. http://localhost:5173/?sheet) to see every scene in a grid, in deck order, each at its last build step (a scene without builds shows its finished state, as in the overview). Live sites stay placeholders, a `<Diagram>` on a timer shows its final state without packets, and a `<BigNumber>` shows its final value. Under each tile: number, id, title, `steps` and flags (`skip`, `ghost`, `in <parent>`). Click a tile to open that scene.
 
 | Query | |
 |---|---|

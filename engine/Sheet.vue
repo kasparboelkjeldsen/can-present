@@ -31,6 +31,9 @@ const unknownIds = only.filter((id) => !deck.scenes.some((sc) => sc.id === id))
 
 // A scene without builds renders "done" (Infinity, as in the overview), so scenes that assemble
 // themselves on stage show their finished state. With ?steps every step is literal, 0…steps.
+// Tiles render with `preview`, so engine blocks skip their timers: a timer-mode <Diagram> shows
+// its final stage (a steps-mode one follows the tile's step), <BigNumber> its final value, and
+// packets and live sites aren't drawn.
 const tiles = scenes.flatMap(({ sc, n }) => {
   const last = sc.steps ?? 0
   const steps = perStep ? Array.from({ length: last + 1 }, (_, s) => s) : [last > 0 ? last : Infinity]

@@ -10,9 +10,11 @@
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
 //   that don't exist yet in public/, a scene root without class "slide".
 //
-// Build steps are inferred from the SFC source (literal <Step :at/:until>, numeric keys of
+// Build steps are inferred from the SFC source (literal <Step :at/:until> and <BigNumber :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
 // non-literal makes the inference "unknown" and the step checks are skipped for that scene.
+// A scene that draws a <Diagram> takes its steps from the diagram (`steps: arch.steps`): it's
+// listed as such and not compared.
 import fs from 'node:fs'
 import path from 'node:path'
 import { createServer } from 'vite'
@@ -115,12 +117,16 @@ const stripComments = (s) =>
   s.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:\w'"`])\/\/.*$/gm, '$1')
 
 /**
- * Returns { inferred: n } or { inferred: null, reason }.
+ * Returns { inferred: n }, { inferred: null, reason } or, for a scene with a <Diagram>,
+ * { inferred: null, diagram: true, reason }.
  */
 export function inferSteps(descriptor) {
   const found = []
   const unknown = []
   const ast = descriptor.template?.ast
+  let diagram = false
+  if (ast) walk(ast, (node) => { if (node.type === 1 && node.tag === 'Diagram') diagram = true })
+  if (diagram) return { inferred: null, diagram: true, reason: 'steps come from the <Diagram> (steps: <diagram>.steps in deck.js)' }
   if (ast) {
     walk(ast, (node) => {
       if (node.type !== 1) return
@@ -134,6 +140,11 @@ export function inferSteps(descriptor) {
           if (isInt(until.src)) found.push(Number(until.src))
           else unknown.push(`non-literal <Step :until="${until.src.trim()}">`)
         }
+      }
+      if (node.tag === 'BigNumber') {
+        const at = attr(node, 'at') // default 0: counts when the scene comes on stage, no build step
+        if (at && isInt(at.src)) found.push(Number(at.src))
+        else if (at) unknown.push(`non-literal <BigNumber :at="${at.src.trim()}">`)
       }
       for (const name of ['focus', 'callouts']) {
         const a = attr(node, name)
@@ -324,18 +335,24 @@ export async function check(deckId, { json = false } = {}) {
   findings.sort((a, b) => (a.level === b.level ? 0 : a.level === 'error' ? -1 : 1) || rank(a) - rank(b))
   const errors = findings.filter((f) => f.level === 'error').length
   const warnings = findings.length - errors
-  const unknown = Object.entries(inference).filter(([, v]) => v.inferred == null && (v.steps > 0 || v.reason !== 'no build markers found'))
+  const unknown = Object.entries(inference).filter(([, v]) => v.inferred == null && !v.diagram && (v.steps > 0 || v.reason !== 'no build markers found'))
+  const fromDiagram = Object.entries(inference).filter(([, v]) => v.diagram)
   const result = { deck: deckId, scenes: scenes.length, errors, warnings, findings, steps: inference }
 
   if (json) {
     console.log(JSON.stringify(result, null, 2))
   } else {
-    const w = Math.max(8, ...findings.map((f) => f.scene.length), ...unknown.map(([id]) => id.length))
+    const w = Math.max(8, ...findings.map((f) => f.scene.length), ...unknown.map(([id]) => id.length), ...fromDiagram.map(([id]) => id.length))
     for (const f of findings) console.log(`${f.level === 'error' ? 'ERROR' : 'WARN '}  ${f.scene.padEnd(w)}  ${f.message}`)
     if (findings.length) console.log('')
     if (unknown.length) {
       console.log('Build steps not inferred (check these by hand):')
       for (const [id, v] of unknown) console.log(`  ${id.padEnd(w)}  steps: ${v.steps}  (${v.reason})`)
+      console.log('')
+    }
+    if (fromDiagram.length) {
+      console.log('Build steps from a <Diagram> (not compared; use steps: <diagram>.steps in deck.js):')
+      for (const [id, v] of fromDiagram) console.log(`  ${id.padEnd(w)}  steps: ${v.steps}  (${v.file})`)
       console.log('')
     }
     console.log(`check ${deckId}: ${errors} error${errors === 1 ? '' : 's'}, ${warnings} warning${warnings === 1 ? '' : 's'} · ${scenes.length} scenes`)
