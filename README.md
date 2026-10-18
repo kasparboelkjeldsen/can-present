@@ -75,9 +75,10 @@ engine/                     the engine (talk-agnostic)
   useCount.js               animated numbers
   camera.js layout.js       camera maths; nest() and the ghost "covers the canvas" placement
   ride.js RidePill.vue      `via` rides: a flight that follows a path with a pill at the centre of the screen
+  cameraState.js frames.js  the shared camera (a scene's `zoom`); `frames`: per build step, the camera shows a box of the card
   notes.js signals.js
   SceneFrame.vue ScenePreview.vue
-  components/Code.vue Shot.vue BigNumber.vue Diagram.vue
+  components/Code.vue Shot.vue BigNumber.vue Diagram.vue Detail.vue
   diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js; ride()
   styles/engine.css         base styles, <Step> and .rise/.fade-in animations, engine tokens with defaults
   vite.js                   deck selection and the dev-server plugins (used by vite.config.js)
@@ -145,7 +146,8 @@ Then run it with `npm run deck -- dev <id>`, or make it the default in `package.
    - `skip: true` steps over it in normal navigation (X or `#id` still reaches it).
    - `ghost: true` with `at: null` hovers over the whole canvas and only shows while on stage.
    - `via` makes the flight into the scene ride a path, usually a diagram edge (see **Rides** under "Building blocks").
-3. For builds, use `<Step :at="n" anim="up|down|left|right|pop|blur|fade|dim">`, or `useStep()` for custom logic.
+   - `frames` moves the camera within the scene on its build steps: `{ 2: { cx, cy, w } }` frames that box of the card on step 2 (see **Zoom into detail** under "Building blocks").
+3. For builds, use `<Step :at="n" anim="up|down|left|right|pop|blur|fade|dim">`, or `useStep()` for custom logic (`step`, `active`, `near`, `preview`, and `zoom`: the card's on-screen scale).
    Add `class="rise"` (plus `style="--d: n"` to stagger) or `fade-in` for entrance animations that replay each time the scene comes on stage, or hook `.is-active` in scene CSS.
 
 ## Checking a deck
@@ -157,14 +159,14 @@ npm run -s check -- [deck] --json # the same findings as JSON
 
 A text lint that loads `deck.js` through Vite, the way the app does, and reads each scene's source. It prints `ERROR  <scene-id>  <message>` or `WARN …` lines and a summary, and exits 1 if there are errors.
 
-- **Errors:** a `deck.js` that doesn't load (e.g. `ride()` with an edge index the diagram doesn't have, or `defineDiagram()` with an unknown node), duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable), a malformed `via` (no path, a path that isn't SVG path data, no `space`, an unknown option, a `zoom`, `speed`, `bank` or `tone` out of range).
+- **Errors:** a `deck.js` that doesn't load (e.g. `ride()` with an edge index the diagram doesn't have, or `defineDiagram()` with an unknown node), duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable), a malformed `via` (no path, a path that isn't SVG path data, no `space`, an unknown option, a `zoom`, `speed`, `bank` or `tone` out of range), malformed `frames` (a key that isn't a build step from 1 to `steps`, a box that isn't `{ cx, cy, w }` with numbers, or one that isn't inside the 1920×1080 card).
 - **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`, a `via` that never plays (on the first scene or on a `skip` scene), a `via` whose previous scene isn't the path's scene or nested in it (a ride from far away looks odd), a `via` whose `space` isn't any scene's `at` (so that can't be checked).
 
-Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, `<BigNumber :at="n">`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked. A scene that draws a `<Diagram>` takes its steps from the diagram (`steps: arch.steps` in `deck.js`), so it's listed under "Build steps from a <Diagram>" and not compared.
+Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, `<BigNumber :at="n">`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`, plus the keys of the scene's `frames` in `deck.js`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked. A scene that draws a `<Diagram>` takes its steps from the diagram (`steps: arch.steps` in `deck.js`), so it's listed under "Build steps from a <Diagram>" and not compared.
 
 ## The sheet: the whole deck on one page
 
-Open **`?sheet`** (e.g. http://localhost:5173/?sheet) to see every scene in a grid, in deck order, each at its last build step (a scene without builds shows its finished state, as in the overview). Live sites stay placeholders, a `<Diagram>` on a timer shows its final state without packets, and a `<BigNumber>` shows its final value. Under each tile: number, id, title, `steps` and flags (`skip`, `ghost`, `in <parent>`). Click a tile to open that scene.
+Open **`?sheet`** (e.g. http://localhost:5173/?sheet) to see every scene in a grid, in deck order, each at its last build step (a scene without builds shows its finished state, as in the overview). Live sites stay placeholders, a `<Diagram>` on a timer shows its final state without packets, and a `<BigNumber>` shows its final value. Under each tile: number, id, title, `steps` and flags (`skip`, `ghost`, `in <parent>`). A tile on a step with a camera frame (`frames`) has the frame's box outlined in the accent colour (a ring marks one too small to see) and `frame n · 34×` (its zoom) under it; the tile itself always shows the whole card at zoom 1, so deep-zoom `<Detail>`s stay hidden. Click a tile to open that scene.
 
 | Query | |
 |---|---|
@@ -264,6 +266,24 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
   | `bank` | `0` | degrees the camera leans into turns (a few at most; -15 to 15 allowed) |
 
   When it plays: `via` is the flight **into** its scene from the previous scene in deck order (skip scenes are stepped over, as with →), and ← from it plays the same ride backwards. Every other move (overview, a click there, the URL hash from elsewhere, Home/End, X, skipping over it) is a normal flight, and so is a move made while a ride runs: the ride is cut short, its pill fades and the camera flies from wherever it is. With `prefers-reduced-motion` the flight is always normal, and the presenter view and `?sheet` never ride. The real packets on the edge keep flowing, so give the ride pill its own tone or label.
+- **Zoom into detail** (`frames` in `deck.js`, `@engine/components/Detail.vue`): a "powers of ten" dive inside one scene, driven by clicks. On a build step with a frame, the camera flies to that box of the card instead of the whole card, and `<Detail>` shows content only once the camera is close enough to read it, so it materialises while the camera moves, like a map.
+
+  ```js
+  // deck.js: per build step, a box { cx, cy, w } in the card's 1920×1080 space (16:9, w in card px)
+  { id: 'deeper', component: Deeper, steps: 3, at: { x: 4600, y: 4650 },
+    frames: { 1: { cx: 1200, cy: 640, w: 480 }, 3: { cx: 1302, cy: 655, w: 60 } } },
+  ```
+
+  ```vue
+  <Detail :from="2" :to="6">endpoints</Detail>   <!-- while the card is 2–6× in -->
+  <Detail :from="20" tag="span">the code</Detail> <!-- only once it's 20× in -->
+  <Detail :until="0.25">ACT 2</Detail>            <!-- only from far away, e.g. the overview -->
+  ```
+
+  - **`frames`**: a step without a key keeps the previous step's frame; step 0 is always the whole card. Moving between frames is the normal van Wijk flight, so a 30× (or 500×) zoom feels smooth. Entering the scene from elsewhere flies to the frame of the step you land on (← from the next scene lands on the last step's frame), leaving it is a normal flight, and a `via` ride into or out of the scene works the same way. The overview, the presenter view and `?sheet` ignore frames. With `prefers-reduced-motion`, a frame change within the scene is an instant cut.
+  - **`zoom`** (`useStep()`): the card's on-screen scale, following the camera: 1 = the card exactly fills the stage, 0.1 = far away, 8 = 8× in. It's 1 in thumbnails. It's computed lazily, so a camera move only costs something in scenes that read it.
+  - **`<Detail>`** props: `from` (default 0) and `to` (default none) are zooms; `until` is shorthand for `to`; `tag` (default `'div'`; `'g'` inside an `<svg>`). The opacity ramps up from `from × 0.7` to `from` and down from `to` to `to × 1.3`, written straight to the element as the camera moves (no re-render, no timer). Faded out, the content is `visibility: hidden` and takes no pointer events. Thumbnails are at zoom 1, so they show what the card shows at rest.
+  - **Sharp at depth.** The camera is one CSS transform without `will-change`, so the browser draws the text at its final size at any zoom (checked at 537×). Write deep content at normal sizes in its own 1920×1080 box, scaled down with a `transform` (`decks/example/scenes/deeper.js`, `box()`), rather than in tiny font sizes. Position anything you zoom far into with `transform`, not `left`/`top`: the browser rounds those to whole pixels, and at 500× a fraction of a pixel is dozens of pixels on screen. Text in deep `<Detail>`s is sized for the zoom it's read at, so the sheet's audit (which measures at zoom 1) can't judge it: mark it `data-audit="ignore"`.
 - `@engine/useCount.js`: `useCount(trigger, from, to, { duration, delay, decimals })` returns a ref with an animated number that re-runs whenever `trigger` (a ref or getter, e.g. the scene's `active`) becomes true. `useCounter(…)` takes the same arguments and returns `{ value, progress }`, with `progress` the eased 0…1 of the run (what `<BigNumber>`'s ring follows).
 - `docs/presentation-guide.md` plus the deck's `brief.md`: hand both to Claude chat when writing a talk; it produces a `scene-description.md` for the coding agent.
 

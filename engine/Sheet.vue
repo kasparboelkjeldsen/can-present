@@ -4,6 +4,8 @@
 //   ?sheet&cols=3        another number of columns
 //   ?sheet&steps         one tile per build step (0…steps) of every scene
 //   ?sheet&only=a,b      just these scene ids
+// A tile on a step with a camera frame (`frames` in deck.js) gets the frame's box outlined, and its
+// zoom in the caption. Tiles always render the whole card at zoom 1: <Detail>s for deep zoom stay hidden.
 // About 1.5 s after mount it audits every tile: text under 26px, text outside the 1920×1080 card,
 // and a .slide that overflows. Results: a badge + outlines per tile, a plain-text list at the top
 // (readable with get_page_text), window.__deckAudit and console.table.
@@ -13,6 +15,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import deck from '@deck/deck.js'
 import SceneFrame from './SceneFrame.vue'
+import { validateFrames, normalizeFrames, frameAt } from './frames.js'
 
 const W = 1920
 const H = 1080
@@ -29,6 +32,17 @@ const scenes = deck.scenes
   .filter(({ sc }) => !only.length || only.includes(sc.id))
 const unknownIds = only.filter((id) => !deck.scenes.some((sc) => sc.id === id))
 
+// the camera frame in force on a tile's step (`frames` in deck.js), drawn as an outline
+const frameLists = new Map(deck.scenes.filter((sc) => sc.frames != null && !validateFrames(sc.frames, sc.steps ?? 0).length).map((sc) => [sc, normalizeFrames(sc.frames)]))
+function frameOf(t) {
+  const f = frameLists.has(t.sc) && frameAt(frameLists.get(t.sc), t.step)
+  if (!f) return null
+  const { cx, cy, w } = f.box
+  const h = (w * 9) / 16
+  return { step: f.step, w, zoom: W / w, style: { left: cx - w / 2 + 'px', top: cy - h / 2 + 'px', width: w + 'px', height: h + 'px' } }
+}
+const zoomLabel = (z) => (z >= 10 ? Math.round(z) : Math.round(z * 10) / 10) + '×'
+
 // A scene without builds renders "done" (Infinity, as in the overview), so scenes that assemble
 // themselves on stage show their finished state. With ?steps every step is literal, 0…steps.
 // Tiles render with `preview`, so engine blocks skip their timers: a timer-mode <Diagram> shows
@@ -39,7 +53,8 @@ const tiles = scenes.flatMap(({ sc, n }) => {
   const steps = perStep ? Array.from({ length: last + 1 }, (_, s) => s) : [last > 0 ? last : Infinity]
   return steps.map((step) => {
     const label = step === Infinity ? 'end' : String(step)
-    return { key: `${sc.id}/${label}`, sc, n, step, label }
+    const t = { key: `${sc.id}/${label}`, sc, n, step, label }
+    return { ...t, frame: frameOf(t) }
   })
 })
 
@@ -170,6 +185,7 @@ onMounted(async () => {
         <a class="box" :href="href(t)" target="_blank" :title="`Open #${t.sc.id}/${t.label}`">
           <div class="inner">
             <SceneFrame :scene="t.sc" :step="t.step" :active="false" :near="false" preview />
+            <div v-if="t.frame" class="frame-box" :class="{ tiny: t.frame.w * scale < 14 }" :style="t.frame.style" />
             <div class="marks">
               <div
                 v-for="(f, i) in byTile[t.key] ?? []"
@@ -186,6 +202,7 @@ onMounted(async () => {
           <span class="id">{{ t.sc.id }}</span>
           <span class="title">{{ t.sc.title }}</span>
           <span class="steps">{{ perStep ? `step ${t.label} of ${t.sc.steps ?? 0}` : `steps: ${t.sc.steps ?? 0}` }}</span>
+          <span v-if="t.frame" class="steps">frame {{ t.frame.step }} · {{ zoomLabel(t.frame.zoom) }}</span>
           <i v-for="f in flags(t.sc)" :key="f" class="flag">{{ f }}</i>
         </figcaption>
       </figure>
@@ -231,6 +248,9 @@ h1 { margin: 0 0 6px; font-size: 26px; }
 }
 .inner { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; transform: scale(var(--scale)); transform-origin: 0 0; pointer-events: none; }
 .marks { position: absolute; inset: 0; z-index: 100; }
+.frame-box { position: absolute; z-index: 99; outline: calc(3px / var(--scale)) dashed var(--deck-accent); box-shadow: 0 0 0 calc(1px / var(--scale)) var(--deck-ink); }
+/* a box too small to see at tile size: a ring around it instead */
+.frame-box.tiny::after { content: ''; position: absolute; left: 50%; top: 50%; width: calc(22px / var(--scale)); height: calc(22px / var(--scale)); transform: translate(-50%, -50%); border-radius: 50%; border: calc(3px / var(--scale)) solid var(--deck-accent); box-shadow: 0 0 0 calc(1px / var(--scale)) var(--deck-ink); }
 .mark { position: absolute; outline: calc(3px / var(--scale)) solid var(--deck-accent-2); outline-offset: calc(1px / var(--scale)); }
 .badge {
   position: absolute;

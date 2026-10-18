@@ -6,7 +6,8 @@
 //
 // ERROR (exit code 1): deck.js that doesn't load (e.g. ride() with an unknown edge), duplicate /
 //   non-kebab-case ids, unknown parent, missing component or placement, more build steps used
-//   than `steps` allows (unreachable builds), a malformed `via`.
+//   than `steps` allows (unreachable builds), a malformed `via`, malformed `frames` (keys that
+//   aren't build steps 1…steps, boxes that aren't { cx, cy, w } inside the card).
 // WARN: fewer build steps used than `steps` (dead clicks), missing / empty / orphan notes,
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
 //   that don't exist yet in public/, a scene root without class "slide", a `via` that never
@@ -15,6 +16,7 @@
 // Build steps are inferred from the SFC source (literal <Step :at/:until> and <BigNumber :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
 // non-literal makes the inference "unknown" and the step checks are skipped for that scene.
+// The keys of a scene's `frames` (camera framing per step) count as build steps it uses.
 // A scene that draws a <Diagram> takes its steps from the diagram (`steps: arch.steps`): it's
 // listed as such and not compared.
 import fs from 'node:fs'
@@ -23,6 +25,7 @@ import { createServer } from 'vite'
 import { parse } from 'vue/compiler-sfc'
 import { ROOT, DECKS_DIR } from '../engine/vite.js'
 import { validateVia } from '../engine/ride.js'
+import { validateFrames } from '../engine/frames.js'
 
 const W = 1920
 const H = 1080
@@ -287,7 +290,12 @@ export async function check(deckId, { json = false } = {}) {
     sceneOfFile.set(file, [...(sceneOfFile.get(file) ?? []), id])
     const { descriptor } = parse(fs.readFileSync(file, 'utf8'), { filename: file })
     const steps = sc.steps ?? 0
-    const inf = inferSteps(descriptor)
+    let inf = inferSteps(descriptor)
+    // camera frames are build steps too (a scene may have no other builds, e.g. a zoom with <Detail>s)
+    const frameSteps = sc.frames != null && !validateFrames(sc.frames, steps).length ? Object.keys(sc.frames).map(Number) : []
+    if (frameSteps.length && !inf.diagram && (inf.inferred != null || inf.reason === 'no build markers found')) {
+      inf = { inferred: Math.max(inf.inferred ?? 0, ...frameSteps) }
+    }
     inference[id] = { ...inf, steps, file: rel(file) }
     if (inf.inferred != null) {
       if (inf.inferred > steps) add('error', id, `uses build step ${inf.inferred} but steps is ${steps}: ${inf.inferred === steps + 1 ? `step ${inf.inferred} can't` : `steps ${steps + 1}–${inf.inferred} can't`} be reached`)
@@ -298,6 +306,12 @@ export async function check(deckId, { json = false } = {}) {
     const cls = root && attr(root, 'class')
     const hasSlide = cls?.literal && cls.src.split(/\s+/).includes('slide')
     if (!hasSlide) add('warn', id, `template root <${root?.tag ?? '?'}> in ${rel(file)} has no class "slide"`)
+  }
+
+  // camera frames per build step
+  for (const sc of scenes) {
+    if (sc.frames == null) continue
+    for (const p of validateFrames(sc.frames, sc.steps ?? 0)) add('error', sc.id ?? '(no id)', `frames: ${p}`)
   }
 
   // rides: `via` is the flight in from the previous scene (skip scenes are stepped over)

@@ -20,6 +20,7 @@ This isn't PowerPoint. It's a web app (Vue) with these properties:
 - **A single infinite canvas.** Every scene is a 1920×1080 card placed somewhere on a huge 2D surface. Moving to the next scene makes the camera **fly** there: it zooms out, pans and zooms back in. Scenes can be rotated a few degrees and scaled, which makes the flight more dramatic.
 - **Nested scenes.** A scene can be placed *small inside another scene*. The camera then **dives into it**. Example: a diagram has a box, and the next scene lives inside that box, so the camera zooms into the box and the detail appears. This is the signature move. Use it 2–4 times in the whole talk, where "zooming into detail" means something. Nested scenes can appear on a build step of their parent, or a set time after the parent comes on stage.
 - **Riding a wire.** Instead of the usual zoom-out-pan-in, the flight into a scene can *ride a line*: the camera flies close to the start of a diagram arrow (or any drawn path), follows it through its curves and corners with a small labelled pill ("scenes", "GET /jobs") at the centre of the screen, as if the audience were the packet, and then dives into the next scene. ← plays the ride backwards. It's one continuous motion of 1.5–4 seconds. Use it where "this goes there" *is* the point, e.g. a request travelling to the box that handles it, and lead into a nested scene that lives at the end of the line. Once or twice per talk.
+- **Zooming into detail, within one scene.** Clicks can move the camera *inside* a scene instead of building things: each click frames a smaller part of the card, and content appears only once the camera is close enough to read it, like a map. From afar a box says "API"; one click in, its endpoints fade in; one more, a line of real code; one more, a single character. Zooms of 30× to 500× stay smooth and sharp, and the content materialises *during* the zoom. This is the "powers of ten" moment: once per talk, where "look closer, there's more inside" is the point. The same trick works the other way: a label can show only when the camera is far away, e.g. region names that are readable in the overview.
 - **A takeaway that hovers over everything.** One scene can be a "ghost": placed over the whole canvas, visible only while it's on stage.
 - **Overview.** Pressing O zooms out to show the whole canvas. Since the audience can see the layout of the talk, **where scenes sit is part of the storytelling** (e.g. one world on the left, another on the right, a bridge in the middle).
 - **Builds.** Inside a scene, elements can appear one click at a time.
@@ -50,6 +51,7 @@ The building blocks below exist already. The agent can also build new things, bu
 | **Live site** | real iframe in a browser frame, clickable; or a launch card that opens it in a new tab | demos without leaving the deck |
 | **Diagram** | boxes (or logos) connected by arrows. The diagram builds itself: each box pops in on a click, or on a timer when the scene comes on stage (no clicks needed), and each line draws itself once both of its boxes are there. Little labelled packets ("GET /jobs", "200 OK") flow along the lines in either direction. A box can hold a slot where a nested scene lives, so the camera can dive into it | architecture, data flow, "zoom into this part" |
 | **Ride a wire** | the flight into a scene follows a line of a diagram (or any drawn path) at close range, with a labelled pill at the centre of the screen, then dives in. Optionally the camera leans a few degrees into the corners | "follow the request", the hand-off from one box to the next, data flow told as a journey |
+| **Zoom into detail** | clicks fly the camera deeper into one scene (each click frames a smaller part of it), and details fade in as they become big enough to read; labels can also show only from far away (the overview) | "powers of ten": a system → a component → a line of code; revealing what's inside a box without leaving the scene |
 | **Custom SVG animation** | the agent draws and animates a small illustration | title, section breaks, jokes. One per few scenes, not more. |
 
 Every block above has a working scene in the engine's example deck (`decks/example`), so the coding agent has something to copy. The deck may have its own components too (logos, mascots, recurring motifs). The brief lists them.
@@ -58,8 +60,8 @@ Every block above has a working scene in the engine's example deck (`decks/examp
 
 **Entrance animations** play every time a scene comes on stage: staggered text rising in, a line or underline drawing itself, a number counting.
 
-**Cheap:** text, cards, big numbers, code, screenshots, live sites, builds, diagrams of boxes and arrows (with flowing packets and nested slots), riding a diagram's line into a nested scene.
-**Medium:** a custom looping SVG illustration, a bespoke diagram that goes beyond boxes and arrows (curves, logos as nodes, custom shapes), a ride along a hand-drawn path.
+**Cheap:** text, cards, big numbers, code, screenshots, live sites, builds, diagrams of boxes and arrows (with flowing packets and nested slots), riding a diagram's line into a nested scene, a click that zooms the camera onto part of a scene, a label that only shows in the overview.
+**Medium:** a custom looping SVG illustration, a bespoke diagram that goes beyond boxes and arrows (curves, logos as nodes, custom shapes), a ride along a hand-drawn path, a multi-level "powers of ten" zoom (every level's content has to be designed for the zoom it's read at).
 **Ask first:** anything that needs real data at runtime, video, sound or 3D.
 
 ## Screenshots and assets
@@ -75,6 +77,8 @@ Give each scene a rough position in plain words. The agent turns that into coord
 - "inside X's <element>" (nested: the camera dives in)
 - "reached by riding X's <line> from Y" (the flight in follows that line; Y should be X itself or a scene nested in X, since a ride from far away looks odd)
 - "bigger than normal" (the camera pulls back to show it)
+- "on click n the camera zooms into its <element>" (a zoom within the scene; say what appears at that zoom)
+- "label only readable from far away" (shown in the overview, gone up close)
 - "region: …" if you've defined regions
 
 Also describe how the whole talk should look in overview, e.g. "a path going left to right with the deep dives as zoom-ins".
@@ -119,4 +123,5 @@ Rules for the scene list:
 - For **diagrams**, list the nodes, the connections (with labels), the reveal order (box by box on clicks, or timed so it builds itself), the packets that flow (label and direction) and any box that holds a nested scene.
 - For **nested scenes**, say which scene and which element they live inside.
 - For **rides**, say which line (from which box to which), the pill's label, and the scene it leads into.
+- For **zooms into detail**, list them under **Builds**: which part of the scene the camera frames on each click, and what appears (or disappears) at that zoom level.
 - Mark anything unknown as `TODO:` instead of guessing.

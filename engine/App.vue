@@ -2,7 +2,9 @@
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck, stepFor, nestedVisible } from './useDeck.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './camera.js'
+import { cam } from './cameraState.js'
 import { validateVia, sampleVia, planRide } from './ride.js'
+import { validateFrames, normalizeFrames, frameAt, frameView } from './frames.js'
 import SceneFrame from './SceneFrame.vue'
 import RidePill from './RidePill.vue'
 
@@ -13,9 +15,19 @@ const { scenes, idx, step, overview, blackout, go, maxStep, prevIndex, reset } =
 // ---------- world placement ----------
 const place = (sc) => ({ x: sc.at?.x ?? 0, y: sc.at?.y ?? 0, s: sc.at?.s ?? 1, r: sc.at?.r ?? 0 })
 
-function viewFor(i) {
+// `frames` in deck.js (engine/frames.js): per build step, the camera shows a box of the card
+// instead of the whole card. Invalid frames are ignored with a warning (check reports them).
+const frameLists = scenes.map((sc) => {
+  if (sc.frames == null) return null
+  const problems = validateFrames(sc.frames, sc.steps ?? 0)
+  if (problems.length) console.warn(`[can-present] scene "${sc.id}": frames ignored: ${problems.join('; ')}`)
+  return problems.length ? null : normalizeFrames(sc.frames)
+})
+
+function viewFor(i, s = 0) {
   const p = place(scenes[i])
-  return { x: p.x, y: p.y, w: W * p.s, r: p.r }
+  const f = frameLists[i] && frameAt(frameLists[i], s)
+  return f ? frameView(p, f.box) : { x: p.x, y: p.y, w: W * p.s, r: p.r }
 }
 
 function overviewView() {
@@ -35,8 +47,16 @@ function overviewView() {
 }
 
 // ---------- camera ----------
-const target = computed(() => (overview.value ? overviewView() : viewFor(idx.value)))
-const cam = reactive({ ...target.value })
+// `cam` lives in cameraState.js so scenes can read it (useStep().zoom). It flies whenever this key
+// changes: the overview, the scene, or (only for a scene with frames) the frame in force.
+// (In the overview the scene doesn't count: moving to another one there doesn't restart the flight.)
+const camKey = computed(() => {
+  if (overview.value) return 'o'
+  const list = frameLists[idx.value]
+  return list ? `${idx.value}|${frameAt(list, step.value)?.step ?? 0}` : `${idx.value}`
+})
+const target = () => (overview.value ? overviewView() : viewFor(idx.value, step.value))
+Object.assign(cam, target())
 const flying = ref(false)
 let raf = 0
 
@@ -117,9 +137,18 @@ function rideTo(t, via, back) {
 }
 
 let last = { idx: idx.value, overview: overview.value }
-watch(target, (t) => {
+watch(camKey, () => {
+  const t = target()
   const from = last
   last = { idx: idx.value, overview: overview.value }
+  // a new frame within the same scene: with reduced motion, cut straight to it
+  if (!from.overview && !overview.value && from.idx === idx.value && reducedMotion?.matches) {
+    cancelAnimationFrame(raf)
+    endRide()
+    flying.value = false
+    Object.assign(cam, t)
+    return
+  }
   const ride = !riding && !from.overview && !overview.value && from.idx !== idx.value && !reducedMotion?.matches
     ? rideBetween(from.idx, idx.value)
     : null
