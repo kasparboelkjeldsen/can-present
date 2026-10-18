@@ -8,7 +8,11 @@ The engine lives in `engine/` and knows nothing about any particular talk. Each 
 npm install
 npm run dev                      # default deck, http://localhost:5173
 npm run deck -- dev example      # any deck (see "Choosing a deck")
+npm run check -- example         # lint a deck (see "Checking a deck")
+npm run new-deck -- my-talk      # start a new deck (see "Make a new deck")
 ```
+
+http://localhost:5173/?sheet shows the whole deck on one page with a text-size audit (see "The sheet").
 
 ## Keys
 
