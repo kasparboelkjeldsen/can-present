@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import { useStep } from '../../../engine/useStep.js'
-import Shot from '../../../engine/components/Shot.vue'
+import { useStep } from '@engine/useStep.js'
+import Shot from '@engine/components/Shot.vue'
 
 const { step } = useStep()
 const H = 915 // screenshot height in px; field rows measured on it

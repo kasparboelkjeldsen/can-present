@@ -1,8 +1,8 @@
 <script setup>
 // TODO (morning of 22 Oct): refresh JORDEMODER, RADIOGRAF and AS_OF.
 import { computed } from 'vue'
-import { useStep } from '../../../engine/useStep.js'
-import { useCount, fmtNum } from '../../../engine/useCount.js'
+import { useStep } from '@engine/useStep.js'
+import { useCount, fmtNum } from '@engine/useCount.js'
 
 const JORDEMODER = 6836
 const RADIOGRAF = 5861

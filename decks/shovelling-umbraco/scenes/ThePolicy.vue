@@ -1,5 +1,5 @@
 <script setup>
-import Code from '../../../engine/components/Code.vue'
+import Code from '@engine/components/Code.vue'
 
 const cs = `
 public async Task<CorsPolicy?> GetPolicyAsync(

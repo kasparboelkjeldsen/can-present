@@ -1,7 +1,7 @@
 <script setup>
 // Fallback for the live demo. Skipped in normal navigation (skip: true in deck.js); X or #fallback gets here.
 // TODO: drop shots/fallback-backoffice-origin-added.png and shots/fallback-job-test-after.png in, then pass them as src.
-import Shot from '../../../engine/components/Shot.vue'
+import Shot from '@engine/components/Shot.vue'
 </script>
 
 <template>

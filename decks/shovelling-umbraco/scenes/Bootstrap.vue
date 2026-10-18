@@ -1,7 +1,7 @@
 <script setup>
 import { computed } from 'vue'
-import { useStep } from '../../../engine/useStep.js'
-import Step from '../../../engine/Step.vue'
+import { useStep } from '@engine/useStep.js'
+import Step from '@engine/Step.vue'
 
 const { step } = useStep()
 const half = computed(() => step.value >= 2)

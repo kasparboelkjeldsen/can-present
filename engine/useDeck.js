@@ -1,5 +1,5 @@
 import { ref, computed, watch } from 'vue'
-import { scenes } from '../decks/shovelling-umbraco/deck.js'
+import { scenes } from '@deck/deck.js'
 import { resets } from './signals.js'
 
 // One shared deck state per window. Audience + presenter windows sync over BroadcastChannel.

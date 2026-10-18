@@ -1,5 +1,5 @@
 <script setup>
-import Step from '../../../engine/Step.vue'
+import Step from '@engine/Step.vue'
 
 const cards = [
   { h: 'Origin is a claim, not a credential.', p: 'Fine for public job listings. Not fine for anything else.' },

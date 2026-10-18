@@ -1,6 +1,6 @@
 <script setup>
-import Code from '../../../engine/components/Code.vue'
-import Step from '../../../engine/Step.vue'
+import Code from '@engine/components/Code.vue'
+import Step from '@engine/Step.vue'
 
 const cs = `
 [HttpPut("{key:guid}")]

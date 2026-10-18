@@ -1,8 +1,8 @@
 <script setup>
 // The map. Three nodes have empty "slots" — the dive scenes (8–12) are placed in them on the canvas.
 import { ref, computed, watch, provide, onBeforeUnmount } from 'vue'
-import { useStep } from '../../../engine/useStep.js'
-import Step from '../../../engine/Step.vue'
+import { useStep } from '@engine/useStep.js'
+import Step from '@engine/Step.vue'
 import UmbracoMark from '../components/UmbracoMark.vue'
 import WordPressMark from '../components/WordPressMark.vue'
 import { NODES, SLOTS, REVEAL_MS } from './map/geometry.js'

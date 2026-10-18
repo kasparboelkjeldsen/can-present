@@ -1,5 +1,5 @@
 <script setup>
-import Step from '../../../engine/Step.vue'
+import Step from '@engine/Step.vue'
 import DiagonalLine from '../components/DiagonalLine.vue'
 import DsaLogo from '../components/DsaLogo.vue'
 </script>

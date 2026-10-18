@@ -1,7 +1,7 @@
 <script setup>
-import { useStep } from '../../../engine/useStep.js'
-import { useCount } from '../../../engine/useCount.js'
-import Step from '../../../engine/Step.vue'
+import { useStep } from '@engine/useStep.js'
+import { useCount } from '@engine/useCount.js'
+import Step from '@engine/Step.vue'
 import DiagonalLine from '../components/DiagonalLine.vue'
 
 const { active } = useStep()

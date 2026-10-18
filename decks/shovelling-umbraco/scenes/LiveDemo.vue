@@ -1,5 +1,5 @@
 <script setup>
-import Shot from '../../../engine/components/Shot.vue'
+import Shot from '@engine/components/Shot.vue'
 </script>
 
 <template>
