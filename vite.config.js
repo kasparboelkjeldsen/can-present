@@ -16,7 +16,7 @@ const deckSync = () => ({
 //   GET  /deck-notes.json        → the whole file (also emitted into the production build)
 //   PUT  /__deck/notes/<id>      → save one scene's notes (body = plain text). This machine only.
 // Every save is pushed to all connected windows as a `deck:notes` event.
-const NOTES = path.resolve('notes.json')
+const NOTES = path.resolve('decks/shovelling-umbraco/notes.json')
 const readNotes = () => {
   try { return JSON.parse(fs.readFileSync(NOTES, 'utf8')) } catch { return {} }
 }
@@ -59,6 +59,7 @@ const deckNotes = () => ({
 
 export default defineConfig({
   plugins: [vue(), deckSync(), deckNotes()],
+  publicDir: 'decks/shovelling-umbraco/public',
   server: {
     port: 5173,
     // notes.json is data, not code: saving it must never hot-reload the deck mid-talk
