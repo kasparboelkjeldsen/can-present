@@ -54,15 +54,16 @@ The building blocks below exist already. The agent can also build new things, bu
 | **Ride a wire** | the flight into a scene follows a line of a diagram (or any drawn path) at close range, with a labelled pill at the centre of the screen, then dives in. Optionally the camera leans a few degrees into the corners | "follow the request", the hand-off from one box to the next, data flow told as a journey |
 | **Zoom into detail** | clicks fly the camera deeper into one scene (each click frames a smaller part of it), and details fade in as they become big enough to read; labels can also show only from far away (the overview) | "powers of ten": a system → a component → a line of code; revealing what's inside a box without leaving the scene |
 | **The deck rearranges itself** | on the last scene, every other scene leaves the path and gathers round it: a ring that slowly orbits (default), a grid, a spiral, or custom points; it all goes home when you leave | the ending: thanks, questions, "everything we covered" |
+| **QR code** | a link with a short label and a code that falls onto the canvas dot by dot when the scene arrives (or on a click): the three corner squares thud down first, then the rest rains in, each dot dropping from near the audience with its shadow tightening under it. Big and high-contrast, so it scans from the back of the room; the link is shown as text too | "get the slides", feedback forms, repos |
 | **Custom SVG animation** | the agent draws and animates a small illustration | title, section breaks, jokes. One per few scenes, not more. |
 
 Every block above has a working scene in the engine's example deck (`decks/example`), so the coding agent has something to copy. The deck may have its own components too (logos, mascots, recurring motifs). The brief lists them.
 
 **Build animations** for elements that appear on a click: `up` (slide up), `down`, `left`, `right`, `pop` (springy scale), `blur` (focus in), `fade`, `dim` (always visible, faded until its turn).
 
-**Entrance animations** play every time a scene comes on stage: staggered text rising in, a line or underline drawing itself, a number counting.
+**Entrance animations** play every time a scene comes on stage: staggered text rising in, a line or underline drawing itself, a number counting, a QR code's dots falling onto the canvas.
 
-**Cheap:** text, cards, big numbers, code, screenshots, live sites, builds, diagrams of boxes and arrows (with flowing packets and nested slots), riding a diagram's line into a nested scene, a click that zooms the camera onto part of a scene, a label that only shows in the overview, a finale where every scene gathers round the last one (ring, grid or spiral).
+**Cheap:** text, cards, big numbers, QR codes, code, screenshots, live sites, builds, diagrams of boxes and arrows (with flowing packets and nested slots), riding a diagram's line into a nested scene, a click that zooms the camera onto part of a scene, a label that only shows in the overview, a finale where every scene gathers round the last one (ring, grid or spiral).
 **Medium:** a custom looping SVG illustration, a bespoke diagram that goes beyond boxes and arrows (curves, logos as nodes, custom shapes), a ride along a hand-drawn path, a multi-level "powers of ten" zoom (every level's content has to be designed for the zoom it's read at), a finale formation in a custom shape (the points of a logo or a word).
 **Ask first:** anything that needs real data at runtime, video, sound or 3D.
 
@@ -102,6 +103,7 @@ Produce **one markdown file** in exactly this shape. Be concrete: write the actu
 ## Assets needed
 - shots/xxx.png – what it shows
 - live: https://… – what we'll click on
+- qr: https://… – what the QR code links to
 
 ## Scenes
 
@@ -123,6 +125,7 @@ Rules for the scene list:
 - **Builds** are numbered in click order. A scene with no builds advances with a single click.
 - **Notes** go on the notes screen, one block per scene: 2–5 short cue bullets, not a script. Mark jokes as `(joke)` and add timing cues like `(pause)`.
 - For **code**, include the actual code and say which lines light up on which click.
+- For a **QR code**, put the real URL in the description (the exact link people should land on, not "TODO: link" if it's known), its short label, and whether the link is shown as text. Shorter URLs make coarser codes that scan from further back. Leave it on stage long enough for people to get their phones out.
 - For **diagrams**, list the nodes, the connections (with labels), the reveal order (box by box on clicks, or timed so it builds itself), the packets that flow (label and direction) and any box that holds a nested scene.
 - For **nested scenes**, say which scene and which element they live inside.
 - For **rides**, say which line (from which box to which), the pill's label, and the scene it leads into.

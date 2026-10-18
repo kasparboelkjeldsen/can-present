@@ -14,9 +14,10 @@
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
 //   that don't exist yet in public/, a scene root without class "slide", a `via` that never
 //   plays or rides in from a scene far from its path, more than one formation scene (only the
-//   first counts), frames/via on the formation scene (ignored), points for fewer cards than move.
+//   first counts), frames/via on the formation scene (ignored), points for fewer cards than move,
+//   a <QrCode> url literal that isn't http(s):// or mailto: (or a <QrCode> without a url).
 //
-// Build steps are inferred from the SFC source (literal <Step :at/:until> and <BigNumber :at>, numeric keys of
+// Build steps are inferred from the SFC source (literal <Step :at/:until>, <BigNumber :at> and <QrCode :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
 // non-literal makes the inference "unknown" and the step checks are skipped for that scene.
 // The keys of a scene's `frames` (camera framing per step) count as build steps it uses.
@@ -151,10 +152,10 @@ export function inferSteps(descriptor) {
           else unknown.push(`non-literal <Step :until="${until.src.trim()}">`)
         }
       }
-      if (node.tag === 'BigNumber') {
-        const at = attr(node, 'at') // default 0: counts when the scene comes on stage, no build step
+      if (node.tag === 'BigNumber' || node.tag === 'QrCode') {
+        const at = attr(node, 'at') // default 0: counts / drops when the scene comes on stage, no build step
         if (at && isInt(at.src)) found.push(Number(at.src))
-        else if (at) unknown.push(`non-literal <BigNumber :at="${at.src.trim()}">`)
+        else if (at) unknown.push(`non-literal <${node.tag} :at="${at.src.trim()}">`)
       }
       for (const name of ['focus', 'callouts']) {
         const a = attr(node, name)
@@ -180,6 +181,27 @@ export function inferSteps(descriptor) {
   if (unknown.length) return { inferred: null, reason: [...new Set(unknown)].join('; ') }
   if (!found.length) return { inferred: null, reason: 'no build markers found' }
   return { inferred: Math.max(...found) }
+}
+
+/**
+ * <QrCode url> values a phone may not open: a literal (url="…" or :url="'…'") that isn't
+ * http(s):// or mailto:. Non-literal urls aren't checked. Returns messages.
+ */
+export function qrProblems(descriptor) {
+  const out = []
+  const ast = descriptor.template?.ast
+  if (!ast) return out
+  walk(ast, (node) => {
+    if (node.type !== 1 || node.tag !== 'QrCode') return
+    const url = attr(node, 'url')
+    if (!url) return void out.push('<QrCode> without a url')
+    let value = url.literal ? url.src : null
+    const m = !url.literal && url.src.trim().match(/^(['"`])([^'"`$]*)\1$/)
+    if (m) value = m[2]
+    if (value == null) return
+    if (!/^(https?:\/\/\S+|mailto:\S+)$/i.test(value.trim())) out.push(`<QrCode> url "${value}" isn't http(s):// or mailto: (phones may not open it as a link)`)
+  })
+  return out
 }
 
 // ---------------------------------------------------------------- geometry
@@ -301,6 +323,7 @@ export async function check(deckId, { json = false } = {}) {
       inf = { inferred: Math.max(inf.inferred ?? 0, ...frameSteps) }
     }
     inference[id] = { ...inf, steps, file: rel(file) }
+    for (const p of qrProblems(descriptor)) add('warn', id, p)
     if (inf.inferred != null) {
       if (inf.inferred > steps) add('error', id, `uses build step ${inf.inferred} but steps is ${steps}: ${inf.inferred === steps + 1 ? `step ${inf.inferred} can't` : `steps ${steps + 1}–${inf.inferred} can't`} be reached`)
       else if (inf.inferred < steps) add('warn', id, `steps is ${steps} but the highest build step used is ${inf.inferred}: ${steps - inf.inferred} dead click(s)`)

@@ -79,7 +79,7 @@ engine/                     the engine (talk-agnostic)
   formation.js              `formation`: while a scene is on stage, the other cards leave their places and gather round it
   notes.js signals.js
   SceneFrame.vue ScenePreview.vue
-  components/Code.vue Shot.vue BigNumber.vue Diagram.vue Detail.vue
+  components/Code.vue Shot.vue BigNumber.vue Diagram.vue Detail.vue QrCode.vue
   diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js; ride()
   styles/engine.css         base styles, <Step> and .rise/.fade-in animations, engine tokens with defaults
   vite.js                   deck selection and the dev-server plugins (used by vite.config.js)
@@ -162,9 +162,9 @@ npm run -s check -- [deck] --json # the same findings as JSON
 A text lint that loads `deck.js` through Vite, the way the app does, and reads each scene's source. It prints `ERROR  <scene-id>  <message>` or `WARN …` lines and a summary, and exits 1 if there are errors.
 
 - **Errors:** a `deck.js` that doesn't load (e.g. `ride()` with an edge index the diagram doesn't have, or `defineDiagram()` with an unknown node), duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable), a malformed `via` (no path, a path that isn't SVG path data, no `space`, an unknown option, a `zoom`, `speed`, `bank` or `tone` out of range), malformed `frames` (a key that isn't a build step from 1 to `steps`, a box that isn't `{ cx, cy, w }` with numbers, or one that isn't inside the 1920×1080 card), a malformed `formation` (an unknown shape or option, `spin` under 5 s or on a grid, `cols` on anything but a grid or not a whole number from 2, `s` or `radius` not > 0, `points` that aren't `[x, y]` pairs, a shape function that doesn't return `{ x, y }`) or a formation scene that's nested or a ghost.
-- **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`, a `via` that never plays (on the first scene or on a `skip` scene), a `via` whose previous scene isn't the path's scene or nested in it (a ride from far away looks odd), a `via` whose `space` isn't any scene's `at` (so that can't be checked), a second `formation` (only the first is used), `frames` or `via` on the formation scene (ignored), a formation on a `skip` scene, `points` for fewer cards than move (the rest fade out).
+- **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`, a `<QrCode>` whose literal `url` isn't `http(s)://` or `mailto:` (or that has no `url`), a `via` that never plays (on the first scene or on a `skip` scene), a `via` whose previous scene isn't the path's scene or nested in it (a ride from far away looks odd), a `via` whose `space` isn't any scene's `at` (so that can't be checked), a second `formation` (only the first is used), `frames` or `via` on the formation scene (ignored), a formation on a `skip` scene, `points` for fewer cards than move (the rest fade out).
 
-Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, `<BigNumber :at="n">`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`, plus the keys of the scene's `frames` in `deck.js`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked. A scene that draws a `<Diagram>` takes its steps from the diagram (`steps: arch.steps` in `deck.js`), so it's listed under "Build steps from a <Diagram>" and not compared.
+Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, `<BigNumber :at="n">`, `<QrCode :at="n">`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`, plus the keys of the scene's `frames` in `deck.js`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked. A scene that draws a `<Diagram>` takes its steps from the diagram (`steps: arch.steps` in `deck.js`), so it's listed under "Build steps from a <Diagram>" and not compared.
 
 ## The sheet: the whole deck on one page
 
@@ -205,6 +205,27 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
   | `size` | `240` | font size of the number, px |
 
   It re-counts every time its scene comes on stage, and shows the final value when the scene is past, in the overview and in thumbnails. The number uses `var(--display-font, inherit)` with tabular numerals. Its parts have zero-specificity classes (`.big-number`, `.bn-num`, `.bn-label`, `.bn-ring`), so a theme can restyle them.
+- `@engine/components/QrCode.vue`: a link to take home. A short label, the link as text and a QR code whose dots fall onto the canvas when its scene comes on stage: the three finder squares thud down first, then the timing and alignment patterns, then the data rains in from the centre outwards, each dot falling from near the viewer (big and faint, in perspective) with its shadow tightening under it and a small bounce. About 2.4 s from the first drop to the last landing, whatever the size of the code; then it's one crisp SVG path.
+
+  ```vue
+  <QrCode url="https://github.com/kasparboelkjeldsen/can-present" label="The code for this deck" />
+  <QrCode :url="feedbackUrl" label="Tell me how it went" :size="560" :at="1" ec="Q" layout="below" />
+  ```
+
+  | Prop | Default | |
+  |---|---|---|
+  | `url` | (required) | what the code encodes. Keep it short: a shorter URL is a coarser code that scans from further back |
+  | `label` | `''` | the short description shown with it |
+  | `text` | the URL without `https://`, `www.` or a trailing slash | the link as displayed. It's selectable text (one click selects all of it), so the speaker can copy it |
+  | `showUrl` | `true` | `false` hides the link |
+  | `layout` | `'right'` | `'right'`: label and link right of the code. `'below'`: under it, centred. `'none'`: the code only |
+  | `size` | `520` | px of the code itself (modules are rounded to whole px, so it's within half a module of this). The tile adds a quiet zone of 4 modules on every side |
+  | `ec` | `'M'` | error correction, `'L'` / `'M'` / `'Q'` / `'H'`. The smallest QR version that fits is used |
+  | `at` | `0` | build step it drops on; `0` = when the scene comes on stage. Before it, the code and its text are hidden (the space is kept) |
+  | `delay` | `100` | ms before the first dot falls, counted from when the camera has landed (the drop waits for the flight, ride or `frames` move to finish, at most 4.5 s) |
+  | `tone` | `'paper'` | `'paper'`: `--deck-ink` modules on a `--deck-paper` tile. `'ink'`: the same tile on a dark `--deck-ink` mat, so the code reads as an object on a light slide |
+
+  Scannability comes first: modules are always dark on a light tile (if the theme's `--deck-ink` isn't clearly darker than its `--deck-paper`, it falls back to black on white and warns in the console), square, with no gaps, and the label and link are at least 26px (`clamp()`ed from the code size). Until the camera lands, the code and its text are hidden, so the dots fall onto a card the audience is already looking at. The drop replays every time the scene comes on stage; past the scene, in the overview, in the presenter view and on `?sheet` it's the finished code. With `prefers-reduced-motion` it fades in. Encoding is [`qrcode-generator`](https://www.npmjs.com/package/qrcode-generator) (MIT, bundled, so it works offline), UTF-8 byte mode. The drop is CSS (one element and one shadow per dark module, transforms and opacity only); codes bigger than about version 5 fall in small chunks of modules (2×1, 2×2, 3×2 …), so there are only ever a few hundred drops. Its parts have zero-specificity classes (`.qr-code`, `.qr-tile`, `.qr-svg`, `.qr-text`, `.qr-label`, `.qr-link`), so a theme can restyle them.
 - `@engine/components/Diagram.vue` + `@engine/diagram.js`: boxes connected by lines that draw themselves, packets flowing along them, and 16:9 slots for nested scenes. The definition lives in a plain `.js` file next to the scene, so the scene and `deck.js` share it:
 
   ```js
