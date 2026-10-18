@@ -41,6 +41,7 @@ npm run deck -- dev [deck]        # dev server
 npm run deck -- lan [deck]        # dev server on the network (--host)
 npm run deck -- build [deck]      # → dist/<deck>/
 npm run deck -- preview [deck]    # serve the build
+npm run deck -- check [deck]      # lint it (see "Checking a deck")
 ```
 
 `[deck]` defaults to `canPresent.deck`. Options after the deck name go to Vite for `dev`, `lan` and `preview`: `--port 5180`, `--host [address]`, `--open`, `--strictPort`. `scripts/deck.mjs` drives Vite's JavaScript API with the normal `vite.config.js`.
@@ -85,7 +86,8 @@ decks/
 docs/
   presentation-guide.md     what the engine can do, for writing a talk with Claude chat
 scripts/
-  deck.mjs                  npm run deck: dev / lan / build / preview for any deck
+  deck.mjs                  npm run deck: dev / lan / build / preview / check for any deck
+  check.mjs                 npm run check: the deck lint
 AGENTS.md                   rules and orientation for coding agents (CLAUDE.md points at it)
 ```
 
@@ -121,6 +123,20 @@ Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engi
    - `ghost: true` with `at: null` hovers over the whole canvas and only shows while on stage.
 3. For builds, use `<Step :at="n" anim="up|down|left|right|pop|blur|fade|dim">`, or `useStep()` for custom logic.
    Add `class="rise"` (plus `style="--d: n"` to stagger) or `fade-in` for entrance animations that replay each time the scene comes on stage, or hook `.is-active` in scene CSS.
+
+## Checking a deck
+
+```bash
+npm run check -- [deck]           # or: npm run deck -- check [deck]
+npm run -s check -- [deck] --json # the same findings as JSON
+```
+
+A text lint that loads `deck.js` through Vite, the way the app does, and reads each scene's source. It prints `ERROR  <scene-id>  <message>` or `WARN …` lines and a summary, and exits 1 if there are errors.
+
+- **Errors:** duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable).
+- **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`.
+
+Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked.
 
 ## Building blocks
 

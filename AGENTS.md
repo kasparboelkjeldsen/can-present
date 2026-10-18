@@ -56,7 +56,10 @@ npm run deck -- dev example --port 5180   # extra args go to Vite (--port, --hos
 npm run deck -- lan [deck]          # dev server on the network
 npm run deck -- build [deck]        # → dist/<deck>/
 npm run deck -- preview [deck]      # serve the build
+npm run check -- [deck]             # text lint: ids, steps vs builds, notes, overlaps, nesting, missing shots (--json too)
 ```
+
+`npm run check` prints one line per finding (`ERROR  <scene-id>  <message>` / `WARN …`) and exits 1 on errors. Errors: duplicate or non-kebab ids, unknown `parent`, no `component`/`at`, builds that `steps` can't reach. Warnings: dead clicks, missing or empty notes, overlapping top-level cards, a nested card outside its parent, `/shots/…` or `/assets/…` files not in `public/` yet (a TODO for the speaker), a scene root without `class="slide"`. Build steps are inferred from literal `<Step :at>`/`:until`, `:focus`/`:callouts` keys and `step >= n` checks; scenes with non-literal ones are listed as "not inferred" for you to check by hand.
 
 The wrapper works the same in bash and PowerShell. The older form still works: `npm run dev` / `npm run build` with `DECK=example` (bash) or `$env:DECK='example'` (PowerShell) set first. If `node` isn't on PATH on this machine, load fnm first: `fnm env --shell powershell | Out-String | Invoke-Expression`.
 

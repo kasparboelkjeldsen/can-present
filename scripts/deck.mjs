@@ -5,6 +5,7 @@
 //   npm run deck -- lan [deck]        dev server on the network (--host)
 //   npm run deck -- build [deck]
 //   npm run deck -- preview [deck] [--port 4180]
+//   npm run deck -- check [deck] [--json]   text lint of a deck (scripts/check.mjs)
 //
 // [deck] defaults to package.json "canPresent.deck". It sets DECK and drives Vite through its
 // JavaScript API with the normal vite.config.js, so it behaves exactly like `DECK=x vite …`.
@@ -21,6 +22,7 @@ Commands:
   lan [deck]        dev server reachable from other devices (--host)
   build [deck]      production build → dist/<deck>/
   preview [deck]    serve the production build
+  check [deck]      lint the deck (ids, steps, notes, layout, missing shots); --json for JSON
 
 [deck] is a folder in decks/ (default: package.json "canPresent.deck").
 Options for dev, lan and preview: --port <n>, --host [address], --open, --strictPort`
@@ -73,6 +75,22 @@ const configFile = path.join(ROOT, 'vite.config.js')
 async function main(argv) {
   const [command, ...args] = argv
   if (!command || command === 'help' || command === '--help' || command === '-h') usage()
+  if (command === 'check') {
+    const { deck: name, rest } = splitArgs(args)
+    const bad = rest.filter((a) => a !== '--json')
+    if (bad.length) usage(`Unknown option: ${bad.join(' ')}`)
+    let deck
+    try {
+      deck = selectDeck(name)
+    } catch (e) {
+      console.error(e.message)
+      process.exit(1)
+    }
+    const { check } = await import('./check.mjs')
+    const result = await check(deck.id, { json: rest.includes('--json') })
+    process.exitCode = result.errors > 0 ? 1 : 0
+    return
+  }
   if (!COMMANDS.includes(command)) usage(`Unknown command: ${command}`)
 
   const { deck: name, rest } = splitArgs(args)
