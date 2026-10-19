@@ -2,6 +2,8 @@
 
 A small Vue + Vite engine for talks on an infinite canvas: every scene is a 1920×1080 card placed somewhere on a big 2D surface, and the camera flies and zooms between them, Prezi style. Scenes can sit inside other scenes (the camera dives in), build up step by step, embed live websites, and come with a synced presenter view and a big-text notes screen.
 
+**Live demo: [kasparboelkjeldsen.github.io/can-present](https://kasparboelkjeldsen.github.io/can-present/)**, the example deck (`decks/example`), rebuilt on every push to `main`. Press → to move on, O for the overview; the speaker notes are at [`/notes`](https://kasparboelkjeldsen.github.io/can-present/notes/) and the whole deck on one page at [`?sheet`](https://kasparboelkjeldsen.github.io/can-present/?sheet).
+
 The engine lives in `engine/` and knows nothing about any particular talk. Each talk is a folder under `decks/`.
 
 ```bash
@@ -171,7 +173,7 @@ npm run deck -- preview example --base can-present   # http://localhost:4173/can
 
 Write it without slashes: Git Bash rewrites `/can-present/` into a Windows path (the script catches that and says so). Files from a deck's `public/` folder are referenced from the site root (`/shots/x.png`), and Vue leaves such paths alone, so anything that loads one needs the base. `<Shot src>` adds it for you; in a deck's own markup use `asset()` from `@engine/asset.js` (`<img :src="asset('/shots/x.png')">`). CSS `url(/…)` and imported files are rewritten by Vite.
 
-**The example deck on GitHub Pages.** `.github/workflows/pages.yml` runs `check` and builds `decks/example` with the repository name as its base on every push to `main` (or by hand: Actions → "Example deck on Pages" → Run workflow), and publishes it. One-time setup: Settings → Pages → Source: "GitHub Actions". Only the example deck is published. Pages needs a public repository, or a paid plan for a private one, and the published site is public either way.
+**The example deck on GitHub Pages** ([live](https://kasparboelkjeldsen.github.io/can-present/)). `.github/workflows/pages.yml` runs `check` and builds `decks/example` with the repository name as its base on every push to `main` (or by hand: Actions → "Example deck on Pages" → Run workflow), and publishes it. One-time setup: Settings → Pages → Source: "GitHub Actions". Only the example deck is published. Pages needs a public repository, or a paid plan for a private one, and the published site is public either way.
 
 ## Checking a deck
 
