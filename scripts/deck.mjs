@@ -3,8 +3,8 @@
 //
 //   npm run deck -- dev [deck] [--port 5180] [--open] [--strictPort]
 //   npm run deck -- lan [deck]        dev server on the network (--host)
-//   npm run deck -- build [deck]
-//   npm run deck -- preview [deck] [--port 4180]
+//   npm run deck -- build [deck] [--base /repo/]   (--base: host the build under a subpath, e.g. GitHub Pages)
+//   npm run deck -- preview [deck] [--port 4180] [--base /repo/]
 //   npm run deck -- check [deck] [--json]   text lint of a deck (scripts/check.mjs)
 //
 // [deck] defaults to package.json "canPresent.deck". It sets DECK and drives Vite through its
@@ -25,7 +25,8 @@ Commands:
   check [deck]      lint the deck (ids, steps, notes, layout, missing shots); --json for JSON
 
 [deck] is a folder in decks/ (default: package.json "canPresent.deck").
-Options for dev, lan and preview: --port <n>, --host [address], --open, --strictPort`
+Options for dev, lan and preview: --port <n>, --host [address], --open, --strictPort
+Options for build and preview: --base /path/ (host the build under a subpath, e.g. /can-present/ on GitHub Pages)`
 
 function usage(msg) {
   if (msg) console.error(msg + '\n')
@@ -60,6 +61,19 @@ function serverOptions(args) {
     }
   }
   return opts
+}
+
+/** --base can-present → '/can-present/' (the subpath a build is hosted under). Removes it from args. */
+function takeBase(args) {
+  const i = args.findIndex((a) => a === '--base' || a.startsWith('--base='))
+  if (i < 0) return undefined
+  const [flag, inline] = args[i].split('=')
+  const value = inline ?? args[i + 1]
+  if (!value || value.startsWith('-')) usage(`${flag} needs a path, e.g. --base can-present`)
+  // Git Bash (MSYS) rewrites an argument like /can-present/ into C:/Program Files/Git/can-present/
+  if (/^[A-Za-z]:[\\/]/.test(value)) usage(`--base got a Windows path (${value}): Git Bash rewrites "/x/". Write it without slashes: --base can-present`)
+  args.splice(i, inline == null ? 2 : 1)
+  return `/${value}/`.replace(/\/+/g, '/')
 }
 
 /** Picks the deck (validating it, with the list of decks on a typo) and sets DECK for vite.config.js. */
@@ -102,9 +116,11 @@ async function main(argv) {
     process.exit(1)
   }
 
+  const base = command === 'build' || command === 'preview' ? takeBase(rest) : undefined
+
   if (command === 'build') {
-    if (rest.length) usage(`build takes no options (got ${rest.join(' ')})`)
-    await build({ root: ROOT, configFile })
+    if (rest.length) usage(`build takes only --base (got ${rest.join(' ')})`)
+    await build({ root: ROOT, configFile, ...(base && { base }) })
     return
   }
 
@@ -112,7 +128,7 @@ async function main(argv) {
   if (command === 'lan' && opts.host == null) opts.host = true
 
   if (command === 'preview') {
-    const server = await preview({ root: ROOT, configFile, preview: opts })
+    const server = await preview({ root: ROOT, configFile, preview: opts, ...(base && { base }) })
     console.log(`\n  deck: ${deck.id} (production build in dist/${deck.id})`)
     server.printUrls()
     server.bindCLIShortcuts({ print: true })

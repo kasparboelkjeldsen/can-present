@@ -69,7 +69,7 @@ npm install
 npm run deck -- dev [deck]          # dev server, http://localhost:5173 (deck defaults to package.json "canPresent.deck")
 npm run deck -- dev example --port 5180   # extra args go to Vite (--port, --host, --open, --strictPort)
 npm run deck -- lan [deck]          # dev server on the network
-npm run deck -- build [deck]        # → dist/<deck>/
+npm run deck -- build [deck]        # → dist/<deck>/ (--base <name> for a subpath host, e.g. GitHub Pages; README "Hosting a build")
 npm run deck -- preview [deck]      # serve the build
 npm run check -- [deck]             # text lint: ids, steps vs builds, notes, overlaps, nesting, missing shots (--json too)
 npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from scene-description.md]   # scaffold decks/<id> from templates/deck/

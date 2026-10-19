@@ -12,6 +12,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useStep } from '../useStep.js'
 import { resets } from '../signals.js'
+import { asset } from '../asset.js' // "/shots/x.png" also works in a build for a subpath (--base)
 
 const props = defineProps({
   src: String,
@@ -92,7 +93,7 @@ onBeforeUnmount(() => {
     </div>
     <div class="body">
       <div v-if="live && external" class="launch">
-        <img v-if="src" :src="src" alt="" :style="{ objectFit: fit, objectPosition: position }" />
+        <img v-if="src" :src="asset(src)" alt="" :style="{ objectFit: fit, objectPosition: position }" />
         <button class="launch-btn" @click="openTab">
           <span>Open {{ shownUrl.split('/')[0] }} ↗</span>
           <small data-audit="ignore">opens in a new tab · Ctrl+Tab back here</small>
@@ -109,7 +110,7 @@ onBeforeUnmount(() => {
           referrerpolicy="no-referrer-when-downgrade"
         />
       </template>
-      <img v-else-if="src" :src="src" alt="" :style="{ objectFit: fit, objectPosition: position }" />
+      <img v-else-if="src" :src="asset(src)" alt="" :style="{ objectFit: fit, objectPosition: position }" />
       <div v-else class="placeholder">
         <svg v-if="live" width="72" height="72" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18" />

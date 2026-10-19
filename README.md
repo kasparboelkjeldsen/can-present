@@ -43,8 +43,8 @@ Pick another deck with the `deck` wrapper (same syntax in every shell):
 ```bash
 npm run deck -- dev [deck]        # dev server
 npm run deck -- lan [deck]        # dev server on the network (--host)
-npm run deck -- build [deck]      # → dist/<deck>/
-npm run deck -- preview [deck]    # serve the build
+npm run deck -- build [deck]      # → dist/<deck>/  (--base <name>: for a subpath, see "Hosting a build")
+npm run deck -- preview [deck]    # serve the build (same --base as the build)
 npm run deck -- check [deck]      # lint it (see "Checking a deck")
 ```
 
@@ -78,12 +78,13 @@ engine/                     the engine (talk-agnostic)
   cameraState.js frames.js  the shared camera (a scene's `zoom`); `frames`: per build step, the camera shows a box of the card
   formation.js              `formation`: while a scene is on stage, the other cards leave their places and gather round it
   flip.js                   `back` / `flip`: a scene on the back of a card, which turns over to show it
-  notes.js signals.js
+  notes.js signals.js asset.js   asset(): public-folder paths with the build's base (subpath hosting)
   SceneFrame.vue ScenePreview.vue
   components/Code.vue Shot.vue BigNumber.vue Diagram.vue Detail.vue QrCode.vue
   diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js; ride()
   styles/engine.css         base styles, <Step> and .rise/.fade-in animations, engine tokens with defaults
-  vite.js                   deck selection and the dev-server plugins (used by vite.config.js)
+  vite.js                   deck selection, the dev-server plugins and notes/index.html in builds (used by vite.config.js)
+.github/workflows/pages.yml the example deck on GitHub Pages (see "Hosting a build")
 decks/
   shovelling-umbraco/       Umbraco Meetup, 22 Oct 2026
     deck.js                 export default { id, title, icon, scenes }
@@ -157,6 +158,21 @@ Then run it with `npm run deck -- dev <id>`, or make it the default in `package.
 3. For builds, use `<Step :at="n" anim="up|down|left|right|pop|blur|fade|dim">`, or `useStep()` for custom logic (`step`, `active`, `near`, `preview`, and `zoom`: the card's on-screen scale).
    Add `class="rise"` (plus `style="--d: n"` to stagger) or `fade-in` for entrance animations that replay each time the scene comes on stage, or hook `.is-active` in scene CSS.
 
+## Hosting a build
+
+`npm run deck -- build <deck>` writes a plain static site to `dist/<deck>/`: `index.html`, `notes/index.html` (so `/notes` works on hosts without a SPA fallback; `?notes` works too), `deck-notes.json` (the notes, read-only) and `assets/`. Copy that folder to any web server. Everything that needs no dev server still works: the canvas, the overview, `?presenter`, `/notes` and `?sheet`, and windows in the same browser stay in sync. Editing notes (E on `/notes`) and syncing with other devices need `npm run dev`.
+
+For a site under a subpath, such as GitHub Pages' `https://<owner>.github.io/<repo>/`, build with that path as the base:
+
+```bash
+npm run deck -- build example --base can-present
+npm run deck -- preview example --base can-present   # http://localhost:4173/can-present/
+```
+
+Write it without slashes: Git Bash rewrites `/can-present/` into a Windows path (the script catches that and says so). Files from a deck's `public/` folder are referenced from the site root (`/shots/x.png`), and Vue leaves such paths alone, so anything that loads one needs the base. `<Shot src>` adds it for you; in a deck's own markup use `asset()` from `@engine/asset.js` (`<img :src="asset('/shots/x.png')">`). CSS `url(/…)` and imported files are rewritten by Vite.
+
+**The example deck on GitHub Pages.** `.github/workflows/pages.yml` runs `check` and builds `decks/example` with the repository name as its base on every push to `main` (or by hand: Actions → "Example deck on Pages" → Run workflow), and publishes it. One-time setup: Settings → Pages → Source: "GitHub Actions". Only the example deck is published. Pages needs a public repository, or a paid plan for a private one, and the published site is public either way.
+
 ## Checking a deck
 
 ```bash
@@ -185,7 +201,7 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
 
 ## Building blocks
 
-- `@engine/components/Shot.vue`: a screenshot in a browser or window frame. Put images in `decks/<deck>/public/shots/` and pass `src="/shots/x.png"`; with no `src` it shows a placeholder.
+- `@engine/components/Shot.vue`: a screenshot in a browser or window frame. Put images in `decks/<deck>/public/shots/` and pass `src="/shots/x.png"`; with no `src` it shows a placeholder. The path gets the build's base automatically; for your own `<img>`s use `asset()` from `@engine/asset.js` (see "Hosting a build").
   `live="https://…"` embeds a real, clickable site instead (`zoom` < 1 shows more of the page). It loads when its scene is on stage or one away. While you're clicking in the site, keys go to the site; move the mouse off the frame and the deck keys work again. The site must allow framing (no `X-Frame-Options` / `frame-ancestors`); for sites that don't, `external` shows a launch card that opens it in a reused new tab.
 - `@engine/components/Code.vue`: code with simple highlighting, per-step line focus (`:focus="{ 1: [3], 2: { lines: [5], token: 'foo' } }"`) and per-step callouts.
 - `@engine/components/BigNumber.vue`: a huge number that counts, optionally inside a ring that draws itself in sync.
@@ -367,7 +383,7 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
 
 Notes live in `decks/<deck>/notes.json`, keyed by scene id. Open **`/notes`** (e.g. http://localhost:5173/notes) on your laptop screen, in another tab or window, or on another device. It shows the current scene's notes white on black, scaled to fill the window, plus the scene number, the next scene and the clock. Notes are per scene, not per build step.
 
-To edit, press **E** (or ✎ Edit) on `/notes` while running `npm run dev`: the notes for the current scene become a text box and save to `notes.json` as you type. Saving never reloads the deck, and every open window gets the new text straight away. Editing only works from the presenting machine itself. Production builds include the notes read-only.
+To edit, press **E** (or ✎ Edit) on `/notes` while running `npm run dev`: the notes for the current scene become a text box and save to `notes.json` as you type. Saving never reloads the deck, and every open window gets the new text straight away. Editing only works from the presenting machine itself. Production builds include the notes read-only, at `/notes` (or `?notes`) on any static host.
 
 `/notes` and `?presenter` follow the deck in both directions, so arrow keys or the clicker on them move the deck too:
 - **Same browser:** BroadcastChannel. This also works in the built version.

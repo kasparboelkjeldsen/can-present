@@ -15,7 +15,8 @@ if (deck.icon) {
 // Pages load on demand: App, Presenter and Notes share useDeck.js, which binds keys, the URL hash
 // and window sync as soon as it's imported. ?sheet (Sheet.vue) must not get any of that.
 const params = new URLSearchParams(location.search)
-const page = location.pathname.replace(/\/+$/, '').endsWith('/notes')
+// /notes (a real notes/index.html in builds, so static hosts serve it) or ?notes
+const page = location.pathname.replace(/\/+$/, '').endsWith('/notes') || params.has('notes')
   ? import('./Notes.vue')
   : params.has('sheet')
     ? import('./Sheet.vue')

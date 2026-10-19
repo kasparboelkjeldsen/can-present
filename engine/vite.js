@@ -93,3 +93,17 @@ export const deckNotes = (file) => {
     },
   }
 }
+
+// Builds work on any static host (GitHub Pages has no SPA fallback): /notes gets its own
+// notes/index.html, a copy of the page (its asset URLs carry the base, so they resolve from there).
+export const deckStatic = () => ({
+  name: 'deck-static',
+  apply: 'build',
+  writeBundle(options) {
+    const dir = options.dir
+    const page = path.join(dir, 'index.html')
+    if (!fs.existsSync(page)) return
+    fs.mkdirSync(path.join(dir, 'notes'), { recursive: true })
+    fs.copyFileSync(page, path.join(dir, 'notes', 'index.html'))
+  },
+})

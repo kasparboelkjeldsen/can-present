@@ -116,7 +116,7 @@ watch([idx, step], () => { if (!receiving) sendNav() }, { flush: 'sync' })
 watch(blackout, (value) => { if (!receiving) post({ type: 'blackout', value }) }, { flush: 'sync' })
 // The deck is the source of truth: it starts where its URL says (or at the beginning) and tells
 // everyone. Followers (/notes, ?presenter) opened without a position ask where we are instead.
-const isFollower = /\/notes\/?$/.test(location.pathname) || new URLSearchParams(location.search).has('presenter')
+const isFollower = /\/notes\/?$/.test(location.pathname) || ['presenter', 'notes'].some((p) => new URLSearchParams(location.search).has(p))
 const hasPosition = scenes.some((sc) => location.hash.replace(/^#\/?/, '').split('/')[0] === sc.id)
 if (isFollower && !hasPosition) post({ type: 'hello' })
 else sendNav()
