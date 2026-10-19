@@ -8,7 +8,8 @@ export const notes = reactive({})
 export const notesLoaded = ref(false)
 export const canEdit = import.meta.env.DEV
 
-fetch('/deck-notes.json', { cache: 'no-store' })
+// relative to the build's base, so a build hosted under a subpath (GitHub Pages) finds them
+fetch(`${import.meta.env.BASE_URL}deck-notes.json`, { cache: 'no-store' })
   .then((r) => (r.ok ? r.json() : {}))
   .then((data) => Object.assign(notes, data))
   .catch(() => {})

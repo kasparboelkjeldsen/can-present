@@ -30,6 +30,7 @@ This isn't PowerPoint. It's a web app (Vue) with these properties:
 - **Speaker notes.** A separate notes screen shows the current scene's notes in huge white-on-black text, so every scene should have notes. Notes are **per scene**, not per click. The fewer words, the bigger they render, so keep them to short cue bullets.
 - **Live websites.** A scene can embed a real, clickable website in a browser frame, or a launch card that opens a site in a new tab (for sites that refuse to be framed). The speaker can click around in it on stage.
 - **Fallback scenes.** A scene can be skipped in normal navigation and reached with one key, e.g. screenshots in case the live demo dies.
+- **A website of its own.** A finished deck can be built into a plain static site (any web host, including GitHub Pages under a subpath) that works without the speaker's laptop: the same canvas, overview, presenter view and notes screen, with the notes read-only. Useful for sharing the talk afterwards. Editing notes still happens on the speaker's machine.
 
 ## Visual language
 
