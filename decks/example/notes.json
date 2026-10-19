@@ -1,0 +1,20 @@
+{
+  "title": "This is the example deck: one scene per building block.\nPress → to fly to the next scene, O for the overview.",
+  "cards": "Three moves: fly, build, dive.\n[PRESS] fly\n[PRESS] build\n[PRESS] dive",
+  "number": "<BigNumber> counts as the scene arrives, ring in sync.\nCome back to it: it counts again.\n[PRESS] the punchline",
+  "code": "<Code> with per-step line focus and callouts.\n[PRESS] the scenes\n[PRESS] the nest token\nThen → turns the card over.",
+  "code-back": "The back of the code: what it makes.\nThree entries, three cards; inside sits in the diagram.\nThe dashed frame is the camera. Next: the diagram for real.",
+  "diagram": "<Diagram> from arch.js, one box per click; then → rides a wire in.\n[PRESS] the deck\n[PRESS] the engine (and its slot)\n[PRESS] the browser, packets start\n[PRESS] /notes, synced",
+  "inside": "We rode the scenes packet into the engine box: a nested scene.\n[PRESS] nest()\n[PRESS] builds\nNext → rides the render wire out to the browser.",
+  "canvas": "Inside the browser: every scene on one element.\n[PRESS] the camera is one CSS transform\n[PRESS] the ride was that transform, following the wire",
+  "screens": "Two tilted <Shot> placeholders.\nDrop PNGs in public/shots/ to fill them.",
+  "live": "A real, clickable site in a frame.\nMove the mouse off it to drive the deck again.\nX jumps to the fallback if it dies.",
+  "loop": "A small looping SVG, drawn in the scene.\nColours come from the theme tokens.",
+  "deeper": "One card, four presses deeper. Things appear as we get close.\n[PRESS] a component\n[PRESS] a line of code\n[PRESS] one character\n[PRESS] its dot: the title scene. Scenes all the way down.",
+  "get-the-code": "Take it with you: the repo behind this deck.\n<QrCode> with a label and the link; its dots fall onto the card as it arrives.\n(pause) Leave it up: people need a few seconds to scan.",
+  "takeaway": "Ghost scene: hovers over the whole canvas.\n(pause) Every scene is a file you can copy.",
+  "fallback": "Skipped by → and ←; X jumps here.\nScreenshots of the demo, in case it dies.",
+  "thanks": "(let them fly: the talk pulls back, then every scene orbits this card)\nThanks! Every scene just came back to say goodbye.\nformation: { shape: 'ring', spin: 60 } on this scene in deck.js.\nCopy decks/example to start your own.",
+  "bigger": "(let the cards go home, then the long pull back)\nAll of that fits in the dot of an i.\nouter: { hole } on this scene: the engine wraps the talk with it.",
+  "biggest": "(and once more: one more pull back)\nIt's canvases all the way down.\nEach outer layer wraps the one before it."
+}

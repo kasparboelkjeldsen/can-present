@@ -1,0 +1,68 @@
+/* ------------------------------------------------------------------
+   Engine base styles. A deck's theme.css loads after this and
+   overrides any of the tokens below on :root.
+   ------------------------------------------------------------------ */
+
+/* :where() keeps these at zero specificity, so a deck's :root always wins */
+:where(:root) {
+  /* chrome: canvas, progress bar, reset button, hint, overview, presenter, /notes */
+  --deck-canvas: #1f2024;        /* canvas behind the scenes, page background */
+  --deck-grid: rgba(255, 255, 255, 0.14); /* dot grid on the canvas */
+  --deck-ink: #26272b;           /* dark UI: default text, reset button, window frames, launch cards */
+  --deck-paper: #f4f4f1;         /* light UI: text on ink, code callouts */
+  --deck-accent: #5b8cff;        /* highlights: overview labels, keys, timer, progress start, live-site ring */
+  --deck-on-accent: #ffffff;     /* text on the accent */
+  --deck-accent-2: #ff6b6b;      /* progress end, error text */
+
+  /* <Code> */
+  --code-bg: #1f2024;
+  --code-line-hot: rgba(91, 140, 255, 0.1); /* background of a focused line */
+  --code-mark: var(--deck-accent-2); /* wavy underline on a focused token */
+
+  --serif: Georgia, 'Times New Roman', serif;
+  --sans: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: ui-monospace, 'Cascadia Code', Consolas, monospace;
+  /* --display-font: <BigNumber>'s number. Deliberately unset here: unset, it inherits the slide's font */
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --radius: 24px;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #app {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--deck-canvas);
+  font-family: var(--sans);
+  color: var(--deck-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* entrance: add class .rise + style="--d: n" to stagger; replays whenever the scene comes on stage */
+.is-active .rise { animation: rise 0.9s var(--ease-out) both; animation-delay: calc(var(--d, 0) * 110ms + 200ms); }
+.is-active .fade-in { animation: fade-in 0.8s ease both; animation-delay: calc(var(--d, 0) * 110ms + 250ms); }
+@keyframes rise { from { opacity: 0; transform: translateY(40px); } }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* ------------------------------------------------------------------
+   <Step> build animations
+   ------------------------------------------------------------------ */
+.step {
+  transition:
+    opacity 0.6s var(--ease-out),
+    transform 0.8s var(--ease-out),
+    filter 0.6s var(--ease-out);
+}
+.step:not(.is-shown) { opacity: 0; transition-delay: 0s !important; pointer-events: none; }
+.step--up:not(.is-shown) { transform: translateY(60px); }
+.step--down:not(.is-shown) { transform: translateY(-60px); }
+.step--left:not(.is-shown) { transform: translateX(-100px); }
+.step--right:not(.is-shown) { transform: translateX(100px); }
+.step--pop { transition-timing-function: var(--ease-out), var(--ease-spring), var(--ease-out); }
+.step--pop:not(.is-shown) { transform: scale(0.6); }
+.step--blur:not(.is-shown) { filter: blur(20px); transform: scale(1.1); }
+.step--fade:not(.is-shown) { transform: none; }
+.step--dim:not(.is-shown) { opacity: 0.2; pointer-events: auto; }

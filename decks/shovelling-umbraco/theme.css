@@ -1,0 +1,136 @@
+/* ------------------------------------------------------------------
+   Kraftvaerk palette (used lightly) + semantic Umbraco / WordPress.
+   Rules: green only on dark or grey, never on sand or red.
+          text on grey and red is always dark.
+   ------------------------------------------------------------------ */
+:root {
+  --k-dark: #3d3d3f;        /* Functional Black */
+  --k-dark-deep: #2c2c2e;   /* code blocks, canvas */
+  --k-sand: #eeede9;
+  --k-grey: #aba79c;        /* Pleasant Grey */
+  --k-red: #ff8071;         /* Power Red: section openers */
+  --k-green: #c3f240;       /* Athletic Green */
+  --k-light: #f7f6f2;       /* text on dark */
+  --umbraco: #3544b1;
+  --wp: #3858e9;
+
+  --serif: 'Libre Caslon Text', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --radius: 24px;
+
+  /* engine tokens (defaults in engine/styles/engine.css) */
+  --deck-canvas: var(--k-dark-deep);          /* #2c2c2e */
+  --deck-grid: rgba(238, 237, 233, 0.16);      /* sand dots */
+  --deck-ink: var(--k-dark);                   /* #3d3d3f */
+  --deck-paper: var(--k-sand);                 /* #eeede9 */
+  --deck-accent: var(--k-green);               /* #c3f240 */
+  --deck-on-accent: var(--k-dark);             /* #3d3d3f */
+  --deck-accent-2: var(--k-red);               /* #ff8071 */
+  --code-bg: var(--k-dark-deep);               /* #2c2c2e */
+  --code-line-hot: rgba(195, 242, 64, 0.08);   /* green, 8% */
+  --code-mark: var(--k-green);                 /* underline on a focused code token: the callout green, not a lint-error red */
+}
+
+/* ------------------------------------------------------------------
+   Slide primitives — every scene root is a .slide
+   ------------------------------------------------------------------ */
+.slide {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding: 120px 140px;
+  display: flex;
+  flex-direction: column;
+  /* the "accent" is green where allowed, dark elsewhere */
+  --accent: var(--k-dark);
+  --on-accent: var(--k-sand);
+}
+.slide--dark { background: var(--k-dark); color: var(--k-light); --accent: var(--k-green); --on-accent: var(--k-dark); }
+.slide--sand { background: var(--k-sand); color: var(--k-dark); }
+.slide--grey { background: var(--k-grey); color: var(--k-dark); --accent: var(--k-green); --on-accent: var(--k-dark); }
+.slide--red  { background: var(--k-red);  color: var(--k-dark); }
+
+/* Kraftvaerk wordmark, bottom-left on every card (tinted via mask to the slide's text colour).
+   Invisible until public/assets/kraftvaerk-wordmark.png exists. Opt out with .no-mark */
+.slide::after {
+  content: '';
+  position: absolute;
+  left: 64px;
+  bottom: 64px;
+  width: 207px; /* 923×125 at 28px high */
+  height: 28px;
+  background: currentColor;
+  -webkit-mask: url('/assets/kraftvaerk-wordmark.png') no-repeat left center / contain;
+  mask: url('/assets/kraftvaerk-wordmark.png') no-repeat left center / contain;
+  pointer-events: none;
+  z-index: 5;
+}
+.slide--dark::after { background: #fff; }
+.slide.no-mark::after { display: none; }
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  align-self: flex-start;
+  font: 700 24px var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 12px 26px;
+  border-radius: 999px;
+  background: var(--k-dark);
+  color: var(--k-sand);
+  position: relative;
+  z-index: 2;
+}
+.slide--dark .kicker { background: var(--k-green); color: var(--k-dark); }
+
+.h1, .h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+  margin: 0;
+  position: relative;
+  z-index: 2;
+}
+.h1 { font-size: 150px; line-height: 1.02; }
+.h2 { font-size: 112px; line-height: 1.05; }
+.lead { font-size: 46px; line-height: 1.35; max-width: 1400px; position: relative; z-index: 2; }
+.accent { color: var(--accent); }
+.mono { font-family: var(--mono); }
+
+/* small print bottom-right (code scenes etc.) */
+.fineprint {
+  position: absolute;
+  right: 64px;
+  bottom: 60px;
+  font: 400 26px var(--sans);
+  opacity: 0.7;
+  z-index: 5;
+}
+
+/* speech-bubble callout used next to code / screenshots */
+.callout {
+  display: inline-block;
+  padding: 18px 26px;
+  border-radius: 18px;
+  font: 700 32px/1.25 var(--sans);
+  background: var(--k-dark);
+  color: var(--k-sand);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+.slide--dark .callout { background: var(--k-sand); color: var(--k-dark); }
+.callout--green { background: var(--k-green) !important; color: var(--k-dark) !important; }
+
+/* rounded card */
+.card {
+  border-radius: var(--radius);
+  padding: 48px 52px;
+  background: #fff;
+  color: var(--k-dark);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.12);
+}
