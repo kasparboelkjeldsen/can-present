@@ -9,18 +9,21 @@
 //   than `steps` allows (unreachable builds), a malformed `via`, malformed `frames` (keys that
 //   aren't build steps 1…steps, boxes that aren't { cx, cy, w } inside the card), a malformed
 //   `formation` (unknown shape or option, bad spin/cols/s/radius/points, a shape function that
-//   returns no { x, y }) or a formation scene that's nested or a ghost, a malformed `outer.hole` (not a
+//   returns no { x, y }, bad until/release or both) or a formation scene that's nested or a ghost, a malformed `outer.hole` (not a
 //   { cx, cy, w } box inside the card) or an outer scene with `at`, `parent`, `ghost` or `formation`,
 //   a bad `back` / `flip` (engine/flip.js: unknown front, two backs for one card, a front or back that
-//   isn't an ordinary top-level card, nested scenes in either, a back with its own `at`, bad options).
+//   isn't an ordinary top-level card, nested scenes in either, a back with its own `at`, bad options),
+//   a bad `hand` (engine/hand.js: unknown option, bad hold/spread/s, a drawn card that's nested, a
+//   ghost, outer, a back, onlyOnStage or the formation scene).
 // WARN: fewer build steps used than `steps` (dead clicks), missing / empty / orphan notes,
 //   overlapping top-level cards, a nested card outside its parent, /shots/ or /assets/ files
 //   that don't exist yet in public/, a scene root without class "slide", a `via` that never
-//   plays or rides in from a scene far from its path, more than one formation scene (only the
-//   first counts), frames/via on the formation scene (ignored), points for fewer cards than move,
+//   plays or rides in from a scene far from its path, frames/via on a formation scene (ignored),
+//   points for fewer cards than move,
 //   a <QrCode> url literal that isn't http(s):// or mailto: (or a <QrCode> without a url), outer layers
 //   whose total zoom (talk width ÷ outermost card width) is over 10,000×, a back that doesn't come
-//   right after its front (the card never turns over). Backs don't count for the overlap warnings.
+//   right after its front (the card never turns over), a `hand` that never plays (first or skip
+//   scene) or with a `via` (ignored). Backs don't count for the overlap warnings.
 //
 // Build steps are inferred from the SFC source (literal <Step :at/:until>, <BigNumber :at> and <QrCode :at>, numeric keys of
 // literal :focus / :callouts objects, `step >= n` / `step > n` / `step === n`). Anything
@@ -36,6 +39,7 @@ import { ROOT, DECKS_DIR } from '../engine/vite.js'
 import { validateVia } from '../engine/ride.js'
 import { validateFrames } from '../engine/frames.js'
 import { formationProblems, planFormation } from '../engine/formation.js'
+import { handProblems, planHand } from '../engine/hand.js'
 import { placeGhosts, placeOuter, talkBounds } from '../engine/layout.js'
 import { flipProblems, placeBacks } from '../engine/flip.js'
 
@@ -371,12 +375,11 @@ export async function check(deckId, { json = false } = {}) {
     else if (!near) add('warn', id, `via: the ride starts from "${p.id}", which isn't "${owner.id}" (the path's scene) or nested in it: a ride from far away looks odd`)
   })
 
-  // the formation: one scene per deck whose cards gather round it while it's on stage
+  // formations: scenes whose other cards gather round them while they're on stage (any number)
   const fIdx = scenes.flatMap((sc, i) => (sc.formation != null ? [i] : []))
-  fIdx.forEach((i, n) => {
+  fIdx.forEach((i) => {
     const sc = scenes[i]
     const id = sc.id ?? '(no id)'
-    if (n > 0) { add('warn', id, `a second formation: only the first ("${scenes[fIdx[0]].id}") is used`); return }
     const problems = formationProblems(scenes, i)
     for (const p of problems) add('error', id, `formation: ${p}`)
     if (problems.length) return
@@ -387,6 +390,21 @@ export async function check(deckId, { json = false } = {}) {
     if (sc.via != null) add('warn', id, "via is ignored on the formation scene: its flight in is the formation's own")
     const unplaced = plan.roles.filter((r, j) => r === 'fade' && !scenes[j].skip && !scenes[j].ghost && !scenes[j].outer && !scenes[j].parent && scenes[j].back == null && !scenes[j].onlyOnStage).length
     if (unplaced) add('warn', id, `formation: ${unplaced} card(s) have no point and fade out instead (points has ${sc.formation.points.length}, ${plan.n + unplaced} cards move)`)
+  })
+
+  // the hand: the flight into a scene folds the deck into a hand of cards and draws that one out
+  scenes.forEach((sc, i) => {
+    if (sc.hand == null || sc.hand === false) return
+    const id = sc.id ?? '(no id)'
+    const problems = handProblems(scenes, i)
+    for (const p of problems) add('error', id, `hand: ${p}`)
+    if (problems.length) return
+    try { planHand(scenes, i) } catch (e) { add('error', id, `hand: ${e.message}`); return }
+    let prev = -1
+    for (let j = i - 1; j >= 0; j--) if (!scenes[j].skip) { prev = j; break }
+    if (sc.skip) add('warn', id, 'hand on a skip scene never plays: → and ← step over it, X and #id fly normally')
+    else if (prev < 0) add('warn', id, 'hand on the first scene never plays: it is the flight in from the previous scene')
+    if (sc.via != null) add('warn', id, "via is ignored on a hand scene: its flight in is the hand's own")
   })
 
   // cards that turn over: `back` sits on its front (flip.js placeBacks), `flip` only on the back

@@ -26,6 +26,7 @@
 //   back     → this scene is the back of that card: no `at`, it sits on its front, and → from the
 //              front's last step turns the card over (flip: { axis: 'y' | 'x', dir: 1 | -1, tilt })
 //   formation → while this scene is on stage, the other cards gather round it ({ shape: 'ring', spin: 60 })
+//   hand     → the flight in from the previous scene folds the deck into a hand of cards and draws this one out
 //   outer    → an outer layer: no `at`, the engine places it round the talk (or the outer card before)
 //              so that hole ({ cx, cy, w } in its 1920×1080 space) lands on it
 //   (speaker notes live in notes.json, keyed by id — edit them on /notes)
@@ -90,7 +91,9 @@ export default {
     // ---- bottom row, right to left ----
     { id: 'screens', title: 'Screenshots', component: Screens, at: { x: 9300, y: 2300, r: 2 } },
     { id: 'live', title: 'A live site', component: Live, at: { x: 6900, y: 2500, r: -2 } },
-    { id: 'loop', title: 'A looping illustration', component: Loop, at: { x: 4600, y: 2300, r: 2 } },
+    // → from the live site: the whole deck folds into a hand of cards, and this one is drawn out
+    // (hand: { hold, spread, s } to tune it); ← flies back normally
+    { id: 'loop', title: 'A looping illustration', component: Loop, at: { x: 4600, y: 2300, r: 2 }, hand: true },
     // powers of ten: each press flies the camera deeper into the card (frames, from deeper.js, which
     // the scene shares), and <Detail>s show what's readable at each zoom. It ends inside a dot.
     { id: 'deeper', title: 'Powers of ten', component: Deeper, steps: 4, frames: deeperFrames, at: { x: 4600, y: 4650 } },

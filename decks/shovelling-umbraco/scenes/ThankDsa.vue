@@ -1,7 +1,8 @@
 <script setup>
-// Thank you, DSA: while it's on stage every other card orbits it (formation in deck.js). The click
-// (formation until: 1) sends the cards home and the camera in on the card, which floods with our
-// green: the green that turns out to be inside the "1" of the next scene (OneMore.vue).
+// Thank you, DSA: on the way in, the other cards spell TAK round this card (it's the crossbar of the
+// A: formation in deck.js, shape in tak.js), hold, then fly home while the camera moves in on it
+// (release). The click floods the card with our green: the green that turns out to be inside the "1"
+// of the next scene (OneMore.vue).
 import { computed } from 'vue'
 import { useStep } from '@engine/useStep.js'
 import DsaLogo from '../components/DsaLogo.vue'

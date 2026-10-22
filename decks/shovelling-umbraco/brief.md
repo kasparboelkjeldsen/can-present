@@ -43,7 +43,7 @@ The deck uses the **Kraftvaerk** palette, lightly: big type, lots of space, few 
 - **Kicker:** a pill above the headline, uppercase, letter-spaced. Dark with sand text on light slides, green with dark text on dark slides.
 - **Callout:** a speech bubble next to code or screenshots (dark on light slides, sand on dark slides, `tone: 'green'` for the payoff).
 - **Card:** white rounded card with a soft shadow.
-- **Kraftvaerk wordmark:** bottom-left on every slide, tinted to the text colour (white on dark). Opt out per scene with `.no-mark`. It shows once `public/assets/kraftvaerk-wordmark.png` exists.
+- **Kraftvaerk logo:** bottom-left on every slide, 28px high: the official white logo on dark slides, the black one on sand, grey and red (`public/assets/kraftvaerk-logo-white.svg` / `-black.svg`, cropped to the wordmark). Force one per scene with `.mark-white` / `.mark-black`, opt out with `.no-mark`.
 - **Fine print:** bottom-right, 26px, for "abridged" notes on code scenes.
 
 ## Deck-specific components (`components/`)

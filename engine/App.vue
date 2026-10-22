@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { ref, shallowRef, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck, stepFor, nestedVisible, outerVisible, flips } from './useDeck.js'
 import { talkBounds } from './layout.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './camera.js'
@@ -7,6 +7,7 @@ import { cam } from './cameraState.js'
 import { validateVia, sampleVia, planRide } from './ride.js'
 import { validateFrames, normalizeFrames, frameAt, frameView } from './frames.js'
 import { formationProblems, planFormation, formationTransforms, formationTiming, SPRING, SPRING_FALLBACK } from './formation.js'
+import { handProblems, planHand } from './hand.js'
 import SceneFrame from './SceneFrame.vue'
 import RidePill from './RidePill.vue'
 
@@ -20,24 +21,47 @@ const place = (sc) => ({ x: sc.at?.x ?? 0, y: sc.at?.y ?? 0, s: sc.at?.s ?? 1, r
 // `frames` in deck.js (engine/frames.js): per build step, the camera shows a box of the card
 // instead of the whole card. Invalid frames are ignored with a warning (check reports them).
 // `formation` in deck.js (engine/formation.js): while that scene is on stage, the other cards gather
-// round it. One per deck (check warns about more); an invalid one is ignored with a warning.
-const fx = (() => {
-  const i = scenes.findIndex((sc) => sc.formation != null)
-  if (i < 0) return null
+// round it. Any number of formation scenes, each planned up front; an invalid one is ignored with a warning.
+const fxPlans = scenes.map((sc, i) => {
+  if (sc.formation == null) return null
   const problems = formationProblems(scenes, i)
-  if (problems.length) { console.warn(`[can-present] scene "${scenes[i].id}": formation ignored: ${problems.join('; ')}`); return null }
+  if (problems.length) { console.warn(`[can-present] scene "${sc.id}": formation ignored: ${problems.join('; ')}`); return null }
   try {
     const plan = planFormation(scenes, i)
-    return { ...plan, transforms: formationTransforms(scenes, plan), timing: formationTiming(plan.n) }
+    return {
+      ...plan,
+      transforms: formationTransforms(scenes, plan),
+      timing: formationTiming(plan.n),
+      until: sc.formation.until ?? null,
+      release: sc.formation.release ?? null,
+    }
   } catch (e) {
-    console.warn(`[can-present] scene "${scenes[i].id}": formation ignored:`, e)
+    console.warn(`[can-present] scene "${sc.id}": formation ignored:`, e)
     return null
   }
-})()
+})
+// The formation the cards are attached to: the one on stage, or the last one they were in. Its home
+// transform lists stay on the cards after they've gone home (the same places, written its way), so
+// the next move starts from them; entering another formation scene attaches that one.
+const fx = shallowRef(fxPlans[idx.value] ?? null)
+
+// `hand` in deck.js (engine/hand.js): the flight in from the previous scene folds the deck into a hand
+// of cards and draws this scene's card out. Planned up front; an invalid one is ignored with a warning.
+const handPlans = scenes.map((sc, i) => {
+  if (sc.hand == null || sc.hand === false) return null
+  const problems = handProblems(scenes, i)
+  if (problems.length) { console.warn(`[can-present] scene "${sc.id}": hand ignored: ${problems.join('; ')}`); return null }
+  try {
+    return planHand(scenes, i)
+  } catch (e) {
+    console.warn(`[can-present] scene "${sc.id}": hand ignored:`, e)
+    return null
+  }
+})
 
 const frameLists = scenes.map((sc, i) => {
   if (sc.frames == null) return null
-  if (fx?.index === i) { console.warn(`[can-present] scene "${sc.id}": frames ignored on the formation scene`); return null }
+  if (fxPlans[i]) { console.warn(`[can-present] scene "${sc.id}": frames ignored on the formation scene`); return null }
   const problems = validateFrames(sc.frames, sc.steps ?? 0)
   if (problems.length) console.warn(`[can-present] scene "${sc.id}": frames ignored: ${problems.join('; ')}`)
   return problems.length ? null : normalizeFrames(sc.frames)
@@ -62,23 +86,32 @@ function overviewView() {
 const camKey = computed(() => {
   if (overview.value) return 'o'
   const list = frameLists[idx.value]
-  if (fxUntil && idx.value === fx.index) return `${idx.value}|${fxOn.value ? 'fx' : 'card'}`
+  const p = fxPlans[idx.value]
+  if (p && (p.until || p.release != null)) return `${idx.value}|${fxOn.value ? 'fx' : 'card'}`
   return list ? `${idx.value}|${frameAt(list, step.value)?.step ?? 0}` : `${idx.value}`
 })
-// the formation is up while its scene is on stage (the overview shows the normal layout), and with
-// `until: n` only before build step n: on n the cards go home and the camera moves in on the card
-const fxUntil = fx ? scenes[fx.index].formation.until ?? null : null
-const fxOn = computed(() => !!fx && idx.value === fx.index && !overview.value && !(fxUntil && step.value >= fxUntil))
-const target = () => (overview.value ? overviewView() : fxOn.value ? { ...fx.view } : viewFor(idx.value, step.value))
+// a formation is up while its scene is on stage (the overview shows the normal layout); with
+// `until: n` only before build step n, with `release: ms` only until that long after the cards have
+// landed: then the cards go home and the camera moves in on the card
+const fxReleased = ref(false)
+let fxTimer = 0
+watch(idx, () => { clearTimeout(fxTimer); fxReleased.value = false })
+const fxOn = computed(() => {
+  const p = fxPlans[idx.value]
+  return !!p && !overview.value && !(p.until && step.value >= p.until) && !fxReleased.value
+})
+const target = () => (overview.value ? overviewView() : fxOn.value ? { ...fxPlans[idx.value].view } : viewFor(idx.value, step.value))
 Object.assign(cam, target())
 const flying = ref(false)
 let raf = 0
 
-// `dur` (ms) overrides the flight's own duration; `then` runs when it lands (not when it's cut short)
-function flyTo(t, { dur: fixed, then } = {}) {
+// `dur` (ms) overrides the flight's own duration; `then` runs when it lands (not when it's cut short);
+// `keep`: a leg of the hand's own choreography (any other flight ends the hand)
+function flyTo(t, { dur: fixed, then, keep } = {}) {
   cancelAnimationFrame(raf)
   endRide()
   endFlip()
+  if (!keep) endHand()
   const from = { ...cam }
   const interp = interpolateZoom([from.x, from.y, from.w], [t.x, t.y, t.w])
   const toR = shortestAngle(from.r, t.r)
@@ -129,6 +162,7 @@ function endRide() {
 function rideTo(t, via, back) {
   cancelAnimationFrame(raf)
   endFlip()
+  endHand()
   let plan
   try {
     plan = planRide(sampleVia(via, back), { ...cam }, t)
@@ -167,28 +201,44 @@ const springEase = typeof CSS !== 'undefined' && CSS.supports?.('transition-timi
 const PULL_BACK = [700, 950]
 
 function setFormed(on, mode) {
-  const spin = on && !!fx.spin && !reducedMotion?.matches
+  const p = fx.value
+  const spin = on && !!p.spin && !reducedMotion?.matches
   Object.assign(formation, { formed: on, mode, spin, hold: on ? null : formation.hold })
+  clearTimeout(fxTimer)
+  // `release`: it lets go by itself, that long after the cards have landed
+  if (on && p.release != null) fxTimer = setTimeout(() => { fxReleased.value = true }, (mode === 'go' ? p.timing.goTotal : 0) + p.release)
 }
+const afterPaint = (fn) => requestAnimationFrame(() => requestAnimationFrame(fn))
 const near = (a, b, tol) => Math.hypot(a.x - b.x, a.y - b.y) < tol * b.w && Math.abs(a.w / b.w - 1) < tol && Math.abs(a.r - b.r) < 0.5
 
 function formationMove(t) {
   cancelAnimationFrame(raf)
   endRide()
   endFlip()
-  const T = fx.timing
+  endHand()
+  let attached = false
+  if (fxOn.value && fx.value !== fxPlans[idx.value]) {
+    // into another formation scene: attach its plan (the cards switch to its way of writing their
+    // places, instantly; if the last formation is still out, its cards snap home)
+    fx.value = fxPlans[idx.value]
+    Object.assign(formation, { formed: false, mode: 'cut', spin: false, hold: null })
+    attached = true
+  }
+  const T = fx.value.timing
   if (reducedMotion?.matches) { setFormed(fxOn.value, 'cut'); return flyTo(t) }
   if (fxOn.value) {
     const go = () => { setFormed(true, 'go'); flyTo(t, { dur: T.goTotal * 0.85 }) }
     const ov = overviewView()
-    if (near(cam, ov, 0.005)) return go() // already looking at the whole talk (back from the overview)
+    // already looking at the whole talk (back from the overview): go now, or once the newly attached
+    // plan is painted, so the cards' transitions start from it
+    if (near(cam, ov, 0.005)) return attached ? afterPaint(go) : go()
     const d = interpolateZoom([cam.x, cam.y, cam.w], [ov.x, ov.y, ov.w]).duration * 0.5
     flyTo(ov, { dur: Math.min(PULL_BACK[1], Math.max(PULL_BACK[0], d)), then: go })
   } else {
     const back = () => {
       setFormed(false, 'back')
-      // released by `until` (still on the formation scene): straight in on the card as they go
-      if (overview.value || idx.value === fx.index) flyTo(t, { dur: T.backTotal })
+      // released by `until` or `release` (still on the formation scene): straight in on the card as they go
+      if (overview.value || idx.value === fx.value.index) flyTo(t, { dur: T.backTotal })
       else flyTo(overviewView(), { dur: T.backTotal, then: () => flyTo(t) })
     }
     if (!formation.spin) return back()
@@ -209,14 +259,15 @@ if (fxOn.value) setFormed(true, 'cut')
 
 // per moving card: its transform, and the transition timing it uses for the current move
 function formationStyle(i) {
-  const tr = fx.transforms[i]
-  const T = fx.timing
-  const o = fx.order[i] ?? 0
+  const p = fx.value
+  const tr = p.transforms[i]
+  const T = p.timing
+  const o = p.order[i] ?? 0
   const m = formation.mode
   return {
     transform: formation.formed ? tr.formed : tr.home,
     '--fx-dur': m === 'go' ? `${T.go}ms` : m === 'back' ? `${T.back}ms` : '0s',
-    '--fx-delay': m === 'go' ? `${Math.round(o * T.stagger)}ms` : m === 'back' ? `${Math.round((fx.n - 1 - o) * T.backStagger)}ms` : '0s',
+    '--fx-delay': m === 'go' ? `${Math.round(o * T.stagger)}ms` : m === 'back' ? `${Math.round((p.n - 1 - o) * T.backStagger)}ms` : '0s',
     '--fx-ease': m === 'go' ? springEase : 'cubic-bezier(0.55, 0, 0.25, 1)',
     '--fx-spin-delay': m === 'go' ? `${Math.round(T.spinAt)}ms` : '0s',
     '--fx-spin': formation.hold,
@@ -224,14 +275,14 @@ function formationStyle(i) {
 }
 // constants for the orbit (on .world, inherited by the cards): the spin eases in over spinIn and then
 // turns at a constant speed; the ease-in ends at that speed, so the hand-over is seamless
-const fxWorldVars = fx?.spin
-  ? (() => {
-      const dir = Math.sign(fx.spin), period = Math.abs(fx.spin), spinIn = fx.timing.spinIn
-      // cubic-bezier(0.5, 0, 0.75, 0.5) ends at twice its average speed: spinIn covers half a constant-speed stretch
-      const a = ((360 / period) * (spinIn / 1000)) / 2
-      return { '--fx-period': `${period}s`, '--fx-turn': `${360 * dir}deg`, '--fx-spin-a': `${+(a * dir).toFixed(3)}deg`, '--fx-spin-in': `${spinIn}ms` }
-    })()
-  : null
+const fxWorldVars = computed(() => {
+  const p = fx.value
+  if (!p?.spin) return null
+  const dir = Math.sign(p.spin), period = Math.abs(p.spin), spinIn = p.timing.spinIn
+  // cubic-bezier(0.5, 0, 0.75, 0.5) ends at twice its average speed: spinIn covers half a constant-speed stretch
+  const a = ((360 / period) * (spinIn / 1000)) / 2
+  return { '--fx-period': `${period}s`, '--fx-turn': `${360 * dir}deg`, '--fx-spin-a': `${+(a * dir).toFixed(3)}deg`, '--fx-spin-in': `${spinIn}ms` }
+})
 
 // ---------- cards that turn over (`back` / `flip` in deck.js, engine/flip.js) ----------
 // A front and its back are two ordinary scene elements at the same place. At rest the face that's
@@ -280,7 +331,7 @@ const wrappedOut = (i) => {
 }
 // the back is up from the moment the deck reaches it, before that the front. In a formation the
 // front moves into the ring (the back fades), so there the front is up
-const backUp = (p) => idx.value >= p.back && !(formation.formed && fx?.roles[p.front] !== 'fade')
+const backUp = (p) => idx.value >= p.back && !(formation.formed && fx.value?.roles[p.front] !== 'fade')
 function faceDown(i) {
   const p = flipOf[i]
   if (!p || turning(i)) return false
@@ -325,6 +376,7 @@ function flipTo(t, p, rev) {
   cancelAnimationFrame(raf)
   endRide()
   endFlip()
+  endHand()
   flippedIn.value = rev ? p.front : p.back
   const t0 = performance.now()
   if (reducedMotion?.matches) {
@@ -389,6 +441,91 @@ function flipTo(t, p, rev) {
   raf = requestAnimationFrame(tick)
 }
 
+// ---------- the hand (`hand` in deck.js, engine/hand.js) ----------
+// The flight into a hand scene from the previous one in deck order: (1) the camera pulls back over
+// the talk while every card switches, invisibly, to its hand transform list at home ('prep'); (2) the
+// cards swing round into the fan one after another on a springy transition while the camera frames
+// the hand ('fold'); (3) the hand holds; (4) the scene's card slides up out of the fan and straightens
+// ('pick'); (5) the camera dives into it; (6) once it fills the screen, every card snaps home behind it
+// and the camera jumps with it in the same frame, so nothing moves on screen ('home'). The scene being
+// left stays is-active until the card is drawn; from then on the drawn scene is. Any other move ends
+// it the same way, then flies as usual.
+// Only the phase changes re-render App; the cards' motion is CSS transitions.
+const hand = reactive({ plan: null, mode: null })
+let handTimer = 0
+const HAND_PULL = [700, 950] // ms: the pull-back over the talk, like the formation's
+
+function clearHandSoon(plan) {
+  // two frames: the snap home is painted with the hand's own transform lists first
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (hand.plan === plan && hand.mode === 'home') Object.assign(hand, { plan: null, mode: null })
+  }))
+}
+function endHand() {
+  if (!hand.plan) return
+  clearTimeout(handTimer)
+  hand.mode = 'home'
+  held.value = null
+  clearHandSoon(hand.plan)
+}
+const handBetween = (from, to) => (handPlans[to] && prevIndex(to) === from ? handPlans[to] : null)
+
+function handTo(t, plan, from) {
+  cancelAnimationFrame(raf)
+  endRide()
+  endFlip()
+  endHand()
+  const T = plan.timing
+  held.value = from
+  Object.assign(hand, { plan, mode: 'prep' })
+  const swap = () => {
+    hand.mode = 'home'
+    Object.assign(cam, t)
+    held.value = null
+    clearHandSoon(plan)
+  }
+  const dive = () => flyTo(plan.drawnView, { dur: T.dive, keep: true, then: swap })
+  // the scene comes on stage as its card is drawn: its entrances and counters play on the way in,
+  // instead of the card showing its finished state and then starting over once the camera lands
+  const pick = () => { hand.mode = 'pick'; held.value = null; handTimer = setTimeout(dive, T.pick * 0.45) }
+  const fold = () => {
+    hand.mode = 'fold'
+    flyTo(plan.view, { dur: T.foldTotal * 0.9, keep: true })
+    handTimer = setTimeout(pick, T.foldTotal + plan.hold)
+  }
+  const ov = overviewView()
+  const d = interpolateZoom([cam.x, cam.y, cam.w], [ov.x, ov.y, ov.w]).duration * 0.5
+  // the pull-back gives the 'prep' transforms time to land before the fold transitions from them
+  flyTo(ov, { dur: Math.min(HAND_PULL[1], Math.max(HAND_PULL[0], d)), keep: true, then: () => requestAnimationFrame(fold) })
+}
+
+// per card in the hand: its transform for the phase, and the transition timing it uses
+function handStyle(i) {
+  const { transforms, timing: T, order, target } = hand.plan
+  const tr = transforms[i]
+  const m = hand.mode
+  const o = order[i] ?? 0
+  const out = m === 'pick' && o === order[target] // the drawn card, with its nested scenes and other face
+  return {
+    transform: m === 'prep' || m === 'home' ? tr.home : out ? tr.drawn : tr.hand,
+    '--hand-dur': m === 'fold' ? `${T.go}ms` : out ? `${T.pick}ms` : '0s',
+    '--hand-delay': m === 'fold' ? `${Math.round(o * T.stagger)}ms` : '0s',
+    '--hand-ease': springEase,
+    '--hand-z': out ? 1000 : 1 + o,
+  }
+}
+const handClass = (i) => {
+  if (!hand.plan) return null
+  const { transforms, order, target, ahead } = hand.plan
+  if (transforms[i]) {
+    // still to come in the talk: frosted, so the hand doesn't give it away. The drawn card (with its
+    // nested scenes) clears as it comes out of the hand
+    const drawn = order[i] === order[target]
+    return { 'hand-card': true, 'hand-ahead': ahead && i >= target && hand.mode !== 'home' && !(drawn && hand.mode === 'pick') }
+  }
+  return { 'hand-gone': hand.mode === 'fold' || hand.mode === 'pick' }
+}
+
 // `onlyOnStage: { fade: ms }`: leaving that scene, it fades out first (and every card coming back
 // fades in with it, as fast), and only then does the camera move
 const leaveFade = (i) => { const o = scenes[i]?.onlyOnStage; return o && typeof o === 'object' && o.fade > 0 ? o.fade : 0 }
@@ -413,7 +550,10 @@ watch(camKey, () => {
 })
 function move(t, from) {
   // to the formation scene, or away from it while the cards are out (or on their way out)
-  if (fx && (fxOn.value || formation.formed)) return formationMove(t)
+  if (fxOn.value || formation.formed) return formationMove(t)
+  // into a hand scene from the one before it: fold the deck into a hand and draw its card
+  const dealt = !from.overview && !overview.value && from.idx !== idx.value && !reducedMotion?.matches ? handBetween(from.idx, idx.value) : null
+  if (dealt) return handTo(t, dealt, from.idx)
   // between a card's two faces: turn it over (not while a turn runs: then the faces snap)
   const turn = flip.mode == null && !from.overview && !overview.value && from.idx !== idx.value ? flipBetween(from.idx, idx.value) : null
   if (turn) return flipTo(t, turn.p, turn.rev)
@@ -450,7 +590,7 @@ const worldStyle = computed(() => ({
 
 // nested scenes fade in on their parent's schedule (revealDelay in deck.js), but vanish at once.
 // (Not on a card the formation moves: the delay would hold back its transform too.)
-const revealStyle = (sc, i) => (sc.revealDelay && nestedVisible(i) && !fx?.transforms[i] ? { transitionDelay: sc.revealDelay + 'ms' } : null)
+const revealStyle = (sc, i) => (sc.revealDelay && nestedVisible(i) && !fx.value?.transforms[i] && !hand.plan?.transforms[i] ? { transitionDelay: sc.revealDelay + 'ms' } : null)
 
 // outer layers paint under the talk, and each under the one it wraps
 const outerZ = (() => {
@@ -459,8 +599,9 @@ const outerZ = (() => {
 })()
 
 function sceneStyle(sc, i) {
+  if (hand.plan?.transforms[i]) return handStyle(i)
   const turn = flipTransform(i)
-  if (fx?.transforms[i]) {
+  if (fx.value?.transforms[i]) {
     const st = formationStyle(i)
     return turn ? { ...st, transform: st.transform + turn } : st
   }
@@ -469,11 +610,12 @@ function sceneStyle(sc, i) {
   return outerZ[i] != null ? { transform, zIndex: outerZ[i] } : { transform }
 }
 const fxClass = (i) => {
-  if (!fx) return null
-  const role = fx.roles[i]
+  if (!fx.value) return null
+  const role = fx.value.roles[i]
   if (role === 'lead' || role === 'follow') return { 'fx-mover': true, 'fx-spin': formation.spin }
   if (role === 'centre') return { 'fx-centre': formation.formed }
-  if (role === 'fade') return { 'fx-gone': formation.formed && !scenes[i].ghost && !scenes[i].outer }
+  // (ghosts hide themselves; outer layers already reached would sit round the formation, so they fade)
+  if (role === 'fade') return { 'fx-gone': formation.formed && !scenes[i].ghost }
   return null
 }
 
@@ -542,7 +684,7 @@ function pick(i) {
             'is-xfade': flip.mode === 'fade' && turning(i),
             'is-back': flipOf[i]?.back === i,
             'is-flipped-in': i === flippedIn,
-          }, fxClass(i)]"
+          }, fxClass(i), handClass(i)]"
           :style="[sceneStyle(sc, i), revealStyle(sc, i)]"
           :ref="(el) => { els[i] = el }"
           @click="pick(i)"
@@ -651,6 +793,33 @@ function pick(i) {
 .scene.fx-gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.5s, visibility 0s 0.5s; }
 .scene.fx-centre { z-index: 2; }
 .scene.is-active.fx-centre { border-radius: 48px; box-shadow: 0 60px 160px rgba(5, 10, 30, 0.55); }
+
+/* the hand (engine/hand.js): every card glides on a transform transition whose timing App sets per
+   card and per phase (--hand-dur, --hand-delay, --hand-ease), stacked in fan order (--hand-z), and
+   keeps its card shape even if it's the scene on stage. After the earlier rules, so it wins */
+.world .scene.hand-card {
+  z-index: var(--hand-z, auto);
+  transition: transform var(--hand-dur, 0s) var(--hand-ease, ease) var(--hand-delay, 0s), opacity 0.6s, border-radius 0.7s var(--ease-out), box-shadow 0.7s;
+}
+.world .scene.hand-card:not(.is-nested) { border-radius: 48px; box-shadow: 0 60px 160px rgba(5, 10, 30, 0.55); }
+.world .scene.hand-gone { opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.4s, visibility 0s 0.4s; }
+/* cards still to come are frosted in the hand (hand: { ahead: 'blur' }, the default): the content is
+   blurred inside the card's own clipped shape, on the card's ink, under a light tint */
+.world .scene.hand-card { overflow: hidden; }
+.world .scene.hand-card > :deep(.scene-frame) { transition: filter 0.6s; }
+.world .scene.hand-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--deck-ink) 35%, transparent);
+  opacity: 0;
+  transition: opacity 0.6s;
+  pointer-events: none;
+}
+.world .scene.hand-ahead { background: var(--deck-ink); }
+.world .scene.hand-ahead > :deep(.scene-frame) { filter: blur(34px) saturate(0.7); }
+.world .scene.hand-ahead::after { opacity: 1; }
 
 /* cards that turn over (`back` in deck.js, engine/flip.js): at rest the face that's down is hidden.
    While the card turns, both faces hide their back side, the corners round and the shadow grows as

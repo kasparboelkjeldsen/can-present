@@ -54,8 +54,9 @@
 .slide--grey { background: var(--k-grey); color: var(--k-dark); --accent: var(--k-green); --on-accent: var(--k-dark); }
 .slide--red  { background: var(--k-red);  color: var(--k-dark); }
 
-/* Kraftvaerk wordmark, bottom-left on every card (tinted via mask to the slide's text colour).
-   Invisible until public/assets/kraftvaerk-wordmark.png exists. Opt out with .no-mark */
+/* Kraftvaerk logo, bottom-left on every card: the official black logo on the light slides (sand,
+   grey, red), the white one on dark slides (public/assets/kraftvaerk-logo-*.svg, cropped to the
+   wordmark). Force one with .mark-white / .mark-black; opt out with .no-mark */
 .slide::after {
   content: '';
   position: absolute;
@@ -63,13 +64,12 @@
   bottom: 64px;
   width: 207px; /* 923×125 at 28px high */
   height: 28px;
-  background: currentColor;
-  -webkit-mask: url('/assets/kraftvaerk-wordmark.png') no-repeat left center / contain;
-  mask: url('/assets/kraftvaerk-wordmark.png') no-repeat left center / contain;
+  background: url('/assets/kraftvaerk-logo-black.svg') no-repeat left center / contain;
   pointer-events: none;
   z-index: 5;
 }
-.slide--dark::after { background: #fff; }
+.slide--dark::after, .slide.mark-white::after { background-image: url('/assets/kraftvaerk-logo-white.svg'); }
+.slide.mark-black::after { background-image: url('/assets/kraftvaerk-logo-black.svg'); }
 .slide.no-mark::after { display: none; }
 
 .kicker {

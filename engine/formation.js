@@ -13,6 +13,8 @@
 //   points   points: [[x, y], …] in world px from the scene's centre (cards without a point fade out)
 //   (i, n) => ({ x, y, r?, s? })   a function: world px from the centre, rotation (deg), scale
 // `until: n` lets go on build step n: the cards go home while the camera moves in on the card itself.
+// `release: ms` lets go by itself, that long after the cards have landed: a formation as a transition.
+// A deck can have several formation scenes (e.g. a word spelled on the way in, a ring at the end).
 // Options: `s` (the cards' scale in the formation; auto-fitted), `spin` (seconds per orbit; not for
 // grid), `radius` (ring and spiral: the horizontal radius / start, world px), `cols` (grid).
 //
@@ -33,7 +35,7 @@
 import { W, H } from './layout.js'
 
 export const FORMATION_SHAPES = ['ring', 'grid', 'spiral', 'points']
-const KEYS = ['shape', 'spin', 'cols', 's', 'radius', 'points', 'until']
+const KEYS = ['shape', 'spin', 'cols', 's', 'radius', 'points', 'until', 'release']
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v)
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v))
 const DEG = 180 / Math.PI
@@ -54,6 +56,8 @@ export function validateFormation(f) {
     else if (!(isNum(f.spin) && Math.abs(f.spin) >= 5)) out.push(`spin must be the seconds per orbit, at least 5 (negative turns the other way; got ${JSON.stringify(f.spin)})`)
   }
   if (f.until != null && !(Number.isInteger(f.until) && f.until >= 1)) out.push(`until must be the build step (1 or more) on which the cards go home and the camera moves in on the card (got ${JSON.stringify(f.until)})`)
+  if (f.release != null && !(isNum(f.release) && f.release >= 0 && f.release <= 60000)) out.push(`release must be the ms the formation holds once the cards have landed before they go home and the camera moves in on the card, 0 to 60000 (got ${JSON.stringify(f.release)})`)
+  if (f.release != null && f.until != null) out.push('use until (a click lets go) or release (a timer lets go), not both')
   if (f.cols != null) {
     if (shape !== 'grid') out.push("cols is only for shape: 'grid'")
     else if (!(Number.isInteger(f.cols) && f.cols >= 2 && f.cols <= 40)) out.push(`cols must be a whole number from 2 to 40 (got ${JSON.stringify(f.cols)})`)

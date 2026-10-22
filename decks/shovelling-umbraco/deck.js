@@ -49,6 +49,7 @@ import { HOLE as ONE_MORE_HOLE } from './scenes/oneMore.js'
 import Festival from './scenes/Festival.vue'
 import { HOLE as FESTIVAL_HOLE } from './scenes/festival.js'
 import Thanks from './scenes/Thanks.vue'
+import { tak } from './scenes/tak.js'
 import { SLOTS, nest, REVEAL_MS, RIDES } from './scenes/map/geometry.js'
 
 const MAP = { x: 0, y: 2700, s: 1.5 }
@@ -139,6 +140,8 @@ const scenes = [
   {
     id: 'numbers', title: 'The numbers', component: Numbers, steps: 2,
     at: { x: 17800, y: 3000 }, // where the live demo used to be: it's on the back of live-kicker now
+    // → from the live demo: the whole talk folds into a hand of cards, and this one is drawn out
+    hand: true,
   },
 
   // ---------------- Act 4: home ----------------
@@ -150,11 +153,12 @@ const scenes = [
     id: 'control-plane', title: 'The takeaway', component: ControlPlane, ghost: true,
     at: null, // the engine centres it on the canvas, big enough to cover every scene
   },
-  // every other card orbits the thank-you; the click sends them home and floods the card green …
+  // the other cards spell TAK round the thank-you (it's the crossbar of the A: scenes/tak.js), hold,
+  // then go home while the camera moves in on it; the click floods the card green …
   {
     id: 'thank-dsa', title: 'Thank you, DSA', component: ThankDsa, steps: 1,
     at: { x: -2400, y: 1230 },
-    formation: { shape: 'ring', spin: 60, until: 1 },
+    formation: { shape: tak, release: 1800 },
   },
   // … and pulling back, the green was the stem of a "1": "1 more thing" (the rest of the talk fades)
   {
@@ -169,11 +173,12 @@ const scenes = [
     // leaving it, the black fades out first (200 ms, the whole talk fading back in with it), then the punch in
     onlyOnStage: { fade: 200 },
   },
-  // the punch back in: from the festival, one motion through the dot and the "1" into the spot the
-  // thank-you card had, with the whole talk back round it for scale. onlyOnStage: it shares that spot
+  // back in from the festival to the spot the thank-you card had (onlyOnStage: it shares that spot),
+  // and every other card orbits it while we take questions
   {
     id: 'thanks', title: 'Thanks', component: Thanks,
     at: { x: -2400, y: 1230 }, onlyOnStage: true,
+    formation: { shape: 'ring', spin: 60 },
   },
 ]
 
