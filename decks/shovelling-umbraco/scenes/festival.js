@@ -27,5 +27,5 @@ export const SPEAKERS = [
   { name: 'Rasmus John Pedersen', img: 'rasmus-john-pedersen.png' },
   { name: 'Alisa Orlova', img: 'alisa-orlova.png' },
   { name: 'Joe Glombek', img: 'joe-glombek.jpg' },
-  { name: 'Emma Burstow', img: 'emma-burstow.jpg' },
+  { name: 'Emma Potter', img: 'emma-potter.jpg' },
 ]

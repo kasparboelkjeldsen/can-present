@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import './styles/engine.css'
+import { inlinePublicPaths } from './asset.js'
 // The active deck (picked in vite.config.js). Its deck.js imports the deck's own theme and fonts.
 import deck from '@deck/deck.js'
 
@@ -23,4 +24,6 @@ const page = location.pathname.replace(/\/+$/, '').endsWith('/notes') || params.
     : params.has('presenter')
       ? import('./Presenter.vue')
       : import('./App.vue')
+// a single-file build (npm run compile) carries public/ in the page: catch paths that skip asset()
+inlinePublicPaths()
 page.then((m) => createApp(m.default).mount('#app'))

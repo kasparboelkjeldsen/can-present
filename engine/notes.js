@@ -8,9 +8,12 @@ export const notes = reactive({})
 export const notesLoaded = ref(false)
 export const canEdit = import.meta.env.DEV
 
-// relative to the build's base, so a build hosted under a subpath (GitHub Pages) finds them
-fetch(`${import.meta.env.BASE_URL}deck-notes.json`, { cache: 'no-store' })
-  .then((r) => (r.ok ? r.json() : {}))
+// A single-file build (npm run compile) carries the notes in the page itself. Otherwise they're
+// fetched relative to the build's base, so a build hosted under a subpath (GitHub Pages) finds them.
+const embedded = document.getElementById('deck-notes')
+;(embedded
+  ? Promise.resolve().then(() => JSON.parse(embedded.textContent))
+  : fetch(`${import.meta.env.BASE_URL}deck-notes.json`, { cache: 'no-store' }).then((r) => (r.ok ? r.json() : {})))
   .then((data) => Object.assign(notes, data))
   .catch(() => {})
   .finally(() => (notesLoaded.value = true))

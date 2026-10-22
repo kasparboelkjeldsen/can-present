@@ -13,6 +13,7 @@
     "preview": "vite preview",
     "deck": "node scripts/deck.mjs",
     "check": "node scripts/deck.mjs check",
+    "compile": "node scripts/deck.mjs compile",
     "new-deck": "node scripts/new-deck.mjs"
   },
   "dependencies": {

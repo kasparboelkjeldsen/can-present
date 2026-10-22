@@ -36,7 +36,6 @@ import ThePolicy from './scenes/ThePolicy.vue'
 import WhatToWear from './scenes/WhatToWear.vue'
 import Cache from './scenes/Cache.vue'
 import TheSection from './scenes/TheSection.vue'
-import OneInstance from './scenes/OneInstance.vue'
 import DangerousBits from './scenes/DangerousBits.vue'
 import LiveKicker from './scenes/LiveKicker.vue'
 import LiveDemo from './scenes/LiveDemo.vue'
@@ -75,7 +74,7 @@ const scenes = [
     at: { x: 6700, y: 300 },
   },
   {
-    id: 'two-outfits', title: 'Two outfits', component: TwoOutfits,
+    id: 'two-outfits', title: 'Two outfits', component: TwoOutfits, steps: 2, // each click lifts one site's carousel out of its browser
     at: { x: 8900, y: -150, r: 3 },
   },
   {
@@ -119,12 +118,8 @@ const scenes = [
     via: closer(RIDES.section), // up the config wire to the backoffice, then off to the remote control
   },
   {
-    id: 'one-instance', title: 'One instance', component: OneInstance, steps: 1,
-    at: { x: -3500, y: 3950, r: 2 },
-  },
-  {
     id: 'dangerous-bits', title: 'The dangerous bits', component: DangerousBits, steps: 4,
-    at: { x: -3300, y: 5400, r: -1 },
+    at: { x: -3400, y: 3950, r: -1 }, // where one-instance was (cut 22 Oct 2026: the DR point moved to Q&A)
   },
 
   // ---------------- Act 3: someone else's website ----------------

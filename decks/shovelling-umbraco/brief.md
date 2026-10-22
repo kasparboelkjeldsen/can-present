@@ -70,7 +70,7 @@ The scenes in `deck.js`, in stage order. Nested scenes live in a slot of the `ma
 | 2 | `the-ask` | The ask | 1 | |
 | 3 | `iframe` | What about an iframe? | 1 | |
 | 4 | `one-line` | The entire integration | 4 | |
-| 5 | `two-outfits` | Two outfits | 0 | |
+| 5 | `two-outfits` | Two outfits | 2 | each click lifts one site's job carousel out of its screenshot |
 | 6 | `what-happened` | What actually happened | 3 | |
 | 7 | `map` | How it works | 0 | builds itself on a timer |
 | 8 | `bootstrap` | The component wakes up | 3 | nested in `map` |
@@ -79,12 +79,11 @@ The scenes in `deck.js`, in stage order. Nested scenes live in a slot of the `ma
 | 11 | `what-to-wear` | What do I wear? | 4 | nested in `map` |
 | 12 | `cache` | Cached, but not stale | 3 | nested in `map` |
 | 13 | `the-section` | The remote control | 7 | |
-| 14 | `one-instance` | One instance | 1 | |
-| 15 | `dangerous-bits` | The dangerous bits | 4 | |
-| 16 | `live-kicker` | Live | 0 | |
-| 17 | `live-demo` | Punching a hole | 0 | live site |
-| 18 | `fallback` | Fallback | 0 | skipped; X jumps here if the demo dies |
-| 19 | `numbers` | The numbers | 2 | |
-| 20 | `tomorrow` | Today it's a carousel | 2 | |
-| 21 | `control-plane` | The takeaway | 0 | ghost over the whole canvas |
-| 22 | `thanks` | Thanks | 0 | |
+| 14 | `dangerous-bits` | The dangerous bits | 4 | |
+| 15 | `live-kicker` | Live | 0 | |
+| 16 | `live-demo` | Punching a hole | 0 | live site |
+| 17 | `fallback` | Fallback | 0 | skipped; X jumps here if the demo dies |
+| 18 | `numbers` | The numbers | 2 | |
+| 19 | `tomorrow` | Today it's a carousel | 2 | |
+| 20 | `control-plane` | The takeaway | 0 | ghost over the whole canvas |
+| 21 | `thanks` | Thanks | 0 | |

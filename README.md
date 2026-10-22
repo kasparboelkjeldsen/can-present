@@ -11,6 +11,7 @@ npm install
 npm run dev                      # default deck, http://localhost:5173
 npm run deck -- dev example      # any deck (see "Choosing a deck")
 npm run check -- example         # lint a deck (see "Checking a deck")
+npm run compile -- example       # the whole deck in one HTML file (see "One file")
 npm run new-deck -- my-talk      # start a new deck (see "Make a new deck")
 ```
 
@@ -47,6 +48,7 @@ npm run deck -- dev [deck]        # dev server
 npm run deck -- lan [deck]        # dev server on the network (--host)
 npm run deck -- build [deck]      # → dist/<deck>/  (--base <name>: for a subpath, see "Hosting a build")
 npm run deck -- preview [deck]    # serve the build (same --base as the build)
+npm run deck -- compile [deck]    # → dist/<deck>.html, one self-contained file (see "One file")
 npm run deck -- check [deck]      # lint it (see "Checking a deck")
 ```
 
@@ -80,7 +82,7 @@ engine/                     the engine (talk-agnostic)
   cameraState.js frames.js  the shared camera (a scene's `zoom`); `frames`: per build step, the camera shows a box of the card
   formation.js              `formation`: while a scene is on stage, the other cards leave their places and gather round it
   flip.js                   `back` / `flip`: a scene on the back of a card, which turns over to show it
-  notes.js signals.js asset.js   asset(): public-folder paths with the build's base (subpath hosting)
+  notes.js signals.js asset.js   asset(): public-folder paths with the build's base (subpath hosting), or inlined in one-file builds
   SceneFrame.vue ScenePreview.vue
   components/Code.vue Shot.vue BigNumber.vue Diagram.vue Detail.vue QrCode.vue
   diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js; ride()
@@ -102,7 +104,8 @@ docs/
   presentation-guide.md     what the engine can do, for writing a talk with Claude chat
   examples/                 scene-description.example.md: the format, and new-deck's test fixture
 scripts/
-  deck.mjs                  npm run deck: dev / lan / build / preview / check for any deck
+  deck.mjs                  npm run deck: dev / lan / build / preview / compile / check for any deck
+  compile.mjs               npm run compile: a deck as one self-contained HTML file
   check.mjs                 npm run check: the deck lint
   new-deck.mjs              npm run new-deck: scaffold a deck, optionally from a scene description
 AGENTS.md                   rules and orientation for coding agents (CLAUDE.md points at it)
@@ -174,6 +177,17 @@ npm run deck -- preview example --base can-present   # http://localhost:4173/can
 Write it without slashes: Git Bash rewrites `/can-present/` into a Windows path (the script catches that and says so). Files from a deck's `public/` folder are referenced from the site root (`/shots/x.png`), and Vue leaves such paths alone, so anything that loads one needs the base. `<Shot src>` adds it for you; in a deck's own markup use `asset()` from `@engine/asset.js` (`<img :src="asset('/shots/x.png')">`). CSS `url(/…)` and imported files are rewritten by Vite.
 
 **The example deck on GitHub Pages** ([live](https://kasparboelkjeldsen.github.io/can-present/)). `.github/workflows/pages.yml` runs `check` and builds `decks/example` with the repository name as its base on every push to `main` (or by hand: Actions → "Example deck on Pages" → Run workflow), and publishes it. One-time setup: Settings → Pages → Source: "GitHub Actions". Only the example deck is published. Pages needs a public repository, or a paid plan for a private one, and the published site is public either way.
+
+## One file: `npm run compile`
+
+```bash
+npm run compile -- no-dumb-questions                 # → dist/no-dumb-questions.html
+npm run compile -- example --out ~/Desktop/talk.html # anywhere else
+```
+
+Packs a deck into a single HTML file with everything inside: open it straight from disk (no server), mail it, put it on a USB stick. It's the same Vite build, run in memory with code splitting off (`scripts/compile.mjs`), then stitched together: the JS is one inline module, the CSS one `<style>`, fonts and imported images are `data:` URLs (the woff fallbacks of `@fontsource` are dropped; every current browser uses the woff2), the notes are a JSON block, and the deck's `public/` folder is a JSON block of `data:` URLs keyed by path. `asset()` returns those, CSS `url(/…)` that points into `public/` is rewritten, and as a safety net, markup that names a public file without `asset()` (`<img src="/shots/x.png">`) is pointed at the inlined copy when it appears. Sizes: the example deck is about 0.2 MB; screenshots count at their full size (plus a third for base64), and it warns over 50 MB.
+
+In the file: the canvas, overview, `?presenter`, `?notes` (not `/notes`) and `?sheet` all work, and windows of the same file sync with each other (checked over http; browsers differ in how they treat `file://` pages, so test yours). Not in it: live sites (`<Shot live>`) and QR targets still need the network, notes are read-only, and there's no syncing to other devices (that needs the dev server). A `public/` path that doesn't exist (`check` warns about those) stays a broken link, as in any build.
 
 ## Checking a deck
 
