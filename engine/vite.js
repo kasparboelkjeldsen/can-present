@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 export const ROOT = fileURLToPath(new URL('..', import.meta.url))
 export const ENGINE_DIR = path.join(ROOT, 'engine')
 export const DECKS_DIR = path.join(ROOT, 'decks')
+// brand kits (brands/<name>/: theme, fonts, logos, components), imported by decks as '@brands/<name>'
+export const BRANDS_DIR = path.join(ROOT, 'brands')
 
 const listDecks = () => {
   try {

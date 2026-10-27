@@ -13,6 +13,7 @@ npm run deck -- dev example      # any deck (see "Choosing a deck")
 npm run check -- example         # lint a deck (see "Checking a deck")
 npm run compile -- example       # the whole deck in one HTML file (see "One file")
 npm run new-deck -- my-talk      # start a new deck (see "Make a new deck")
+npm run import-pptx -- talk.pptx # read a PowerPoint into a draft deck (see "From a PowerPoint")
 ```
 
 http://localhost:5173/?sheet shows the whole deck on one page with a text-size audit (see "The sheet").
@@ -112,8 +113,11 @@ decks/
     scenes/ components/
     public/                 served at / (shots/, assets/)
   example/                  the kitchen sink: one scene per building block, as a mini-talk
+brands/
+  kraftvaerk/               a brand kit: theme, fonts, logo, components; decks import '@brands/kraftvaerk' (see "Brand kits")
 templates/
   deck/                     what npm run new-deck copies (not a deck itself)
+imports/                    npm run import-pptx output (gitignored: client material)
 docs/
   presentation-guide.md     what the engine can do, for writing a talk with Claude chat
   examples/                 scene-description.example.md: the format, and new-deck's test fixture
@@ -121,17 +125,18 @@ scripts/
   deck.mjs                  npm run deck: dev / lan / build / preview / compile / check for any deck
   compile.mjs               npm run compile: a deck as one self-contained HTML file
   check.mjs                 npm run check: the deck lint
-  new-deck.mjs              npm run new-deck: scaffold a deck, optionally from a scene description
+  new-deck.mjs              npm run new-deck: scaffold a deck, optionally from a scene description and on a brand kit
+  import-pptx.mjs           npm run import-pptx: a .pptx → renders, slides.md, media, a draft scene description
 AGENTS.md                   rules and orientation for coding agents (CLAUDE.md points at it)
 .agents/skills/             agent skills: write-talk, build-deck (.claude/skills/ has stubs pointing here)
 ```
 
-Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engine/Step.vue'`). The engine reaches the active deck only through `@deck/deck.js`.
+Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engine/Step.vue'`) and brand kits through `@brands/…`. The engine reaches the active deck only through `@deck/deck.js`.
 
 ## Make a new deck
 
 ```bash
-npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from path/to/scene-description.md]
+npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from path/to/scene-description.md] [--brand <name>]
 ```
 
 This copies `templates/deck/` to `decks/<id>/` and fills in the id, title and icon. It never overwrites an existing deck. The template has `deck.js`, a neutral `theme.css` (every engine token set, `slide--dark` / `slide--light` / `slide--accent`, `.kicker`, `.h1`, `.h2`, `.lead`, `.accent`, `.callout`, `.callout--green`, `.card`, `.fineprint`), `notes.json`, a `brief.md` with `TODO:`s, `scenes/Title.vue` and `public/shots/`.
@@ -141,6 +146,8 @@ With `--from`, it reads a scene description in the format of `docs/presentation-
 - one scene file per scene (`the-check` → `scenes/TheCheck.vue`) with On screen, Animation, Builds and Position copied into a top comment, the slide variant from **Background** (anything that isn't dark, light or accent becomes `slide--dark` with a TODO), the title as the `.h2`, and one `<Step :at="n">` per numbered build;
 - `deck.js` entries with `steps`, laid out left to right 2300px apart (a scene whose Position says "inside …" gets a `// TODO: nest inside …` comment);
 - `notes.json` from the **Notes** bullets, the "Assets needed" list in `brief.md`, and a copy of the description at `decks/<id>/scene-description.md`.
+
+With `--brand <name>`, the deck is built on `brands/<name>/` (see "Brand kits"): `deck.js` imports `'@brands/<name>'` before its own `theme.css`, which starts empty, the stub scenes use the brand's slide variants (`brand.json` maps dark / light / accent to them, e.g. `slide--sand` for light), and `brief.md` points at the brand's README for the visual language.
 
 Then run it with `npm run deck -- dev <id>`, or make it the default in `package.json`. You can also copy `decks/example` by hand: it has one small, commented scene per building block (cards, big number, code, diagram with a nested scene and rides along its wires, screenshots, live site, looping SVG, a "powers of ten" zoom, a card that turns over to show its back, a QR code, ghost takeaway, fallback, a finale where the deck rearranges itself, and two outer layers where the talk turns out to be the dot on an i), so it's also the place to copy a scene from.
 
@@ -160,6 +167,37 @@ Then run it with `npm run deck -- dev <id>`, or make it the default in `package.
 | `--display-font` | font of `<BigNumber>`'s number (optional; unset, it inherits the slide's font) |
 
 `<Code>` callouts also use the deck's `.callout` class for their shape (and `.callout--green` for `tone: 'green'`), so define those in your theme.
+
+## Brand kits
+
+A brand kit is a company's look, shared by every deck that uses it, in `brands/<name>/`:
+
+| File | |
+|---|---|
+| `index.js` | what `import '@brands/<name>'` loads: the fonts (`@fontsource`) and `theme.css`; may export asset URLs (e.g. `logoBlack`) |
+| `theme.css` | palette, every engine token, `.slide` and its variants, the slide primitives (`.kicker`, `.h1`, `.h2`, `.lead`, `.card`, `.callout`, …), the logo on every card |
+| `brand.json` | `{ "name", "variants": { "dark", "light", "accent" } }`: which slide variants `new-deck --brand` uses for those backgrounds |
+| `assets/`, `components/` | logos and brand components, imported as `@brands/<name>/components/X.vue` (assets through relative `url()`s in the CSS, so they're bundled and work in `compile`) |
+| `README.md` | the palette, the rules (which colour on which background) and the components |
+
+A deck on a kit imports it in `deck.js` (`import '@brands/kraftvaerk'`, then `import './theme.css'` for its own additions). `check` follows a scene whose root is a brand component (e.g. `<SectionOpener>`) for the `slide` class. The kit lives outside `engine/`, so the engine stays talk-agnostic. Kits so far: `kraftvaerk` (palette, Libre Caslon Text / DM Sans, the logo bottom-left on every card, `DiagonalLine`, `SectionOpener`).
+
+## From a PowerPoint: `npm run import-pptx`
+
+```bash
+npm run import-pptx -- talk.pptx [--out <dir>] [--deck <id> [--brand <name>] [--title "…"]] [--no-render]
+```
+
+Reads a `.pptx` (a zip of XML: `jszip`, `fast-xml-parser`, `sharp`; no Python, no LibreOffice) and writes `imports/<name>/` (gitignored, since decks converted from slides are usually client material):
+
+- `renders/NN.png` and `renders/contact.png`: every slide as PowerPoint draws it, 1920×1080, and all of them in one grid. This drives PowerPoint itself through PowerShell (Windows with Office; it never closes a PowerPoint window you have open). Elsewhere, or with `--no-render`, there are no renders (export them from PowerPoint by hand); a later `--no-render` run reuses earlier renders.
+- `slides.md`, read this first: per slide its title (the title placeholder, else the biggest text), the layout name, text in reading order with levels, bullets and **bold**, tables as tables, chart data, SmartArt text, images with file, size, alt text and position (% of the slide), speaker notes, and flags: *picture* (one big image and almost no text: a picture of a slide, rebuild it from the render), *empty*, *hidden*, click animations, charts. At the top: the pptx theme's colours and fonts, and the colours the slides set themselves, most used first (the real palette when the theme is Office's default).
+- `slides.json`: the same, as data.
+- `media/sNN-<alt text>.png|jpg|svg`: every picture, cropped the way the slide crops it, transparent margins trimmed, gif/tiff converted, big opaque images as jpg, at most 2400px.
+- `theme.json` / `theme.css`: the theme as suggested tokens.
+- `scene-description.md`: a draft in the guide's format, one scene per slide (id and title from the slide title, background guessed from the render, On screen with every text, table, chart and image path, notes from the speaker notes).
+
+With `--deck <id>` it goes on to run `new-deck <id> --from` that draft (with `--brand` and `--title` passed on) and copies the media to `decks/<id>/public/assets/pptx/`, so the stub deck renders straight away. The draft is a starting point, not a design: merge, split and reorder slides, and rebuild each scene from its render (the build-deck skill's "From a PowerPoint" section).
 
 ## Adding a scene
 

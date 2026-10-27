@@ -35,7 +35,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createServer } from 'vite'
 import { parse } from 'vue/compiler-sfc'
-import { ROOT, DECKS_DIR } from '../engine/vite.js'
+import { ROOT, DECKS_DIR, BRANDS_DIR } from '../engine/vite.js'
 import { validateVia } from '../engine/ride.js'
 import { validateFrames } from '../engine/frames.js'
 import { formationProblems, planFormation } from '../engine/formation.js'
@@ -260,8 +260,8 @@ function inside(child, parent) {
 
 /**
  * Does the scene's template root carry class "slide"? A root that's a component of the deck's own
- * (a wrapper like <Commandment>, imported from a relative .vue file) counts if its root does,
- * followed up to three wrappers deep.
+ * (a wrapper like <Commandment>, imported from a relative .vue file) or of a brand kit
+ * ('@brands/…/X.vue') counts if its root does, followed up to three wrappers deep.
  */
 function rootHasSlide(file, descriptor, depth = 0) {
   const root = descriptor.template?.ast?.children?.find((n) => n.type === 1)
@@ -270,9 +270,9 @@ function rootHasSlide(file, descriptor, depth = 0) {
   if (cls?.literal && cls.src.split(/\s+/).includes('slide')) return true
   if (depth >= 3 || !/^[A-Z]/.test(root.tag)) return false
   const script = (descriptor.scriptSetup ?? descriptor.script)?.content ?? ''
-  const m = script.match(new RegExp(`import\\s+${root.tag}\\s+from\\s+['"](\\.{1,2}/[^'"]+\\.vue)['"]`))
+  const m = script.match(new RegExp(`import\\s+${root.tag}\\s+from\\s+['"]((?:\\.{1,2}|@brands)/[^'"]+\\.vue)['"]`))
   if (!m) return false
-  const child = path.resolve(path.dirname(file), m[1])
+  const child = m[1].startsWith('@brands/') ? path.join(BRANDS_DIR, m[1].slice(8)) : path.resolve(path.dirname(file), m[1])
   if (!fs.existsSync(child)) return false
   const sub = parse(fs.readFileSync(child, 'utf8'), { filename: child }).descriptor
   return rootHasSlide(child, sub, depth + 1)

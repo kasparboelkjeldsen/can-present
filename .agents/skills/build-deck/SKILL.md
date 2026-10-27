@@ -1,13 +1,15 @@
 ---
 name: build-deck
-description: Build, scaffold or finish a can-present deck (infinite-canvas talk) from a scene-description.md, or from a topic via write-talk. Covers new-deck --from, the theme, writing scenes, canvas layout, npm run check, the ?sheet audit and the definition of done. Use when asked to make, build, implement, lay out or fix up the slides/scenes of a deck in this repo.
+description: Build, scaffold or finish a can-present deck (infinite-canvas talk) from a scene-description.md, from a PowerPoint (.pptx) via import-pptx, or from a topic via write-talk. Covers new-deck --from, brand kits, the theme, writing scenes, canvas layout, npm run check, the ?sheet audit and the definition of done. Use when asked to make, build, implement, convert, lay out or fix up the slides/scenes of a deck in this repo.
 ---
 
 # Build a deck
 
 You turn a `scene-description.md` into a finished deck under `decks/<id>/`. Read `AGENTS.md` first (rules, scene rules, pattern index) and `README.md` for deck.js fields, tokens and building blocks. Don't repeat them from memory; look them up.
 
-No scene description yet? If the user only has a topic, run the **write-talk** skill (`.agents/skills/write-talk/SKILL.md`) first. Don't invent the talk.
+No scene description yet? If the user only has a topic, run the **write-talk** skill (`.agents/skills/write-talk/SKILL.md`) first. Don't invent the talk. If they have a PowerPoint, see **From a PowerPoint** below: it writes the scene description for you.
+
+A company look that already exists as a brand kit (`brands/<name>/`, e.g. "use Kraftvaerk branding") replaces the theme recipe: scaffold with `--brand <name>` and read `brands/<name>/README.md` for its variants and rules.
 
 ## Procedure
 
@@ -19,6 +21,28 @@ No scene description yet? If the user only has a topic, run the **write-talk** s
 6. **`npm run check -- <id>`.** Fix every error. Fix or explain every warning. Scenes listed as "not inferred" need a manual look at `steps`.
 7. **`?sheet`** (`http://localhost:<port>/?sheet`). Read the audit list at the top with `get_page_text`, not a screenshot. Then `?sheet&steps&only=<ids>` for the scenes with builds. One screenshot of the sheet shows the whole deck's look.
 8. **Browser spot-checks**, only now: a few flights (`#id/0`, then →), each nested dive, the overview (O), and any live site or launch card.
+
+## From a PowerPoint
+
+1. **Import.** `npm run import-pptx -- path/to/talk.pptx --deck <id> [--brand <name>]` (README "From a PowerPoint"). It renders every slide with PowerPoint, writes `imports/<id>/` (gitignored) and scaffolds `decks/<id>` with the pictures in `public/assets/pptx/`. A converted client deck usually shouldn't be committed: ask, and add `decks/<id>/` to `.gitignore` if so. Don't extract the .pptx by hand or with Python; if the importer misreads something, fix the importer.
+2. **Read** `imports/<id>/slides.md` (the text, tables, notes, image files and flags), then look at `renders/contact.png` once, and the render of each slide as you build it. The renders are the truth about layout; positions in slides.md are only hints.
+3. **Plan the scenes before building.** Default one scene per slide, then: split a slide that can't fit at 26px+ (a long lead plus a table becomes a statement scene and a table scene); rebuild every *picture* slide (a screenshot of a slide) as real text and SVG from its render; drop or fill *empty* slides (often a closing card). Write the plan into `scene-description.md` and re-scaffold only if the structure changed a lot; otherwise edit `deck.js` directly.
+4. **Keep the words.** It's the speaker's content: keep the text, fix only obvious typos and grammar, and list every wording change in your report. Speaker notes come from the pptx; add cue lines where there are none.
+5. **Map slide types to building blocks:**
+
+   | In the pptx | Build |
+   |---|---|
+   | section divider | the brand's section opener (`SectionOpener` in kraftvaerk) or a `slide--accent` card |
+   | photo + text | half-bleed photo (`object-fit: cover`) beside the copy; move or hide the corner logo where the photo is |
+   | logo wall (partners, clients) | a CSS grid of white tiles, `object-fit: contain`; client logos are often small web grabs, so keep the tiles modest |
+   | numbered grid ("01 … 06") | `.card`s in a grid with `.num` |
+   | process / diagram / SmartArt | redraw as inline SVG in card px; one `step >= n` per phase if it's walked through |
+   | table | a CSS grid of rows, or two scenes if it's dense |
+   | big number | a serif number at 200px+, or `<BigNumber>` if counting up helps |
+   | chart | the data is in slides.md: redraw it (dataviz conventions), don't screenshot it |
+
+6. **Animation budget.** Business decks stay light: entrances (`rise` / `fade-in`) everywhere, builds only where the pptx had clicks or the content is a process, and at most one big effect (a `formation` finale, a `frames` zoom, a `hand`) if the user wants one.
+7. Then continue with step 2 of the procedure above (run, layout, check, sheet). Before `compile`, delete the `public/assets/pptx/` files no scene uses: everything in `public/` goes into the one file.
 
 ## Layout rules of thumb
 

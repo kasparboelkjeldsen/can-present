@@ -1,6 +1,6 @@
 import { defineConfig, mergeConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
-import { resolveDeck, deckSync, deckNotes, deckStatic, ENGINE_DIR } from './engine/vite.js'
+import { resolveDeck, deckSync, deckNotes, deckStatic, ENGINE_DIR, BRANDS_DIR } from './engine/vite.js'
 
 // Active deck: $DECK, else "canPresent": { "deck": … } in package.json. See README.
 const deck = resolveDeck()
@@ -19,6 +19,7 @@ const base = defineConfig({
     alias: {
       '@engine': ENGINE_DIR,
       '@deck': deck.dir,
+      '@brands': BRANDS_DIR,
     },
   },
   publicDir: deck.publicDir,

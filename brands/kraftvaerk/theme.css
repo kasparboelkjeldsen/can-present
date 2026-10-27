@@ -1,0 +1,153 @@
+/* ------------------------------------------------------------------
+   Kraftvaerk brand kit: the palette, fonts, engine tokens and slide
+   primitives from Kraftvaerk's PowerPoint template. A deck imports it
+   with `import '@brands/kraftvaerk'` in deck.js (fonts included) and
+   keeps only its own additions in its theme.css. See README.md here.
+
+   Rules: green only on dark or grey, never on sand or red.
+          Text on grey and red is always dark.
+   ------------------------------------------------------------------ */
+:root {
+  --k-dark: #3d3d3f;        /* Functional Black */
+  --k-dark-deep: #2c2c2e;   /* canvas, code blocks */
+  --k-sand: #eeede9;
+  --k-grey: #aba79c;        /* Pleasant Grey */
+  --k-red: #ff8071;         /* Power Red: section openers */
+  --k-green: #c3f240;       /* Athletic Green */
+  --k-light: #f7f6f2;       /* text on dark */
+  --k-panel: #4a4a4d;       /* cards on dark */
+  --k-muted: #6b6a66;       /* secondary text on sand (5:1) */
+
+  --serif: 'Libre Caslon Text', Georgia, serif;
+  --sans: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, monospace;
+  --display-font: var(--serif);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --radius: 22px;
+
+  /* engine tokens */
+  --deck-canvas: var(--k-dark-deep);
+  --deck-grid: rgba(238, 237, 233, 0.12);
+  --deck-ink: var(--k-dark);
+  --deck-paper: var(--k-sand);
+  --deck-accent: var(--k-green);
+  --deck-on-accent: var(--k-dark);
+  --deck-accent-2: var(--k-red);
+  --code-bg: var(--k-dark-deep);
+  --code-line-hot: rgba(195, 242, 64, 0.08);
+  --code-mark: var(--k-green);
+}
+
+/* every scene root is a .slide (a fixed 1920×1080 card) */
+.slide {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  padding: 110px 140px 140px;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--sans);
+  /* the accent is green where allowed, dark elsewhere */
+  --accent: var(--k-dark);
+  --on-accent: var(--k-sand);
+}
+.slide--dark { background: var(--k-dark); color: var(--k-light); --accent: var(--k-green); --on-accent: var(--k-dark); }
+.slide--sand { background: var(--k-sand); color: var(--k-dark); }
+.slide--grey { background: var(--k-grey); color: var(--k-dark); --accent: var(--k-green); --on-accent: var(--k-dark); }
+.slide--red  { background: var(--k-red);  color: var(--k-dark); }
+
+/* The Kraftvaerk logo, bottom-left on every card: black on sand, grey and red, white on dark.
+   .mark-white / .mark-black force one; .no-mark hides it. */
+.slide::after {
+  content: '';
+  position: absolute;
+  left: 64px;
+  bottom: 56px;
+  width: 207px; /* 923×125 at 28px high */
+  height: 28px;
+  background: url('./assets/kraftvaerk-logo-black.svg') no-repeat left center / contain;
+  pointer-events: none;
+  z-index: 5;
+}
+.slide--dark::after, .slide.mark-white::after { background-image: url('./assets/kraftvaerk-logo-white.svg'); }
+.slide.mark-black::after { background-image: url('./assets/kraftvaerk-logo-black.svg'); }
+.slide.no-mark::after { display: none; }
+
+/* a footer line bottom-right, e.g. "KRAFTVAERK | CLIENT" as in the PowerPoint template */
+.slide .foot {
+  position: absolute;
+  right: 64px;
+  bottom: 54px;
+  margin: 0;
+  font: 700 26px var(--sans);
+  letter-spacing: 0.16em;
+  opacity: 0.6;
+  z-index: 5;
+}
+
+.kicker {
+  align-self: flex-start;
+  padding: 12px 26px;
+  border-radius: 999px;
+  font: 700 26px var(--sans);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--k-dark);
+  color: var(--k-sand);
+}
+.slide--dark .kicker { background: var(--k-green); color: var(--k-dark); }
+
+.h1, .h2 {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+.h1 { font-size: 150px; line-height: 1.04; }
+.h2 { font-size: 96px; line-height: 1.08; }
+.h1 em, .h2 em { font-style: italic; }
+.lead { margin: 0; font-size: 42px; line-height: 1.38; max-width: 1400px; }
+.accent { color: var(--accent); }
+.muted { opacity: 0.75; }
+.mono { font-family: var(--mono); }
+
+/* "01", "02": numbered lists and grids */
+.num {
+  font: 400 30px var(--serif);
+  color: var(--k-muted);
+  letter-spacing: 0.04em;
+}
+.slide--dark .num { color: var(--k-green); }
+
+/* speech bubble; <Code> callouts take their shape from it */
+.callout {
+  display: inline-block;
+  padding: 18px 26px;
+  border-radius: 18px;
+  font: 700 32px/1.25 var(--sans);
+  background: var(--k-dark);
+  color: var(--k-sand);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+}
+.slide--dark .callout { background: var(--k-sand); color: var(--k-dark); }
+.callout--green { background: var(--k-green) !important; color: var(--k-dark) !important; }
+
+.card {
+  padding: 40px 44px;
+  border-radius: var(--radius);
+  background: #fff;
+  color: var(--k-dark);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.08);
+}
+.slide--dark .card { background: var(--k-panel); color: var(--k-light); box-shadow: none; }
+
+.fineprint {
+  position: absolute;
+  right: 64px;
+  bottom: 54px;
+  margin: 0;
+  font-size: 26px;
+  opacity: 0.7;
+}

@@ -1,24 +1,28 @@
 #!/usr/bin/env node
-// npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from path/to/scene-description.md]
+// npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from path/to/scene-description.md] [--brand <name>]
 //
 // Copies templates/deck/ to decks/<id>/ and fills in id, title and icon. With --from it also
 // turns a scene description (the format in docs/presentation-guide.md) into stub scenes that
 // render and navigate straight away: one .vue per scene with the description in a top comment,
 // the right slide variant, the title and one <Step> per build; deck.js entries on a default
 // left-to-right path; notes.json from the notes; the assets list in brief.md.
+// With --brand the deck imports brands/<name>/ (theme, fonts, logo) instead of the template's
+// theme, and the stub scenes use the brand's slide variants (brands/<name>/brand.json).
 import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
-import { ROOT, DECKS_DIR } from '../engine/vite.js'
+import { ROOT, DECKS_DIR, BRANDS_DIR } from '../engine/vite.js'
 
 const TEMPLATE = path.join(ROOT, 'templates', 'deck')
 const KEBAB = /^[a-z0-9]+(-[a-z0-9]+)*$/
-const USAGE = `Usage: npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from path/to/scene-description.md]
+const listBrands = () => (fs.existsSync(BRANDS_DIR) ? fs.readdirSync(BRANDS_DIR).filter((b) => fs.existsSync(path.join(BRANDS_DIR, b, 'brand.json'))) : [])
+const USAGE = `Usage: npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from path/to/scene-description.md] [--brand <name>]
 
   <id>      folder name in decks/ (kebab-case)
   --title   deck title (default: from the scene description, else the id)
   --icon    an emoji; it becomes the favicon (default 🎬)
-  --from    a scene-description.md in the format of docs/presentation-guide.md`
+  --from    a scene-description.md in the format of docs/presentation-guide.md
+  --brand   a brand kit in brands/ (${listBrands().join(', ') || 'none yet'}): its theme, fonts and logo instead of the template's theme`
 
 function fail(msg) {
   console.error(msg + '\n\n' + USAGE)
@@ -28,11 +32,11 @@ function fail(msg) {
 // ---------------------------------------------------------------- args
 
 function parseArgs(argv) {
-  const out = { id: null, title: null, icon: null, from: null }
+  const out = { id: null, title: null, icon: null, from: null, brand: null }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '-h' || a === '--help') { console.log(USAGE); process.exit(0) }
-    const m = /^--(title|icon|from)(?:=(.*))?$/.exec(a)
+    const m = /^--(title|icon|from|brand)(?:=(.*))?$/.exec(a)
     if (m) {
       const v = m[2] ?? argv[++i]
       if (v == null) fail(`--${m[1]} needs a value`)
@@ -304,6 +308,27 @@ function fillBrief(brief, desc, scenes) {
   return brief
 }
 
+/**
+ * Puts a freshly written deck on a brand kit: deck.js imports '@brands/<name>' before its own
+ * theme.css (now just a place for additions), the scenes' slide variants become the brand's, and
+ * brief.md's visual language points at the brand's README.
+ */
+function applyBrand(dir, name, brand, title) {
+  const map = brand.variants ?? {}
+  const deckFile = path.join(dir, 'deck.js')
+  fs.writeFileSync(deckFile, fs.readFileSync(deckFile, 'utf8').replace(/^import '\.\/theme\.css'$/m, `import '@brands/${name}' // ${brand.name ?? name} brand kit: fonts, theme, logo\nimport './theme.css'`))
+  fs.writeFileSync(path.join(dir, 'theme.css'), `/* ${title.replace(/\*\//g, '* /')}: built on the ${brand.name ?? name} brand kit (brands/${name}/, imported in deck.js).
+   Slide variants: ${Object.values(map).map((v) => `slide--${v}`).join(', ')}. Deck-specific additions go here. */
+`)
+  const scenes = path.join(dir, 'scenes')
+  for (const f of fs.readdirSync(scenes).filter((f) => f.endsWith('.vue'))) {
+    const file = path.join(scenes, f)
+    fs.writeFileSync(file, fs.readFileSync(file, 'utf8').replace(/\bslide--(dark|light|accent)\b/g, (all, v) => (map[v] ? `slide--${map[v]}` : all)))
+  }
+  const briefFile = path.join(dir, 'brief.md')
+  fs.writeFileSync(briefFile, fs.readFileSync(briefFile, 'utf8').replace(/(## Visual language\n)[\s\S]*?(?=\n## )/, `$1\nThe ${brand.name ?? name} brand kit: palette, fonts, slide variants and rules in \`brands/${name}/README.md\`. Deck-specific additions live in \`theme.css\`.\n`))
+}
+
 // ---------------------------------------------------------------- main
 
 function main() {
@@ -314,6 +339,13 @@ function main() {
   if (fs.existsSync(dir)) {
     console.error(`decks/${args.id} already exists. Pick another id (new-deck never overwrites a deck).`)
     process.exit(1)
+  }
+
+  let brand = null
+  if (args.brand) {
+    const file = path.join(BRANDS_DIR, args.brand, 'brand.json')
+    if (!fs.existsSync(file)) fail(`--brand: no brand kit "${args.brand}" (brands: ${listBrands().join(', ') || 'none'})`)
+    brand = JSON.parse(fs.readFileSync(file, 'utf8'))
   }
 
   let desc = null
@@ -369,6 +401,10 @@ function main() {
   } else {
     console.log(`Created decks/${args.id}/ from templates/deck/.`)
   }
+  if (brand) {
+    applyBrand(dir, args.brand, brand, meta.title)
+    console.log(`  On the ${brand.name ?? args.brand} brand kit (brands/${args.brand}/README.md).`)
+  }
 
   const next = [
     [`npm run deck -- dev ${args.id}`, 'run it, then open http://localhost:5173'],
@@ -380,7 +416,7 @@ function main() {
 Next:
 ${next.map(([c, d]) => `  ${c.padEnd(w)}${d}`).join('\n')}
 Then fill in the scenes (decks/${args.id}/scenes/: ${desc ? 'each has its description in a top comment' : 'add more next to Title.vue'}),
-the palette and fonts in theme.css, and the TODOs in brief.md. The workflow: .agents/skills/build-deck/SKILL.md`)
+${brand ? 'any deck-specific styles in theme.css' : 'the palette and fonts in theme.css'}, and the TODOs in brief.md. The workflow: .agents/skills/build-deck/SKILL.md`)
 }
 
 // run as a script (not when imported for its parser)

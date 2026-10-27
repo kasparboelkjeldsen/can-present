@@ -7,6 +7,7 @@ can-present is a Vue 3 + Vite engine for talks on an infinite canvas. Every scen
 | Task | Read | Skip |
 |---|---|---|
 | **Writing a talk** (story, scenes, `scene-description.md`) | the write-talk skill (`.agents/skills/write-talk/SKILL.md`), `docs/presentation-guide.md`, then the deck's `brief.md` | all code |
+| **Converting a PowerPoint** (.pptx) | the build-deck skill's "From a PowerPoint" section, `README.md` "From a PowerPoint" and "Brand kits" | `engine/` internals |
 | **Building or editing a deck** | the build-deck skill (`.agents/skills/build-deck/SKILL.md`), `README.md` (deck.js fields, tokens, building blocks), `decks/example/` (the kitchen sink: one scene per building block) | `engine/` internals, `decks/shovelling-umbraco/` (see the pattern index below) |
 | **Changing the engine** | `README.md`, the engine files you touch, `docs/presentation-guide.md` | other decks |
 
@@ -75,8 +76,11 @@ npm run deck -- build [deck]        # → dist/<deck>/ (--base <name> for a subp
 npm run compile -- [deck]           # → dist/<deck>.html: the whole deck in one self-contained file (--out <file>; README "One file")
 npm run deck -- preview [deck]      # serve the build
 npm run check -- [deck]             # text lint: ids, steps vs builds, notes, overlaps, nesting, missing shots (--json too)
-npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from scene-description.md]   # scaffold decks/<id> from templates/deck/
+npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from scene-description.md] [--brand kraftvaerk]   # scaffold decks/<id> from templates/deck/
+npm run import-pptx -- talk.pptx [--deck <id> [--brand kraftvaerk]]   # .pptx → imports/<name>/ (renders, slides.md, media, draft scene description), optionally scaffolded
 ```
+
+**Brand kits** (`brands/<name>/`, imported as `@brands/<name>`) hold a company's theme, fonts, logo and components for any deck to share; `brands/kraftvaerk/README.md` has the palette and rules. They live outside `engine/`, so rule 2 still holds.
 
 `npm run check` prints one line per finding (`ERROR  <scene-id>  <message>` / `WARN …`) and exits 1 on errors. Errors: duplicate or non-kebab ids, unknown `parent`, no `component`/`at`, builds that `steps` can't reach. Warnings: dead clicks, missing or empty notes, overlapping top-level cards, a nested card outside its parent, `/shots/…` or `/assets/…` files not in `public/` yet (a TODO for the speaker), a scene root without `class="slide"`, a `<QrCode>` url that isn't `http(s)://` or `mailto:`. Build steps are inferred from literal `<Step :at>`/`:until`, `<BigNumber :at>`, `<QrCode :at>`, `:focus`/`:callouts` keys and `step >= n` checks; scenes with non-literal ones are listed as "not inferred" for you to check by hand. Scenes with a `<Diagram>` take their steps from it (`steps: arch.steps`) and are listed separately, not compared.
 
