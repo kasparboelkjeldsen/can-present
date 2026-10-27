@@ -28,6 +28,8 @@
     "@vitejs/plugin-vue": "^6.0.10",
     "fast-xml-parser": "^5.11.2",
     "jszip": "^3.10.2",
+    "playwright-core": "1.64.1",
+    "pptx2html": "github:g21589/PPTX2HTML#c8a96ebef4516e9d483c0bc54c61a3245c15aeb4",
     "sharp": "^0.35.5",
     "vite": "^8.3.4"
   }

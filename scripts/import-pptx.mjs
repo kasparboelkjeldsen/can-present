@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// npm run import-pptx -- <file.pptx> [--out <dir>] [--deck <id> [--brand <name>] [--title "…"]] [--no-render]
+// npm run import-pptx -- <file.pptx> [--out <dir>] [--deck <id> [--brand <name>] [--title "…"]] [--renderer html|powerpoint] [--no-render]
 //
 // Reads a PowerPoint file and writes what a person (or an agent) needs to rebuild it as a deck,
 // into imports/<name>/ (gitignored: client material):
@@ -8,8 +8,10 @@
 //                          as tables, images with their file and place, notes, and flags such as
 //                          "this slide is one big picture" (rebuild it from the render)
 //   slides.json            the same, as data
-//   renders/NN.png         each slide as PowerPoint draws it, 1920×1080, plus renders/contact.png
-//                          (needs PowerPoint on Windows; skipped elsewhere or with --no-render)
+//   slides.html            every slide as HTML, drawn by PPTX2HTML (pinned in package.json)
+//   renders/NN.png         each slide as a 1920×1080 picture, plus renders/contact.png: by default
+//                          slides.html screenshotted in the Chrome or Edge on the machine (any OS);
+//                          --renderer powerpoint exports them from PowerPoint instead (Windows)
 //   media/sNN-<name>.ext   every picture, cropped the way the slide crops it, named after its slide
 //                          and alt text, odd formats converted (gif → png, big opaque png → jpg)
 //   theme.json/.css        the pptx theme's colours and fonts, as suggested tokens
@@ -18,11 +20,13 @@
 // With --deck <id> it then scaffolds decks/<id> from that draft (npm run new-deck -- <id> --from …,
 // --brand passed on) and copies the media to decks/<id>/public/assets/pptx/.
 //
-// A .pptx is a zip of XML: jszip opens it, fast-xml-parser reads it, sharp does the images.
+// A .pptx is a zip of XML: jszip opens it, fast-xml-parser reads it, sharp does the images,
+// PPTX2HTML draws the slides and playwright-core drives an installed browser to photograph them.
 import fs from 'node:fs'
 import path from 'node:path'
 import os from 'node:os'
 import { spawnSync } from 'node:child_process'
+import { pathToFileURL } from 'node:url'
 import JSZip from 'jszip'
 import { XMLParser } from 'fast-xml-parser'
 import sharp from 'sharp'
@@ -35,7 +39,9 @@ const USAGE = `Usage: npm run import-pptx -- <file.pptx> [options]
                    decks/<id>/public/assets/pptx/
   --brand <name>   with --deck: build it on brands/<name>/ (e.g. kraftvaerk)
   --title "…"      with --deck: the deck title (default: the first slide's title)
-  --no-render      skip the slide renders (they need PowerPoint on Windows)`
+  --renderer <r>   html (default): PPTX2HTML, photographed in the installed Chrome or Edge
+                   powerpoint: exported by PowerPoint itself (Windows with Office)
+  --no-render      no slides.html and no renders (an earlier run's renders are kept)`
 
 function fail(msg) {
   console.error(msg + '\n\n' + USAGE)
@@ -43,12 +49,12 @@ function fail(msg) {
 }
 
 function parseArgs(argv) {
-  const out = { file: null, out: null, deck: null, brand: null, title: null, render: true }
+  const out = { file: null, out: null, deck: null, brand: null, title: null, renderer: 'html' }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a === '-h' || a === '--help') { console.log(USAGE); process.exit(0) }
-    if (a === '--no-render') { out.render = false; continue }
-    const m = /^--(out|deck|brand|title)(?:=(.*))?$/.exec(a)
+    if (a === '--no-render') { out.renderer = null; continue }
+    const m = /^--(out|deck|brand|title|renderer)(?:=(.*))?$/.exec(a)
     if (m) {
       const v = m[2] ?? argv[++i]
       if (v == null) fail(`--${m[1]} needs a value`)
@@ -57,6 +63,7 @@ function parseArgs(argv) {
     else if (!out.file) out.file = a
     else fail(`Unexpected argument: ${a}`)
   }
+  if (out.renderer && !['html', 'powerpoint'].includes(out.renderer)) fail(`--renderer: html or powerpoint, not "${out.renderer}"`)
   return out
 }
 
@@ -479,6 +486,40 @@ try {
 }
 `
 
+/**
+ * The default renderer: PPTX2HTML (pinned to an exact commit in package.json) draws every slide as
+ * HTML into slides.html, and the Chrome or Edge installed on the machine photographs each one at
+ * 1920 px wide. Works on any OS, no Office needed. Returns { note, diagnostics }: note is set when
+ * no PNGs came out (slides.html may still be there), diagnostics are PPTX2HTML's "approximated or
+ * skipped" list.
+ */
+async function renderHtml(buf, size, dir, htmlFile) {
+  const { convert, version } = await import('pptx2html')
+  const { html, diagnostics } = convert(new Uint8Array(buf), { mode: 'list', player: false })
+  fs.writeFileSync(htmlFile, html)
+  const { chromium } = await import('playwright-core')
+  let browser = null
+  // the browsers already on the machine first; then Playwright's own (npx playwright-core install chromium)
+  for (const channel of ['chrome', 'msedge', undefined]) {
+    try { browser = await chromium.launch(channel ? { channel } : {}); break } catch {}
+  }
+  if (!browser) return { note: 'slides.html written, but no Chrome or Edge found to photograph it (install one, or run: npx playwright-core install chromium)', diagnostics, version }
+  try {
+    const w = Math.round(size.w / 9525), h = Math.round(size.h / 9525) // EMU → CSS px, as PPTX2HTML lays them out
+    const page = await browser.newPage({ viewport: { width: w + 40, height: h + 40 }, deviceScaleFactor: 1920 / w })
+    await page.goto(pathToFileURL(htmlFile).href, { waitUntil: 'load', timeout: 120_000 })
+    await page.evaluate(() => document.fonts.ready)
+    fs.mkdirSync(dir, { recursive: true })
+    for (const el of await page.$$('.pp-slide')) {
+      const n = Number(await el.getAttribute('data-number'))
+      if (n) await el.screenshot({ path: path.join(dir, `${pad2(n)}.png`) })
+    }
+  } finally {
+    await browser.close()
+  }
+  return { note: null, diagnostics, version }
+}
+
 /** Each slide as PNG via PowerPoint (Windows). Returns a reason string when it couldn't. */
 function render(file, dir) {
   if (process.platform !== 'win32') return 'renders need PowerPoint on Windows (open the pptx and export the slides as PNG into renders/ by hand)'
@@ -643,14 +684,23 @@ async function main() {
   const size = { w: +attr(sz, 'cx'), h: +attr(sz, 'cy') }
   const parts = childrenOf(child(pres, 'p:sldIdLst'), 'p:sldId').map((s) => presRels[attr(s, 'r:id')]?.target).filter(Boolean)
 
-  // renders first: PowerPoint is the slow part, and the background guess reads them
+  // renders first: the background guess reads them
   let renderNote = null
-  if (args.render) {
+  let renderer = null // what drew renders/, for slides.md
+  let approximations = [] // PPTX2HTML's list of what it approximated or skipped
+  if (args.renderer) fs.rmSync(renderDir, { recursive: true, force: true })
+  if (args.renderer === 'html') {
+    console.log('Rendering the slides with PPTX2HTML…')
+    const r = await renderHtml(fs.readFileSync(args.file), size, renderDir, path.join(out, 'slides.html'))
+    renderNote = r.note
+    approximations = r.diagnostics ?? []
+    renderer = `PPTX2HTML ${r.version} (pinned in package.json), photographed in a headless browser; the HTML is \`slides.html\``
+  } else if (args.renderer === 'powerpoint') {
     console.log('Rendering the slides with PowerPoint…')
-    fs.rmSync(renderDir, { recursive: true, force: true })
     renderNote = render(args.file, renderDir)
-    if (renderNote) console.log('  ' + renderNote)
+    renderer = 'PowerPoint'
   } else renderNote = fs.existsSync(path.join(renderDir, '01.png')) ? null : 'skipped (--no-render)' // an earlier run's renders are reused
+  if (renderNote) console.log('  ' + renderNote)
 
   const slides = []
   for (const [i, part] of parts.entries()) slides.push(await readSlide(pkg, part, i + 1, size))
@@ -684,7 +734,7 @@ async function main() {
   const strip = ({ box, ...rest }) => rest
   const data = {
     source, slides: slides.length, size: { w: size.w / 12700, h: size.h / 12700, unit: 'pt' }, theme,
-    renders: renderNote ? null : 'renders/', contact: contact ? relOut(contact) : null,
+    renders: renderNote ? null : 'renders/', renderer, approximations, contact: contact ? relOut(contact) : null,
     slideList: slides.map((s) => ({ ...s, texts: s.texts.map(strip), tables: s.tables.map(strip), images: s.images.map(strip), charts: s.charts.map(strip) })),
   }
   fs.writeFileSync(path.join(out, 'slides.json'), JSON.stringify(data, null, 2))
@@ -695,7 +745,7 @@ async function main() {
   const flagged = slides.filter((s) => s.flags.length)
   fs.writeFileSync(path.join(out, 'slides.md'), `# ${source}
 
-${slides.length} slides · ${data.size.w}×${data.size.h} pt · renders: ${renderNote ?? '`renders/NN.png`, all of them in `' + (data.contact ?? '') + '`'}
+${slides.length} slides · ${data.size.w}×${data.size.h} pt · renders: ${renderNote ?? '`renders/NN.png`, all of them in `' + (data.contact ?? '') + '`'}${renderer ? `\n\nRenders by ${renderer}.${approximations.length ? ` Approximated or skipped there: ${approximations.map((d) => `${d.message}${d.count > 1 ? ` (×${d.count})` : ''}`).join('; ')}.` : ''}` : ''}
 ${theme ? `\nTheme "${theme.name}": ${Object.entries(theme.colours).map(([k, v]) => `${k} \`${v}\``).join(', ')} · fonts: ${theme.fonts.headings} / ${theme.fonts.body} (suggested tokens: \`theme.css\`)\n` : ''}
 Colours set on the slides themselves, most used first: ${colours.map(([c, k]) => `\`${c}\` ×${k}`).join(', ') || 'none'}. When they differ from the theme's, they're the real palette.
 
@@ -709,6 +759,7 @@ ${slides.map(slideMd).join('\n')}`)
   const images = slides.reduce((n, s) => n + s.images.length, 0)
   console.log(`\nImported ${source}: ${slides.length} slides, ${images} images → ${rel(out)}/`)
   console.log(`  slides.md               read this first${contact ? `\n  ${relOut(contact).padEnd(24)}every slide at a glance` : ''}`)
+  if (fs.existsSync(path.join(out, 'slides.html')) && args.renderer === 'html') console.log('  slides.html             every slide as HTML (open it in a browser)')
   console.log(`  scene-description.md    draft, one scene per slide`)
   if (flagged.length) console.log(`  flagged: ${flagged.map((s) => `${s.n} ${s.flags.map((f) => f.split(':')[0]).join('/')}`).join(', ')}`)
 

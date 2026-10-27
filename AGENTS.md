@@ -77,7 +77,7 @@ npm run compile -- [deck]           # → dist/<deck>.html: the whole deck in on
 npm run deck -- preview [deck]      # serve the build
 npm run check -- [deck]             # text lint: ids, steps vs builds, notes, overlaps, nesting, missing shots (--json too)
 npm run new-deck -- <id> [--title "…"] [--icon 🎬] [--from scene-description.md] [--brand kraftvaerk]   # scaffold decks/<id> from templates/deck/
-npm run import-pptx -- talk.pptx [--deck <id> [--brand kraftvaerk]]   # .pptx → imports/<name>/ (renders, slides.md, media, draft scene description), optionally scaffolded
+npm run import-pptx -- talk.pptx [--deck <id> [--brand kraftvaerk]]   # .pptx → imports/<name>/ (slides.html + renders via PPTX2HTML, slides.md, media, draft scene description), optionally scaffolded
 ```
 
 **Brand kits** (`brands/<name>/`, imported as `@brands/<name>`) hold a company's theme, fonts, logo and components for any deck to share; `brands/kraftvaerk/README.md` has the palette and rules. They live outside `engine/`, so rule 2 still holds.

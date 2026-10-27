@@ -185,12 +185,14 @@ A deck on a kit imports it in `deck.js` (`import '@brands/kraftvaerk'`, then `im
 ## From a PowerPoint: `npm run import-pptx`
 
 ```bash
-npm run import-pptx -- talk.pptx [--out <dir>] [--deck <id> [--brand <name>] [--title "…"]] [--no-render]
+npm run import-pptx -- talk.pptx [--out <dir>] [--deck <id> [--brand <name>] [--title "…"]] [--renderer html|powerpoint] [--no-render]
 ```
 
-Reads a `.pptx` (a zip of XML: `jszip`, `fast-xml-parser`, `sharp`; no Python, no LibreOffice) and writes `imports/<name>/` (gitignored, since decks converted from slides are usually client material):
+Reads a `.pptx` (a zip of XML: `jszip`, `fast-xml-parser`, `sharp`; no Python, no LibreOffice, no Office) and writes `imports/<name>/` (gitignored, since decks converted from slides are usually client material):
 
-- `renders/NN.png` and `renders/contact.png`: every slide as PowerPoint draws it, 1920×1080, and all of them in one grid. This drives PowerPoint itself through PowerShell (Windows with Office; it never closes a PowerPoint window you have open). Elsewhere, or with `--no-render`, there are no renders (export them from PowerPoint by hand); a later `--no-render` run reuses earlier renders.
+- `slides.html`: every slide drawn as HTML by [PPTX2HTML](https://github.com/g21589/PPTX2HTML) (MIT; layouts and masters, gradients, crops, embedded fonts, charts, SmartArt). Open it in a browser.
+- `renders/NN.png` and `renders/contact.png`: every slide as a 1920×1080 picture, and all of them in one grid. By default (`--renderer html`) these are `slides.html` photographed by `playwright-core` in the Chrome or Edge installed on the machine (any OS; without either, `npx playwright-core install chromium`). `slides.md` names the renderer and lists what PPTX2HTML approximated or skipped. `--renderer powerpoint` exports them from PowerPoint itself instead (Windows with Office, through PowerShell; it never closes a PowerPoint window you have open). `--no-render` skips both and reuses an earlier run's renders.
+- **PPTX2HTML is pinned to an exact commit** (`devDependencies` in `package.json`; it isn't on npm under its own name, and npm's `pptx2html` is an unrelated old fork). Update it deliberately: change the commit, re-run an import you know (renders and `slides.html` side by side with `--renderer powerpoint`), and look before committing.
 - `slides.md`, read this first: per slide its title (the title placeholder, else the biggest text), the layout name, text in reading order with levels, bullets and **bold**, tables as tables, chart data, SmartArt text, images with file, size, alt text and position (% of the slide), speaker notes, and flags: *picture* (one big image and almost no text: a picture of a slide, rebuild it from the render), *empty*, *hidden*, click animations, charts. At the top: the pptx theme's colours and fonts, and the colours the slides set themselves, most used first (the real palette when the theme is Office's default).
 - `slides.json`: the same, as data.
 - `media/sNN-<alt text>.png|jpg|svg`: every picture, cropped the way the slide crops it, transparent margins trimmed, gif/tiff converted, big opaque images as jpg, at most 2400px.
