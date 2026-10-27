@@ -36,7 +36,11 @@ export function resolveDeck() {
   if (!decks.includes(id) || !fs.existsSync(path.join(dir, 'deck.js'))) {
     throw new Error(`Deck "${id}" not found (expected decks/${id}/deck.js).\nDecks in decks/:\n${list}`)
   }
-  return { id, dir, publicDir: path.join(dir, 'public'), notes: path.join(dir, 'notes.json') }
+  const viteConfig = path.join(dir, 'vite.config.js')
+  return {
+    id, dir, publicDir: path.join(dir, 'public'), notes: path.join(dir, 'notes.json'),
+    viteConfig: fs.existsSync(viteConfig) ? viteConfig : null,
+  }
 }
 
 // Relays deck navigation between every connected browser (deck, /notes, other devices)

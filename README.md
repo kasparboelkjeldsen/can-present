@@ -54,6 +54,19 @@ npm run deck -- check [deck]      # lint it (see "Checking a deck")
 
 `[deck]` defaults to `canPresent.deck`. Options after the deck name go to Vite for `dev`, `lan` and `preview`: `--port 5180`, `--host [address]`, `--open`, `--strictPort`. `scripts/deck.mjs` drives Vite's JavaScript API with the normal `vite.config.js`.
 
+**A deck's own Vite config.** If `decks/<deck>/vite.config.js` exists, its default export (a plain Vite config object) is merged over the base config with Vite's `mergeConfig`. Use it for things only that talk needs, e.g. a dev-server proxy that puts a demo site on the deck's own origin so it can run in a same-origin iframe:
+
+```js
+// decks/<deck>/vite.config.js
+export default {
+  server: { proxy: { '/umbraco': { target: 'https://localhost:44343', secure: false, ws: true } } },
+}
+```
+
+A proxy only exists under `npm run deck -- dev`; builds and `compile` don't have one.
+
+It may also list `customElements`: tag prefixes of web components the deck's templates use (e.g. a design system's, `customElements: ['uui-']`). Vue then leaves those tags alone instead of looking for a Vue component of that name. The field is taken out before the merge; the deck imports and registers the components itself.
+
 Or override it for one command with the `DECK` environment variable:
 
 ```powershell
@@ -161,6 +174,7 @@ Then run it with `npm run deck -- dev <id>`, or make it the default in `package.
    - `outer: { hole: { cx, cy, w } }` makes the scene an outer layer: it has no `at`, and the engine scales and places it round the whole talk so that the hole (a 16:9 box in its own 1920×1080 space) lands on it; a later outer scene wraps the one before (see **Outer layers** under "Building blocks").
    - `back: '<id>'` makes the scene the back of that card: it has no `at`, and → from the front's last step turns the card over to show it; `flip: { axis, dir, tilt }` tunes the turn (see **Cards with a back** under "Building blocks").
    - `formation` makes every other card gather round the scene while it's on stage, e.g. `{ shape: 'ring', spin: 60 }` on the last scene (see **The deck rearranges itself** under "Building blocks").
+   - Fields the engine doesn't know are left alone, so a deck can add its own (e.g. a value its `layers` read per scene).
    - `hand: true` (or `{ hold, spread, s }`) makes the flight in from the previous scene a card trick: the deck folds into a hand of cards and this scene's card is drawn out (see **The deck folds into a hand** under "Building blocks").
 3. For builds, use `<Step :at="n" anim="up|down|left|right|pop|blur|fade|dim">`, or `useStep()` for custom logic (`step`, `active`, `near`, `preview`, and `zoom`: the card's on-screen scale).
    Add `class="rise"` (plus `style="--d: n"` to stagger) or `fade-in` for entrance animations that replay each time the scene comes on stage, or hook `.is-active` in scene CSS.
@@ -201,7 +215,7 @@ npm run -s check -- [deck] --json # the same findings as JSON
 A text lint that loads `deck.js` through Vite, the way the app does, and reads each scene's source. It prints `ERROR  <scene-id>  <message>` or `WARN …` lines and a summary, and exits 1 if there are errors.
 
 - **Errors:** a `deck.js` that doesn't load (e.g. `ride()` with an edge index the diagram doesn't have, or `defineDiagram()` with an unknown node), duplicate ids, ids that aren't kebab-case, a `parent` that doesn't exist, a scene without `component` or `at` (a ghost may use `at: null`), build steps used beyond `steps` (unreachable), a malformed `via` (no path, a path that isn't SVG path data, no `space`, an unknown option, a `zoom`, `speed`, `bank` or `tone` out of range), malformed `frames` (a key that isn't a build step from 1 to `steps`, a box that isn't `{ cx, cy, w }` with numbers, or one that isn't inside the 1920×1080 card), a malformed `formation` (an unknown shape or option, `spin` under 5 s or on a grid, `cols` on anything but a grid or not a whole number from 2, `s` or `radius` not > 0, `points` that aren't `[x, y]` pairs, a shape function that doesn't return `{ x, y }`) or a formation scene that's nested or a ghost, a malformed `outer` (no `hole`, a hole that isn't `{ cx, cy, w }` with numbers and `w > 0` inside the 1920×1080 card) or an outer scene with `at`, `parent`, `ghost` or `formation`, a bad `back` or `flip` (a front that doesn't exist, two backs for one card, a front that isn't an ordinary top-level card, nested scenes in the front or the back, a back with its own `at`, `parent`, `ghost`, `outer`, `formation` or `skip`, `flip` on a scene without `back`, an unknown option or a bad `axis`, `dir` or `tilt`), a bad `hand` (an unknown option, `hold`, `spread` or `s` out of range, a drawn card that is nested, a ghost, an outer layer, the back of a card, `onlyOnStage` or the formation scene).
-- **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`, a `<QrCode>` whose literal `url` isn't `http(s)://` or `mailto:` (or that has no `url`), a `via` that never plays (on the first scene or on a `skip` scene), a `via` whose previous scene isn't the path's scene or nested in it (a ride from far away looks odd), a `via` whose `space` isn't any scene's `at` (so that can't be checked), a second `formation` (only the first is used), `frames` or `via` on the formation scene (ignored), a formation on a `skip` scene, `points` for fewer cards than move (the rest fade out), outer layers whose outermost card is over 10,000× the talk's width, a back that doesn't come right after its front (the card never turns over), a `hand` on the first or a `skip` scene (it never plays) or with a `via` (ignored). Outer scenes and backs don't count for the overlap warnings.
+- **Warnings:** fewer build steps used than `steps` (dead clicks), scenes without notes (or empty ones), `notes.json` keys with no scene, top-level cards that overlap on the canvas, a nested card that isn't inside its parent, `/shots/…` and `/assets/…` paths that don't exist in `public/` yet (the speaker's TODO list), a scene root without class `slide`, a `<QrCode>` whose literal `url` isn't `http(s)://` or `mailto:` (or that has no `url`), a `via` that never plays (on the first scene or on a `skip` scene), a `via` whose previous scene isn't the path's scene or nested in it (a ride from far away looks odd), a `via` whose `space` isn't any scene's `at` (so that can't be checked), a second `formation` (only the first is used), `frames` or `via` on the formation scene (ignored), a formation on a `skip` scene, `points` for fewer cards than move (the rest fade out), outer layers whose outermost card is over 10,000× the talk's width, a back that doesn't come right after its front (the card never turns over), a `hand` on the first or a `skip` scene (it never plays) or with a `via` (ignored). Outer scenes and backs don't count for the overlap warnings, and neither does a card wholly inside one at least twice its size: that's a card set into another on purpose (nesting by geometry, `at: nest(…)` without `parent`, so it can still turn over and join a formation or the hand). For the `slide` class, a scene whose root is one of the deck's own wrapper components (imported from a relative `.vue` file) counts if the wrapper's root has it, up to three wrappers deep.
 
 Build steps are inferred from literal `<Step :at="n">` / `:until="n"`, `<BigNumber :at="n">`, `<QrCode :at="n">`, the numeric keys of literal `:focus` / `:callouts` objects, and `step >= n`, `step > n`, `step === n`, plus the keys of the scene's `frames` in `deck.js`. If a scene uses anything non-literal (e.g. `:at="i"`), its steps are listed as "not inferred" and not checked. A scene that draws a `<Diagram>` takes its steps from the diagram (`steps: arch.steps` in `deck.js`), so it's listed under "Build steps from a <Diagram>" and not compared.
 
@@ -411,6 +425,21 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
   - An outer scene has no `at`, `parent`, `ghost` or `formation` (`check` errors), and is upright. It's text on the canvas: give its root a transparent slide variant (`slide--canvas` in the example); the engine drops the card's shadow and corners and paints it under the talk (each layer under the one it wraps).
   - It's hidden until the deck reaches it (fading in over 1 s), and hidden again when you go back, so its giant letters never show round normal scenes. The overview (O) frames the talk only; formations fade outer cards like ghosts, so an outer scene right after a formation scene gets the usual "cards go home while the camera pulls back". `?sheet` and the presenter thumbnails show it as a normal card.
   - **Keep the total ratio reasonable.** Each layer multiplies the zoom (1920 ÷ hole width, about 50× for a 36 px hole); the flight is logarithmic, so a 50× pull-back is only a little longer than a normal one. Chrome composites in 32-bit floats, so `check` warns when the outermost card is over 10,000× the talk's width.
+- **Deck layers** (`layers` in `deck.js`): the deck's own components outside any card, for things that belong to the whole talk.
+
+  ```js
+  import { defineAsyncComponent } from 'vue'
+  const Decor = defineAsyncComponent(() => import('./components/Decor.vue'))
+  export default { id, title, scenes, layers: { under: Decor, over: Surface, stage: Mood } }
+  ```
+
+  | Layer | Where | Good for |
+  |---|---|---|
+  | `under` | in the camera's world, under the cards (world px, like a card's `at`) | canvas decor seen between cards and mid-flight |
+  | `over` | in the camera's world, over the cards | something that travels between cards without being re-created (e.g. one live iframe that lands on a box of whichever card is on stage) |
+  | `stage` | fixed on the 1920×1080 stage, over the world, under the deck's chrome | screen effects: vignette, grain, writing a CSS variable onto `:root` |
+
+  A layer component can use `useDeck()` (scenes, `idx`, `step`, `overview`) and the shared camera (`cam` from `@engine/cameraState.js`), but then **load it lazily** (`defineAsyncComponent`, as above): `useDeck.js` imports `deck.js`, so a static import would be circular. It has no `useStep()` (it isn't in a scene). Only the deck window renders layers: not the presenter view, `/notes` or `?sheet`. Layers are drawn as they are; nothing in the engine moves, hides or fades them for overview, formations or hands.
 - `@engine/useCount.js`: `useCount(trigger, from, to, { duration, delay, decimals })` returns a ref with an animated number that re-runs whenever `trigger` (a ref or getter, e.g. the scene's `active`) becomes true. `useCounter(…)` takes the same arguments and returns `{ value, progress }`, with `progress` the eased 0…1 of the run (what `<BigNumber>`'s ring follows).
 - `docs/presentation-guide.md` plus the deck's `brief.md`: hand both to Claude chat when writing a talk; it produces a `scene-description.md` for the coding agent.
 

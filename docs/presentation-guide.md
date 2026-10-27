@@ -63,6 +63,7 @@ The building blocks below exist already. The agent can also build new things, bu
 | **Outer layers** | pull back past the whole talk to reveal it was a tiny part of a bigger card (the dot on an i), as many times as you like | the very end: "all of that fits in the dot of an i", "it's turtles all the way down" |
 | **QR code** | a link with a short label and a code that falls onto the canvas dot by dot when the scene arrives (or on a click): the three corner squares thud down first, then the rest rains in, each dot dropping from near the audience with its shadow tightening under it. Big and high-contrast, so it scans from the back of the room; the link is shown as text too | "get the slides", feedback forms, repos |
 | **Custom SVG animation** | the agent draws and animates a small illustration | title, section breaks, jokes. One per few scenes, not more. |
+| **Deck layers** | something that belongs to the whole deck rather than one card: decor on the canvas between the cards, a thing that travels from card to card (e.g. one live website that lands on several cards in turn), or an effect over the whole screen (a vignette, grain, a mood that changes as the talk goes on). The agent builds these per talk | a talk-wide arc or mood, a recurring live demo, canvas decoration seen mid-flight |
 
 Every block above has a working scene in the engine's example deck (`decks/example`), so the coding agent has something to copy. The deck may have its own components too (logos, mascots, recurring motifs). The brief lists them.
 

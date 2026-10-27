@@ -10,6 +10,11 @@ import { formationProblems, planFormation, formationTransforms, formationTiming,
 import { handProblems, planHand } from './hand.js'
 import SceneFrame from './SceneFrame.vue'
 import RidePill from './RidePill.vue'
+import deck from '@deck/deck.js'
+
+// `layers` in deck.js: the deck's own components in the camera's world, under or over the cards
+// (canvas decor, a surface that travels between cards), or fixed on the stage over everything.
+const layers = deck.layers ?? {}
 
 const W = 1920
 const H = 1080
@@ -665,6 +670,7 @@ function pick(i) {
     <div class="stage" :style="{ transform: `translate(-50%, -50%) scale(${fit})` }">
       <div class="grid" :style="gridStyle" />
       <div class="world" :class="{ 'quick-fade': quickFade }" :style="[worldStyle, fxWorldVars, quickFade ? { '--quick-fade': quickFade + 'ms' } : null]">
+        <component :is="layers.under" v-if="layers.under" />
         <div
           v-for="(sc, i) in scenes"
           :key="sc.id"
@@ -698,7 +704,9 @@ function pick(i) {
           <div class="scene-label"><b>{{ i + 1 }}</b> {{ sc.title ?? sc.id }}<i v-if="sc.skip"> (fallback)</i></div>
         </div>
         <RidePill :pill="pill" />
+        <component :is="layers.over" v-if="layers.over" />
       </div>
+      <component :is="layers.stage" v-if="layers.stage" />
 
       <div class="progress" :style="{ transform: `scaleX(${progress})` }" />
       <button class="reset" title="Back to the start in every window, reload live sites (R)" @click="reset">↺ Reset</button>

@@ -258,6 +258,26 @@ function inside(child, parent) {
   })
 }
 
+/**
+ * Does the scene's template root carry class "slide"? A root that's a component of the deck's own
+ * (a wrapper like <Commandment>, imported from a relative .vue file) counts if its root does,
+ * followed up to three wrappers deep.
+ */
+function rootHasSlide(file, descriptor, depth = 0) {
+  const root = descriptor.template?.ast?.children?.find((n) => n.type === 1)
+  if (!root) return false
+  const cls = attr(root, 'class')
+  if (cls?.literal && cls.src.split(/\s+/).includes('slide')) return true
+  if (depth >= 3 || !/^[A-Z]/.test(root.tag)) return false
+  const script = (descriptor.scriptSetup ?? descriptor.script)?.content ?? ''
+  const m = script.match(new RegExp(`import\\s+${root.tag}\\s+from\\s+['"](\\.{1,2}/[^'"]+\\.vue)['"]`))
+  if (!m) return false
+  const child = path.resolve(path.dirname(file), m[1])
+  if (!fs.existsSync(child)) return false
+  const sub = parse(fs.readFileSync(child, 'utf8'), { filename: child }).descriptor
+  return rootHasSlide(child, sub, depth + 1)
+}
+
 // ---------------------------------------------------------------- assets
 
 function sourceFiles(dir) {
@@ -342,9 +362,7 @@ export async function check(deckId, { json = false } = {}) {
     }
 
     const root = descriptor.template?.ast?.children?.find((n) => n.type === 1)
-    const cls = root && attr(root, 'class')
-    const hasSlide = cls?.literal && cls.src.split(/\s+/).includes('slide')
-    if (!hasSlide) add('warn', id, `template root <${root?.tag ?? '?'}> in ${rel(file)} has no class "slide"`)
+    if (!rootHasSlide(file, descriptor)) add('warn', id, `template root <${root?.tag ?? '?'}> in ${rel(file)} has no class "slide"`)
   }
 
   // camera frames per build step
@@ -462,10 +480,13 @@ export async function check(deckId, { json = false } = {}) {
   for (const key of Object.keys(notes)) if (!seen.has(key)) add('warn', key, 'notes.json entry with no scene')
 
   // layout
-  // (a back lies on its front on purpose; an `onlyOnStage` scene may share a spot: it only shows while it's up)
+  // (a back lies on its front on purpose; an `onlyOnStage` scene may share a spot: it only shows while it's up;
+  // a card wholly inside one at least twice its size is set into it on purpose, nesting by geometry)
   const top = scenes.filter((sc) => sc.at && !sc.parent && !sc.ghost && sc.outer == null && sc.back == null && !sc.onlyOnStage)
+  const setInto = (c, p) => (c.s ?? 1) * 2 <= (p.s ?? 1) && inside(c, p)
   for (let i = 0; i < top.length; i++) {
     for (let j = i + 1; j < top.length; j++) {
+      if (setInto(top[j].at, top[i].at) || setInto(top[i].at, top[j].at)) continue
       const d = overlapDepth(corners(top[i].at), corners(top[j].at))
       if (d > OVERLAP_TOLERANCE) add('warn', top[j].id, `card overlaps "${top[i].id}" on the canvas (by ~${Math.round(d)}px)`)
     }
