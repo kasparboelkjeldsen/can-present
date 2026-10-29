@@ -31,6 +31,7 @@ http://localhost:5173/?sheet shows the whole deck on one page with a text-size a
 | X | jump to the fallback scene (`skip: true`, stepped over in normal navigation) |
 | R | reset: every window back to the first scene, blackout off, live sites reloaded, presenter timer zeroed. Also a ↺ Reset button (deck: top-right while the mouse moves; /notes: header; presenter: controls) |
 | Home / End | first / last |
+| swipe left / right | next / back, on a touch screen (one finger, mostly sideways; not in text fields) |
 
 The URL hash (`#map/2` = scene `map`, build step 2) keeps your place across reloads.
 

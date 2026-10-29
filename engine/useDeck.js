@@ -144,6 +144,20 @@ function onKey(e) {
 }
 window.addEventListener('keydown', onKey)
 
+// ---- Swipe (phones): left = next, right = back. Mostly-vertical moves and pinches are ignored ----
+let touch = null
+addEventListener('touchstart', (e) => {
+  touch = e.touches.length === 1 && !e.target.closest?.('input, textarea, [contenteditable]') ? e.touches[0] : null
+}, { passive: true })
+addEventListener('touchend', (e) => {
+  if (!touch || e.touches.length) return
+  const dx = e.changedTouches[0].clientX - touch.clientX, dy = e.changedTouches[0].clientY - touch.clientY
+  touch = null
+  if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return
+  overview.value = false
+  dx < 0 ? next() : prev()
+}, { passive: true })
+
 export function useDeck() {
   return { scenes, idx, step, current, overview, blackout, go, next, prev, maxStep, nextIndex, prevIndex, reset, resets }
 }
