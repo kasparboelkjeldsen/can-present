@@ -54,7 +54,7 @@ npm run deck -- compile [deck]    # → dist/<deck>.html, one self-contained fil
 npm run deck -- check [deck]      # lint it (see "Checking a deck")
 ```
 
-`[deck]` defaults to `canPresent.deck`. Options after the deck name go to Vite for `dev`, `lan` and `preview`: `--port 5180`, `--host [address]`, `--open`, `--strictPort`. `scripts/deck.mjs` drives Vite's JavaScript API with the normal `vite.config.js`.
+`[deck]` defaults to `canPresent.deck`. Options after the deck name go to Vite for `dev`, `lan` and `preview`: `--port 5180`, `--host [address]`, `--open [path]` (a path opens the browser there, e.g. `--open "/#scene-id/2"`), `--strictPort`. `scripts/deck.mjs` drives Vite's JavaScript API with the normal `vite.config.js`.
 
 **A deck's own Vite config.** If `decks/<deck>/vite.config.js` exists, its default export (a plain Vite config object) is merged over the base config with Vite's `mergeConfig`. Use it for things only that talk needs, e.g. a dev-server proxy that puts a demo site on the deck's own origin so it can run in a same-origin iframe:
 
@@ -493,3 +493,7 @@ To edit, press **E** (or ✎ Edit) on `/notes` while running `npm run dev`: the 
 `/notes` and `?presenter` follow the deck in both directions, so arrow keys or the clicker on them move the deck too:
 - **Same browser:** BroadcastChannel. This also works in the built version.
 - **Other device (phone or tablet):** the dev server relays messages over its websocket. Run `npm run dev:lan` so other devices can reach it, then open `http://<laptop-ip>:5173/notes`. This only works with the dev server, and it exposes the dev server on the network, so use it on a network you trust.
+
+## License
+
+[MIT](LICENSE).

@@ -70,7 +70,7 @@ Read the one file you need instead of searching. The files in `decks/shovelling-
 ```bash
 npm install
 npm run deck -- dev [deck]          # dev server, http://localhost:5173 (deck defaults to package.json "canPresent.deck")
-npm run deck -- dev example --port 5180   # extra args go to Vite (--port, --host, --open, --strictPort)
+npm run deck -- dev example --port 5180   # extra args go to Vite (--port, --host, --open [path], --strictPort)
 npm run deck -- lan [deck]          # dev server on the network
 npm run deck -- build [deck]        # → dist/<deck>/ (--base <name> for a subpath host, e.g. GitHub Pages; README "Hosting a build")
 npm run compile -- [deck]           # → dist/<deck>.html: the whole deck in one self-contained file (--out <file>; README "One file")

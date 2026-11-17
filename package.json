@@ -2,6 +2,7 @@
   "name": "shovelling-umbraco",
   "private": true,
   "version": "0.0.1",
+  "license": "MIT",
   "type": "module",
   "canPresent": {
     "deck": "shovelling-umbraco"

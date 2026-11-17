@@ -27,7 +27,7 @@ Commands:
   check [deck]      lint the deck (ids, steps, notes, layout, missing shots); --json for JSON
 
 [deck] is a folder in decks/ (default: package.json "canPresent.deck").
-Options for dev, lan and preview: --port <n>, --host [address], --open, --strictPort
+Options for dev, lan and preview: --port <n>, --host [address], --open [path], --strictPort
 Options for build and preview: --base /path/ (host the build under a subpath, e.g. /can-present/ on GitHub Pages)`
 
 function usage(msg) {
@@ -43,7 +43,7 @@ export function splitArgs(args) {
   return { deck, rest }
 }
 
-/** --port 5180 --host --open --strictPort → { port: 5180, host: true, open: true, strictPort: true } */
+/** --port 5180 --host --open --strictPort → { port: 5180, host: true, open: true, strictPort: true } (--open /#id/2 → open: '/#id/2') */
 function serverOptions(args) {
   const opts = {}
   for (let i = 0; i < args.length; i++) {
@@ -57,7 +57,7 @@ function serverOptions(args) {
         break
       }
       case '--host': opts.host = value() ?? true; break
-      case '--open': opts.open = true; break
+      case '--open': opts.open = value() ?? true; break // a path opens there: --open "/#scene-id/2"
       case '--strictPort': opts.strictPort = true; break
       default: usage(`Unknown option: ${args[i]}`)
     }
