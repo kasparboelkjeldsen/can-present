@@ -1,15 +1,23 @@
 {
   "name": "can-present",
-  "private": true,
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Talks on an infinite canvas, for Vue 3: every scene is a card, and the camera flies and zooms between them.",
   "license": "MIT",
   "type": "module",
-  "keywords": ["vue", "presentation", "slides", "deck", "infinite-canvas", "talk"],
+  "keywords": [
+    "vue",
+    "presentation",
+    "slides",
+    "deck",
+    "infinite-canvas",
+    "talk"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kasparboelkjeldsen/can-present.git"
   },
+  "homepage": "https://kasparboelkjeldsen.github.io/can-present/",
+  "bugs": "https://github.com/kasparboelkjeldsen/can-present/issues",
   "main": "./lib/can-present.js",
   "module": "./lib/can-present.js",
   "exports": {

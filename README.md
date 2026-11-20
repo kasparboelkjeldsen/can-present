@@ -4,6 +4,30 @@ A small Vue + Vite engine for talks on an infinite canvas: every scene is a 1920
 
 **Live demo: [kasparboelkjeldsen.github.io/can-present](https://kasparboelkjeldsen.github.io/can-present/)**, the example deck (`decks/example`), rebuilt on every push to `main`. Press → to move on, O for the overview; the speaker notes are at [`/notes`](https://kasparboelkjeldsen.github.io/can-present/notes/) and the whole deck on one page at [`?sheet`](https://kasparboelkjeldsen.github.io/can-present/?sheet).
 
+## In your own Vue app
+
+```bash
+npm install can-present
+```
+
+```vue
+<script setup>
+import { CanPresent } from 'can-present'
+import 'can-present/style.css'
+import deck from './talk/deck.js'
+</script>
+
+<template>
+  <CanPresent :deck="deck" />
+</template>
+```
+
+That's the npm package: a deck as a component in a Vue 3 page (a blog post, a docs site), 16:9 with a full-screen button, plus the building blocks its scenes are made of. A `deck.js` is a list of scenes, each a Vue component and a place on the canvas; ["Embedding a deck in a Vue app"](#embedding-a-deck-in-a-vue-app) has the props and what a deck looks like, and ["A deck as a file"](#a-deck-as-a-file-npm-run-pack-deck) how to play one that arrives as a single file.
+
+The rest of this README is about this repository: the engine's own page (a dev server with one deck filling the window, speaker notes, a presenter view) and the tooling for writing talks (`new-deck`, `check`, `compile`, `import-pptx`). None of that is in the package; clone the repo for it.
+
+## This repository
+
 The engine lives in `engine/` and knows nothing about any particular talk. Each talk is a folder under `decks/`.
 
 ```bash
@@ -560,7 +584,9 @@ import { nest, defineDiagram, ride, W, H } from 'can-present'                   
 - **Files in `public/`** are the host app's. If the app is hosted under a subpath, call `setAssetBase(import.meta.env.BASE_URL)` once, and `asset('/shots/x.png')` follows.
 - **Read the camera with `useCamera()`** (and the deck with `useDeck()`) in a component's setup. The `cam` exported by `@engine/cameraState.js` is the camera of the engine's own page, and an embedded deck doesn't move it.
 
-**The package.** `npm run build:lib` writes `lib/can-present.js` and `lib/can-present.css` (`vite.lib.config.js`): the engine without any deck and without the engine's own page (`engine/main.js`: deck picking, `/notes`, `?sheet`, the dev-server notes editor). Vue is a peer dependency; nothing else is needed at run time. `package.json` has the `exports`, `files` and `peerDependencies` for publishing and is still `"private": true`, so nothing is published by accident. To try it in another project before publishing: `npm pack` here, then `npm install ../can-present/can-present-0.0.1.tgz` there. Not in the package yet: the deck tooling (`new-deck`, `check`, `compile`, `pack-deck`, `import-pptx`) and TypeScript types.
+**The package.** `npm run build:lib` writes `lib/can-present.js` and `lib/can-present.css` (`vite.lib.config.js`): the engine without any deck and without the engine's own page (`engine/main.js`: deck picking, `/notes`, `?sheet`, the dev-server notes editor). Vue is a peer dependency; nothing else is needed at run time. `package.json` has the `exports`, `files` and `peerDependencies`; the package holds `lib/`, this README and the license, nothing else.
+
+Publishing is by hand, from this folder (no automation): `npm version patch` (or `minor`, when something in `engine/index.js` changes: packed deck files depend on that list), `npm publish --dry-run` to see what would go up, `npm publish` (it builds `lib/` first; you need to be logged in with `npm login`), then `git push --follow-tags`. A published version number can't be used again. To try a build in another project without publishing: `npm pack` here, then `npm install <path to the .tgz>` there. Not in the package yet: the deck tooling (`new-deck`, `check`, `compile`, `pack-deck`, `import-pptx`) and TypeScript types.
 
 ## A deck as a file: `npm run pack-deck`
 
