@@ -12,8 +12,10 @@ npm run dev                      # default deck, http://localhost:5173
 npm run deck -- dev example      # any deck (see "Choosing a deck")
 npm run check -- example         # lint a deck (see "Checking a deck")
 npm run compile -- example       # the whole deck in one HTML file (see "One file")
+npm run pack-deck -- example     # the deck as one file without the engine, to play in another page (see "A deck as a file")
 npm run new-deck -- my-talk      # start a new deck (see "Make a new deck")
 npm run import-pptx -- talk.pptx # read a PowerPoint into a draft deck (see "From a PowerPoint")
+npm run embed                    # a deck inside another Vue app (see "Embedding a deck in a Vue app")
 ```
 
 http://localhost:5173/?sheet shows the whole deck on one page with a text-size audit (see "The sheet").
@@ -26,7 +28,7 @@ http://localhost:5173/?sheet shows the whole deck on one page with a text-size a
 | ← / ↑ / PageUp / Backspace | back |
 | O or 0 | overview (click a scene to jump to it) |
 | P | presenter window (synced: current and next scene, notes, timer) |
-| F | fullscreen |
+| F | fullscreen (an embedded deck: just the deck) |
 | B or . | blackout |
 | X | jump to the fallback scene (`skip: true`, stepped over in normal navigation) |
 | R | reset: every window back to the first scene, blackout off, live sites reloaded, presenter timer zeroed. Also a ↺ Reset button (deck: top-right while the mouse moves; /notes: header; presenter: controls) |
@@ -51,6 +53,7 @@ npm run deck -- lan [deck]        # dev server on the network (--host)
 npm run deck -- build [deck]      # → dist/<deck>/  (--base <name>: for a subpath, see "Hosting a build")
 npm run deck -- preview [deck]    # serve the build (same --base as the build)
 npm run deck -- compile [deck]    # → dist/<deck>.html, one self-contained file (see "One file")
+npm run deck -- pack [deck]       # → dist/<deck>.canpresent, the deck without the engine (see "A deck as a file")
 npm run deck -- check [deck]      # lint it (see "Checking a deck")
 ```
 
@@ -85,26 +88,32 @@ The same works for `npm run build` (output goes to `dist/<deck>/`), `npm run pre
 
 ```
 engine/                     the engine (talk-agnostic)
-  main.js                   entry: picks the deck view, /notes, ?sheet or ?presenter; sets title and favicon from the deck
-  App.vue                   the canvas, camera, overview, progress bar
+  main.js                   the engine's own page: one deck filling the window. Picks the deck view, /notes, ?sheet or ?presenter; sets title and favicon from the deck
+  index.js CanPresent.vue   the package: <CanPresent>, a deck as a component in another Vue app, and everything a scene imports (see "Embedding a deck in a Vue app")
+  play.js CanPresentPlayer.vue   loadDeck() and <CanPresentPlayer src>: playing a deck file (see "A deck as a file")
+  App.vue                   the canvas, camera, overview, progress bar. Draws the deck round it, fitted into the box it's in
   Presenter.vue Notes.vue   ?presenter and /notes
   Sheet.vue                 ?sheet: every scene in a grid, with the text-size/overflow audit
-  useDeck.js                shared state, keys, URL hash, sync between windows
+  useDeck.js                createDeck(): one deck's state, keys, URL hash, sync between windows; useDeck() reads it in a component
   useStep.js Step.vue       build steps inside a scene
   useCount.js               animated numbers
   camera.js layout.js       camera maths; nest(), the ghost "covers the canvas" placement and the outer layers' placeOuter()
   ride.js RidePill.vue      `via` rides: a flight that follows a path with a pill at the centre of the screen
-  cameraState.js frames.js  the shared camera (a scene's `zoom`); `frames`: per build step, the camera shows a box of the card
+  cameraState.js frames.js  the camera (useCamera(), a scene's `zoom`); `frames`: per build step, the camera shows a box of the card
   formation.js              `formation`: while a scene is on stage, the other cards leave their places and gather round it
   hand.js                   `hand`: the flight into a scene folds the deck into a hand of cards and draws that one out
   flip.js                   `back` / `flip`: a scene on the back of a card, which turns over to show it
-  notes.js signals.js asset.js   asset(): public-folder paths with the build's base (subpath hosting), or inlined in one-file builds
+  notes.js asset.js         the deck's notes.json (the engine's own page); asset(): public-folder paths with the build's base (subpath hosting), or inlined in one-file builds
   SceneFrame.vue ScenePreview.vue
   components/Code.vue Shot.vue BigNumber.vue Diagram.vue Detail.vue QrCode.vue
   diagram.js                defineDiagram(): a <Diagram>'s nodes, edges, packets and slots, shared with deck.js; ride()
-  styles/engine.css         base styles, <Step> and .rise/.fade-in animations, engine tokens with defaults
+  styles/engine.css         <Step> and .rise/.fade-in animations, engine tokens with defaults, the <CanPresent> box. Only matches inside a deck
+  styles/page.css           the engine's own page: the deck owns the document
   vite.js                   deck selection, the dev-server plugins and notes/index.html in builds (used by vite.config.js)
 .github/workflows/pages.yml the example deck on GitHub Pages (see "Hosting a build")
+examples/
+  embed/                    a blog post with decks in it: can-present as a package in another Vue app, and a deck played from a file (npm run embed)
+vite.lib.config.js          npm run build:lib: the package build, engine/index.js → lib/
 decks/
   shovelling-umbraco/       Umbraco Meetup, 22 Oct 2026
     deck.js                 export default { id, title, icon, scenes }
@@ -125,6 +134,7 @@ docs/
 scripts/
   deck.mjs                  npm run deck: dev / lan / build / preview / compile / check for any deck
   compile.mjs               npm run compile: a deck as one self-contained HTML file
+  pack.mjs                  npm run pack-deck: a deck as one .canpresent file without the engine, for a page that has can-present
   check.mjs                 npm run check: the deck lint
   new-deck.mjs              npm run new-deck: scaffold a deck, optionally from a scene description and on a brand kit
   import-pptx.mjs           npm run import-pptx: a .pptx → renders, slides.md, media, a draft scene description
@@ -132,7 +142,7 @@ AGENTS.md                   rules and orientation for coding agents (CLAUDE.md p
 .agents/skills/             agent skills: write-talk, build-deck (.claude/skills/ has stubs pointing here)
 ```
 
-Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engine/Step.vue'`) and brand kits through `@brands/…`. The engine reaches the active deck only through `@deck/deck.js`.
+Scenes import engine pieces through `@engine/…` (e.g. `import Step from '@engine/Step.vue'`) and brand kits through `@brands/…`. The engine reaches the active deck only through `@deck/deck.js`, and only in `engine/main.js`, its own page: everything else is handed the deck (`createDeck(deck)`), which is what lets `<CanPresent :deck>` put one in another app.
 
 ## Make a new deck
 
@@ -150,7 +160,7 @@ With `--from`, it reads a scene description in the format of `docs/presentation-
 
 With `--brand <name>`, the deck is built on `brands/<name>/` (see "Brand kits"): `deck.js` imports `'@brands/<name>'` before its own `theme.css`, which starts empty, the stub scenes use the brand's slide variants (`brand.json` maps dark / light / accent to them, e.g. `slide--sand` for light), and `brief.md` points at the brand's README for the visual language.
 
-Then run it with `npm run deck -- dev <id>`, or make it the default in `package.json`. You can also copy `decks/example` by hand: it has one small, commented scene per building block (cards, big number, code, diagram with a nested scene and rides along its wires, screenshots, live site, looping SVG, a "powers of ten" zoom, a card that turns over to show its back, a QR code, ghost takeaway, fallback, a finale where the deck rearranges itself, and two outer layers where the talk turns out to be the dot on an i), so it's also the place to copy a scene from.
+Then run it with `npm run deck -- dev <id>`, or make it the default in `package.json`. You can also copy `decks/example` by hand: it has one small, commented scene per building block (cards, big number, code, diagram with a nested scene and rides along its wires, screenshots, live site, looping SVG, a "powers of ten" zoom, a card that turns over to show its back, two about the tooling round the engine (the files an agent reads, the commands), a QR code, ghost takeaway, fallback, a finale where the deck rearranges itself, and two outer layers where the talk turns out to be the dot on an i), so it's also the place to copy a scene from.
 
 `deck.js` imports the deck's own CSS and fonts. `theme.css` defines the look of a `.slide` and sets the engine tokens (all optional, defaults in `engine/styles/engine.css`):
 
@@ -480,7 +490,7 @@ About 1.5 s after it loads, the sheet audits every tile: text smaller than 26px,
   | `over` | in the camera's world, over the cards | something that travels between cards without being re-created (e.g. one live iframe that lands on a box of whichever card is on stage) |
   | `stage` | fixed on the 1920×1080 stage, over the world, under the deck's chrome | screen effects: vignette, grain, writing a CSS variable onto `:root` |
 
-  A layer component can use `useDeck()` (scenes, `idx`, `step`, `overview`) and the shared camera (`cam` from `@engine/cameraState.js`), but then **load it lazily** (`defineAsyncComponent`, as above): `useDeck.js` imports `deck.js`, so a static import would be circular. It has no `useStep()` (it isn't in a scene). Only the deck window renders layers: not the presenter view, `/notes` or `?sheet`. Layers are drawn as they are; nothing in the engine moves, hides or fades them for overview, formations or hands.
+  A layer component can use `useDeck()` (scenes, `idx`, `step`, `overview`) and the camera (`useCamera()` from `@engine/cameraState.js`; both in the component's setup). It has no `useStep()` (it isn't in a scene). Only the deck window renders layers: not the presenter view, `/notes` or `?sheet`. Layers are drawn as they are; nothing in the engine moves, hides or fades them for overview, formations or hands.
 - `@engine/useCount.js`: `useCount(trigger, from, to, { duration, delay, decimals })` returns a ref with an animated number that re-runs whenever `trigger` (a ref or getter, e.g. the scene's `active`) becomes true. `useCounter(…)` takes the same arguments and returns `{ value, progress }`, with `progress` the eased 0…1 of the run (what `<BigNumber>`'s ring follows).
 - `docs/presentation-guide.md` plus the deck's `brief.md`: hand both to Claude chat when writing a talk; it produces a `scene-description.md` for the coding agent.
 
@@ -493,6 +503,111 @@ To edit, press **E** (or ✎ Edit) on `/notes` while running `npm run dev`: the 
 `/notes` and `?presenter` follow the deck in both directions, so arrow keys or the clicker on them move the deck too:
 - **Same browser:** BroadcastChannel. This also works in the built version.
 - **Other device (phone or tablet):** the dev server relays messages over its websocket. Run `npm run dev:lan` so other devices can reach it, then open `http://<laptop-ip>:5173/notes`. This only works with the dev server, and it exposes the dev server on the network, so use it on a network you trust.
+
+## Embedding a deck in a Vue app
+
+A deck can also run inside another Vue 3 app, as a component in the page: a blog post, a docs site, a product page. That's `<CanPresent>`, from the package build of the engine (`engine/index.js` → `lib/`).
+
+```vue
+<script setup>
+import { CanPresent } from 'can-present'
+import 'can-present/style.css'
+import deck from './talk/deck.js'
+</script>
+
+<template>
+  <CanPresent :deck="deck" />
+</template>
+```
+
+`npm run embed` runs the example, [`examples/embed/`](examples/embed/): a blog post with two decks in it and a third played from a deck file (see "A deck as a file"), built on the package build (`EMBED_FROM=source` runs it on `engine/` directly, with hot reload).
+
+**The box.** Without a height of its own the component is as wide as its container and 16:9. Give it any size (a class or a style on the component) and the 1920×1080 stage is fitted inside, centred, with the canvas round it: the card never changes shape. `ratio="4 / 3"` changes the default box.
+
+**Full screen.** The ⛶ control (or F) takes just the deck full screen, where the stage is refitted to the screen. Where the browser has no full screen for an element (iPhone), or doesn't answer, the deck fills the window instead; Esc or the same control leaves it.
+
+**It keeps to itself.** Each `<CanPresent>` is its own deck: place, camera, keys. A page can hold several, even of the same `deck.js`. Arrow keys, Space and the other deck keys only work while the keyboard is in the deck (click it or tab to it), so they scroll the page the rest of the time. A swipe only counts on the deck. The URL hash isn't touched. The engine's styles only match inside a deck.
+
+| Prop | Default | |
+|---|---|---|
+| `deck` | required | a `deck.js` default export. Read once: to swap decks in place, give the component a `:key` |
+| `v-model:scene` | first scene | the id of the scene on stage |
+| `v-model:step` | 0 | its build step |
+| `keys` | `'focus'` | `'focus'`: keys while the keyboard is in the deck. `'global'`: always (one deck, on a page of its own). `false`: none |
+| `swipe` | `true` | swipe left / right on the deck |
+| `chrome` | `true` | `false`: nothing round the stage. Or which parts: `{ controls, progress, counter, reset, hint }` (embedded default: the controls and the progress bar) |
+| `ratio` | `16 / 9` | the box's shape while it has no height |
+| `hash` | `false` | keep the place in the URL hash, for a deck with a page of its own |
+| `sync` | `false` | `true` or a channel name: follow and drive the same deck in other windows (BroadcastChannel) |
+| `relay` | none | `{ send(msg), on(fn) }`: carry the same messages to other devices over a transport of yours |
+| `notes` | `deck.notes` | speaker notes, `{ [sceneId]: text }` (e.g. `import notes from './notes.json'`) |
+| `view` | `'deck'` | `'presenter'` or `'notes'`: the other two screens. They fill the page, so give them a route of their own, with the same `sync` as the deck |
+| `presenterUrl` | none | P opens this URL in a window (your route with `view="presenter"`) |
+
+Events: `change` (`{ scene, index, step }`), `fullscreen` (`true` / `false`). On a template ref: `next()`, `prev()`, `go('scene-id' | index, step)`, `reset()`, `toggleFullscreen()`, `toggleOverview()`, and `deck`, the deck context itself.
+
+**Writing a deck for another app.** The same `deck.js`, scenes and building blocks, imported from the package instead of `@engine/…`:
+
+```js
+import { Step, Code, Shot, BigNumber, Detail, Diagram, QrCode } from 'can-present'   // building blocks
+import { useStep, useDeck, useCamera, useCount, asset } from 'can-present'            // inside a scene
+import { nest, defineDiagram, ride, W, H } from 'can-present'                         // in deck.js
+```
+
+(In this repo the alias `can-present` points at `engine/index.js`, so a deck here may be written either way.) Three things differ from a deck that owns the page:
+
+- **The theme keeps to the deck's box.** `<CanPresent>` puts the deck's id on its box (`data-deck`), so nest the whole theme under `.can-present[data-deck='<id>']`: the tokens there instead of on `:root`, and `.slide`, `.card` and the rest inside it (`examples/embed/talk/theme.css`). Then nothing of it applies to the page round the deck, or to another deck on the same page. (A deck file gets this done when it's packed.)
+- **Files in `public/`** are the host app's. If the app is hosted under a subpath, call `setAssetBase(import.meta.env.BASE_URL)` once, and `asset('/shots/x.png')` follows.
+- **Read the camera with `useCamera()`** (and the deck with `useDeck()`) in a component's setup. The `cam` exported by `@engine/cameraState.js` is the camera of the engine's own page, and an embedded deck doesn't move it.
+
+**The package.** `npm run build:lib` writes `lib/can-present.js` and `lib/can-present.css` (`vite.lib.config.js`): the engine without any deck and without the engine's own page (`engine/main.js`: deck picking, `/notes`, `?sheet`, the dev-server notes editor). Vue is a peer dependency; nothing else is needed at run time. `package.json` has the `exports`, `files` and `peerDependencies` for publishing and is still `"private": true`, so nothing is published by accident. To try it in another project before publishing: `npm pack` here, then `npm install ../can-present/can-present-0.0.1.tgz` there. Not in the package yet: the deck tooling (`new-deck`, `check`, `compile`, `pack-deck`, `import-pptx`) and TypeScript types.
+
+## A deck as a file: `npm run pack-deck`
+
+```bash
+npm run pack-deck -- example                 # → dist/example.canpresent
+npm run pack-deck -- example --out talk.canpresent
+```
+
+Packs a deck into one file **without the engine in it**: the deck to play, for a page that already has can-present installed (see "Embedding a deck in a Vue app"). It's the counterpart of `compile`, which makes a whole page with the engine inside. The example deck is 43 kB packed, against 0.2 MB compiled.
+
+The page plays it with `<CanPresentPlayer>`, which takes everything `<CanPresent>` does, plus `src`:
+
+```vue
+<script setup>
+import { CanPresentPlayer } from 'can-present'
+import 'can-present/style.css'
+</script>
+
+<template>
+  <CanPresentPlayer src="/talks/my-talk.canpresent">
+    <template #loading>Loading…</template>
+    <template #error="{ error }">Couldn't play this deck: {{ error.message }}</template>
+  </CanPresentPlayer>
+</template>
+```
+
+`src` is a URL, a `Blob` / `File` (a file input, a drop), the file's text, or its parsed JSON. The box is in the page from the start (16:9, or the size you give it), so nothing jumps when the deck arrives. Events `load` (the deck) and `error`. To do the loading yourself: `const deck = await loadDeck(src)`, then `<CanPresent :deck="deck" />`. `npm run embed` plays the packed example deck in its blog post; `?file=<name>` there plays `examples/embed/public/<name>.canpresent`.
+
+The file is JSON (so on a host that only serves file types it knows, name it `.json`: the player doesn't mind):
+
+| Field | |
+|---|---|
+| `format`, `version` | `"can-present-deck"`, `1` |
+| `id`, `title` | the deck's |
+| `engine`, `vue` | the versions it was packed with. The player warns in the console when its own engine differs |
+| `notes` | the speaker notes, `{ [sceneId]: text }` |
+| `css` | the theme, the scenes' styles and the fonts (as data: URLs), **scoped to the deck's own box** with `@scope`: `:root` in a theme becomes the box, and `.slide`, `.card` and the rest don't exist outside it. So an ordinary deck from `decks/` packs as it is, and leaves the page round it alone |
+| `files` | the deck's `public/` folder as data: URLs, `{ "/shots/x.png": "data:…" }`. `asset()`, `<Shot src>`, a plain `<img src="/shots/x.png">` and a `url(/assets/x.svg)` in the CSS all get them |
+| `code` | `deck.js` and everything it imports, as one script, with Vue and the engine left out: the player hands it its own |
+
+Know before you use it:
+
+- **A deck file is a program, not a document.** Its scenes are Vue components, so playing one runs its code in the page (with `new Function`). Only play files you would also load as a script: yours, not a stranger's upload. A page whose Content-Security-Policy forbids `unsafe-eval` can't play them; there, import the deck's source and use `<CanPresent :deck>`.
+- **It's tied to the package's exports.** A packed deck can use what `engine/index.js` exports, and its `@engine/<file>` imports are pointed at those names. A deck that imports an engine file or a name that isn't in there (e.g. `cam` from `@engine/cameraState.js`: use `useCamera()`) fails to pack, with the import named. A player that lacks a name the deck needs says so when it loads the file.
+- **What can't come along:** a dev-server proxy (`decks/<deck>/vite.config.js`), and anything else that needs this repo's dev server. Live sites (`<Shot live>`) work if the visitor's browser can reach them.
+- `@scope` is recent CSS (Firefox was the last of the big browsers to get it). In a browser without it the deck plays unstyled.
+- `asset()` called outside a component (a plain module) can't tell which deck is asking: with two played decks that both have a `/shots/x.png`, the first one loaded wins there.
 
 ## License
 

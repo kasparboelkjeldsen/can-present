@@ -26,7 +26,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import qrcode from 'qrcode-generator'
 import { useStep } from '../useStep.js'
-import { cam } from '../cameraState.js'
+import { useCamera } from '../cameraState.js'
 
 const props = defineProps({
   url: { type: String, required: true },
@@ -118,7 +118,8 @@ watch(playing, (on) => {
   quietTimer = setTimeout(land, STILL)
   maxTimer = setTimeout(land, MAX_WAIT)
 }, { immediate: true })
-// the camera is only watched while waiting to land
+// the camera (this deck's) is only watched while waiting to land
+const cam = useCamera()
 watch(() => (playing.value && !landed.value ? `${cam.x} ${cam.y} ${cam.w} ${cam.r}` : null), (v) => {
   if (v == null) return
   clearTimeout(quietTimer)

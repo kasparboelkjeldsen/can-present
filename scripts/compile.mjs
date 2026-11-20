@@ -24,7 +24,7 @@ const MIME = {
 const dataUrl = (file) => `data:${MIME[path.extname(file).toLowerCase()] ?? 'application/octet-stream'};base64,${fs.readFileSync(file).toString('base64')}`
 
 /** Every file in public/ (dotfiles skipped), as { '/shots/x.png': 'data:…' }. */
-function publicFiles(dir) {
+export function publicFiles(dir) {
   const out = {}
   const walk = (d) => {
     if (!fs.existsSync(d)) return
@@ -38,6 +38,10 @@ function publicFiles(dir) {
   walk(dir)
   return out
 }
+
+// fontsource ships woff2 with a woff fallback; every current browser takes the woff2, so the
+// fallback would only double the font weight of the file
+export const dropWoff = (css) => css.replace(/,\s*url\((['"]?)data:[^;'")]*woff;base64,[^'")]*\1\)\s*format\((['"]?)woff\2\)/g, '')
 
 // Inline <script>/<style> content must not close its own tag early; JSON gets every < escaped.
 const safeJs = (code) => code.replace(/<\/(script)/gi, '<\\/$1')
@@ -81,10 +85,6 @@ export async function compile(deck, { configFile, out } = {}) {
       const key = '/' + ref.replace(/^(\.\.?\/)+|^\//, '')
       return files[key] ? `url(${q}${files[key]}${q})` : m
     })
-  // fontsource ships woff2 with a woff fallback; every current browser takes the woff2, so the
-  // fallback would only double the font weight of the file
-  const dropWoff = (css) => css.replace(/,\s*url\((['"]?)data:[^;'")]*woff;base64,[^'")]*\1\)\s*format\((['"]?)woff\2\)/g, '')
-
   let html = text(page)
   html = html.replace(/<script\b[^>]*\bsrc="([^"]+)"[^>]*><\/script>/g, (m, src) => {
     const o = byName.get(src.replace(/^\.?\//, ''))

@@ -6,6 +6,7 @@
 //   npm run deck -- build [deck] [--base /repo/]   (--base: host the build under a subpath, e.g. GitHub Pages)
 //   npm run deck -- preview [deck] [--port 4180] [--base /repo/]
 //   npm run deck -- compile [deck] [--out file.html]   the whole deck in one HTML file (scripts/compile.mjs)
+//   npm run deck -- pack [deck] [--out file.canpresent]   the deck without the engine, for a page with can-present in it (scripts/pack.mjs)
 //   npm run deck -- check [deck] [--json]   text lint of a deck (scripts/check.mjs)
 //
 // [deck] defaults to package.json "canPresent.deck". It sets DECK and drives Vite through its
@@ -14,7 +15,7 @@ import path from 'node:path'
 import { createServer, build, preview } from 'vite'
 import { ROOT, resolveDeck } from '../engine/vite.js'
 
-const COMMANDS = ['dev', 'lan', 'build', 'preview', 'compile']
+const COMMANDS = ['dev', 'lan', 'build', 'preview', 'compile', 'pack']
 
 const USAGE = `Usage: npm run deck -- <command> [deck] [options]
 
@@ -24,6 +25,7 @@ Commands:
   build [deck]      production build → dist/<deck>/
   preview [deck]    serve the production build
   compile [deck]    the whole deck in one self-contained HTML file → dist/<deck>.html (--out <file>)
+  pack [deck]       the deck as one file without the engine, to play in a page that has can-present → dist/<deck>.canpresent (--out <file>)
   check [deck]      lint the deck (ids, steps, notes, layout, missing shots); --json for JSON
 
 [deck] is a folder in decks/ (default: package.json "canPresent.deck").
@@ -118,16 +120,21 @@ async function main(argv) {
     process.exit(1)
   }
 
-  if (command === 'compile') {
+  if (command === 'compile' || command === 'pack') {
     const i = rest.findIndex((a) => a === '--out' || a.startsWith('--out='))
     let out
     if (i >= 0) {
       const [flag, inline] = rest[i].split('=')
       out = inline ?? rest[i + 1]
-      if (!out || out.startsWith('-')) usage(`${flag} needs a file name, e.g. --out talk.html`)
+      if (!out || out.startsWith('-')) usage(`${flag} needs a file name, e.g. --out talk.${command === 'pack' ? 'canpresent' : 'html'}`)
       rest.splice(i, inline == null ? 2 : 1)
     }
-    if (rest.length) usage(`compile takes only --out (got ${rest.join(' ')})`)
+    if (rest.length) usage(`${command} takes only --out (got ${rest.join(' ')})`)
+    if (command === 'pack') {
+      const { pack } = await import('./pack.mjs')
+      await pack(deck, { out })
+      return
+    }
     const { compile } = await import('./compile.mjs')
     await compile(deck, { configFile, out })
     return

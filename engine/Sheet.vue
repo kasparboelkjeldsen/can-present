@@ -11,11 +11,15 @@
 // (readable with get_page_text), window.__deckAudit and console.table.
 // Mark engine chrome that is small on purpose with data-audit="ignore".
 //
-// Deliberately doesn't import useDeck.js (keys, URL hash, window sync): only the deck itself.
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
-import deck from '@deck/deck.js'
+// Its deck context is a quiet one: no keys, no URL hash, no window sync. It's there for scenes
+// and deck components that ask for the deck (useDeck()); it stays on the first scene.
+import { ref, computed, provide, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { createDeck, DECK_KEY } from './useDeck.js'
 import SceneFrame from './SceneFrame.vue'
 import { validateFrames, normalizeFrames, frameAt } from './frames.js'
+
+const { deck } = defineProps({ deck: { type: Object, required: true } })
+provide(DECK_KEY, createDeck(deck))
 
 const W = 1920
 const H = 1080

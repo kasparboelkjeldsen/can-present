@@ -1,16 +1,26 @@
 <script setup>
 import { ref, shallowRef, reactive, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
-import { useDeck, stepFor, nestedVisible, outerVisible, flips } from './useDeck.js'
+import { useDeck } from './useDeck.js'
 import { talkBounds } from './layout.js'
 import { interpolateZoom, easeInOutCubic, shortestAngle } from './camera.js'
-import { cam } from './cameraState.js'
 import { validateVia, sampleVia, planRide } from './ride.js'
 import { validateFrames, normalizeFrames, frameAt, frameView } from './frames.js'
 import { formationProblems, planFormation, formationTransforms, formationTiming, SPRING, SPRING_FALLBACK } from './formation.js'
 import { handProblems, planHand } from './hand.js'
 import SceneFrame from './SceneFrame.vue'
 import RidePill from './RidePill.vue'
-import deck from '@deck/deck.js'
+
+// The deck canvas: the stage, the camera and every card. It draws the deck round it (useDeck.js):
+// the engine's own page provides one app-wide (main.js), <CanPresent> one per component. It fills
+// the box it's in and fits the 1920×1080 stage inside, whatever the box's shape.
+const ctx = useDeck()
+const {
+  deck, scenes, idx, step, overview, blackout, cam, flips, go, next, prev, maxStep, prevIndex, reset,
+  stepFor, nestedVisible, outerVisible, atStart, atEnd, fullscreen, toggleFullscreen, embedded,
+} = ctx
+// which parts of the UI round the stage are drawn. The page's own deck: all but the controls, which
+// are for a deck in someone else's page (<CanPresent>, where the mouse and a finger need buttons)
+const chrome = { progress: true, counter: true, reset: true, hint: true, controls: false, ...ctx.chrome }
 
 // `layers` in deck.js: the deck's own components in the camera's world, under or over the cards
 // (canvas decor, a surface that travels between cards), or fixed on the stage over everything.
@@ -18,7 +28,6 @@ const layers = deck.layers ?? {}
 
 const W = 1920
 const H = 1080
-const { scenes, idx, step, overview, blackout, go, maxStep, prevIndex, reset } = useDeck()
 
 // ---------- world placement ----------
 const place = (sc) => ({ x: sc.at?.x ?? 0, y: sc.at?.y ?? 0, s: sc.at?.s ?? 1, r: sc.at?.r ?? 0 })
@@ -250,7 +259,7 @@ function formationMove(t) {
     // A transition starts from the card's style without its animations, i.e. from the unspun ring.
     // So first freeze the orbit where it is: stop the animation and write its current angle inline
     // (instantly, mode 'cut'), let the browser take that in, and only then send the cards home.
-    const el = document.querySelector('.scene.fx-spin')
+    const el = viewport.value?.querySelector('.scene.fx-spin')
     const angle = el ? getComputedStyle(el).getPropertyValue('--fx-spin').trim() : ''
     Object.assign(formation, { spin: false, hold: angle || null, mode: 'cut' })
     nextTick(() => {
@@ -624,31 +633,39 @@ const fxClass = (i) => {
   return null
 }
 
-// ---------- fit 1920x1080 stage into the window ----------
+// ---------- fit the 1920x1080 stage into the box (the window, for the page's own deck) ----------
+const viewport = ref(null)
 const fit = ref(1)
-const resize = () => { fit.value = Math.min(innerWidth / W, innerHeight / H) }
+const resize = () => {
+  const el = viewport.value
+  if (el?.clientWidth && el.clientHeight) fit.value = Math.min(el.clientWidth / W, el.clientHeight / H)
+}
+let fitObserver
 
 // ---------- chrome: hint, idle cursor ----------
 const showHint = ref(true)
 const idle = ref(false)
-let idleTimer
+let idleTimer, hintTimer, viaTimer
 const poke = () => { idle.value = false; clearTimeout(idleTimer); idleTimer = setTimeout(() => (idle.value = true), 2000) }
 
 onMounted(() => {
   resize()
-  addEventListener('resize', resize)
-  addEventListener('mousemove', poke)
-  setTimeout(() => (showHint.value = false), 5000)
+  // the box changes size with the window, with the page's layout, and when it goes fullscreen
+  fitObserver = new ResizeObserver(resize)
+  fitObserver.observe(viewport.value)
+  hintTimer = setTimeout(() => (showHint.value = false), 5000)
   poke()
   // measure the ride paths now, so the first ride doesn't spend its first frame on it
-  setTimeout(() => scenes.forEach((sc, i) => {
+  viaTimer = setTimeout(() => scenes.forEach((sc, i) => {
     if (!validVia[i]) return
     try { sampleVia(sc.via); sampleVia(sc.via, true) } catch (e) { console.warn(`[can-present] scene "${sc.id}": via path:`, e) }
   }), 300)
 })
+// an embedded deck can leave the page while it's mid-flight
 onBeforeUnmount(() => {
-  removeEventListener('resize', resize)
-  removeEventListener('mousemove', poke)
+  fitObserver?.disconnect()
+  cancelAnimationFrame(raf)
+  for (const t of [idleTimer, hintTimer, viaTimer, fxTimer, fadeTimer, handTimer, leaveTimer]) clearTimeout(t)
 })
 
 const progress = computed(() => {
@@ -666,7 +683,7 @@ function pick(i) {
 </script>
 
 <template>
-  <div class="viewport" :class="{ idle, overview }">
+  <div ref="viewport" class="viewport cp-canvas" :class="{ idle, overview, 'is-embedded': embedded }" @mousemove="poke">
     <div class="stage" :style="{ transform: `translate(-50%, -50%) scale(${fit})` }">
       <div class="grid" :style="gridStyle" />
       <div class="world" :class="{ 'quick-fade': quickFade }" :style="[worldStyle, fxWorldVars, quickFade ? { '--quick-fade': quickFade + 'ms' } : null]">
@@ -708,15 +725,28 @@ function pick(i) {
       </div>
       <component :is="layers.stage" v-if="layers.stage" />
 
-      <div class="progress" :style="{ transform: `scaleX(${progress})` }" />
-      <button class="reset" title="Back to the start in every window, reload live sites (R)" @click="reset">↺ Reset</button>
-      <div class="counter">{{ idx + 1 }} / {{ scenes.length }}</div>
+      <div v-if="chrome.progress" class="progress" :style="{ transform: `scaleX(${progress})` }" />
+      <button v-if="chrome.reset" class="reset" title="Back to the start in every window, reload live sites (R)" @click="reset">↺ Reset</button>
+      <div v-if="chrome.counter" class="counter">{{ idx + 1 }} / {{ scenes.length }}</div>
       <Transition name="hint">
-        <div v-if="showHint" class="hint">
+        <div v-if="chrome.hint && showHint" class="hint">
           <kbd>→</kbd> next <kbd>←</kbd> back <kbd>O</kbd> overview <kbd>P</kbd> presenter <kbd>F</kbd> fullscreen <kbd>B</kbd> blackout <kbd>R</kbd> reset
         </div>
       </Transition>
       <div class="blackout" :class="{ on: blackout }" />
+    </div>
+    <!-- for a deck in someone else's page: drawn on the box in real pixels, not scaled with the stage -->
+    <div v-if="chrome.controls" class="controls" @click.stop>
+      <button type="button" title="Back" aria-label="Back" :disabled="atStart" @click="overview = false; prev()">‹</button>
+      <span class="at">{{ idx + 1 }} / {{ scenes.length }}</span>
+      <button type="button" title="Next" aria-label="Next" :disabled="atEnd" @click="overview = false; next()">›</button>
+      <button type="button" title="Overview (O)" aria-label="Overview" :class="{ on: overview }" @click="overview = !overview">
+        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z" /></svg>
+      </button>
+      <button type="button" :title="fullscreen ? 'Leave full screen (F)' : 'Full screen (F)'" :aria-label="fullscreen ? 'Leave full screen' : 'Full screen'" @click="toggleFullscreen">
+        <svg v-if="!fullscreen" viewBox="0 0 16 16" aria-hidden="true"><path class="line" d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" /></svg>
+        <svg v-else viewBox="0 0 16 16" aria-hidden="true"><path class="line" d="M6 2v4H2M14 6h-4V2M10 14v-4h4M2 10h4v4" /></svg>
+      </button>
     </div>
   </div>
 </template>
@@ -730,6 +760,7 @@ function pick(i) {
     radial-gradient(1200px 800px at 20% 10%, rgba(255, 255, 255, 0.06), transparent 70%),
     var(--deck-canvas);
 }
+.viewport.is-embedded { position: absolute; }
 .viewport.idle { cursor: none; }
 
 .stage {
@@ -962,6 +993,49 @@ function pick(i) {
   z-index: 20;
 }
 .blackout.on { opacity: 1; }
+
+/* the controls of an embedded deck: they show while the mouse moves over it or the keyboard is in
+   it, and always where there's no mouse to move */
+.controls {
+  position: absolute;
+  right: 10px;
+  bottom: 14px;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--deck-ink) 88%, transparent);
+  color: var(--deck-paper);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  font: 600 13px/1 var(--sans);
+  cursor: default;
+  transition: opacity 0.3s;
+}
+.viewport.idle .controls:not(:focus-within) { opacity: 0; pointer-events: none; }
+@media (hover: none) {
+  .viewport.idle .controls:not(:focus-within) { opacity: 1; pointer-events: auto; }
+}
+.controls button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: inherit;
+  font: 600 22px/1 var(--sans);
+  cursor: pointer;
+}
+.controls button:hover:not(:disabled), .controls button.on { background: var(--deck-accent); color: var(--deck-on-accent); }
+.controls button:focus-visible { outline: 2px solid var(--deck-accent); outline-offset: 1px; }
+.controls button:disabled { opacity: 0.35; cursor: default; }
+.controls svg { width: 16px; height: 16px; fill: currentColor; }
+.controls svg .line { fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.controls .at { min-width: 52px; padding: 0 4px; text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
 </style>
 
 <style>

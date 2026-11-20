@@ -1,11 +1,9 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck } from './useDeck.js'
-import { notes } from './notes.js'
 import ScenePreview from './ScenePreview.vue'
 
-const { scenes, idx, step, current, maxStep, next, prev, blackout, nextIndex, reset, resets } = useDeck()
-document.title = '🎤 Presenter — ' + document.title
+const { scenes, idx, step, current, maxStep, next, prev, blackout, nextIndex, reset, resets, notes } = useDeck()
 
 const nextView = computed(() => {
   if (step.value < maxStep(idx.value)) return { scene: current.value, step: step.value + 1 }
@@ -18,8 +16,17 @@ const notesText = computed(() => notes[current.value.id] || '—')
 const started = ref(null)
 const now = ref(Date.now())
 let tick
-onMounted(() => { tick = setInterval(() => (now.value = Date.now()), 500) })
-onBeforeUnmount(() => clearInterval(tick))
+const onKey = (e) => {
+  if (!started.value && ['ArrowRight', 'PageDown', ' '].includes(e.key)) started.value = Date.now()
+}
+onMounted(() => {
+  tick = setInterval(() => (now.value = Date.now()), 500)
+  addEventListener('keydown', onKey)
+})
+onBeforeUnmount(() => {
+  clearInterval(tick)
+  removeEventListener('keydown', onKey)
+})
 const fmt = (ms) => {
   const s = Math.floor(ms / 1000)
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`
@@ -30,9 +37,6 @@ const toggleBlackout = () => { blackout.value = !blackout.value }
 watch(resets, () => { started.value = null })
 const toggleTimer = () => { started.value = started.value ? null : Date.now() }
 const go = (fn) => { if (!started.value) started.value = Date.now(); fn() }
-addEventListener('keydown', (e) => {
-  if (!started.value && ['ArrowRight', 'PageDown', ' '].includes(e.key)) started.value = Date.now()
-})
 </script>
 
 <template>

@@ -7,10 +7,10 @@
 // current scene. Typing autosaves to the deck's notes.json; changing scene saves and switches to that scene.
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import { useDeck } from './useDeck.js'
-import { notes, saveNote, canEdit } from './notes.js'
 
-const { scenes, idx, current, nextIndex, reset } = useDeck()
-document.title = '📝 Notes — ' + document.title
+// the notes come with the deck (useDeck.js): the engine's own page loads the deck's notes.json and,
+// on the dev server, saves edits to it
+const { scenes, idx, current, nextIndex, reset, notes, saveNote, canEdit } = useDeck()
 
 const raw = computed(() => notes[current.value.id] ?? '')
 const lines = computed(() => raw.value.split('\n').map((l) => l.trim()).join('\n').trim().split('\n'))

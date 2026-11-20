@@ -1,6 +1,11 @@
 /* ------------------------------------------------------------------
    Engine base styles. A deck's theme.css loads after this and
    overrides any of the tokens below on :root.
+
+   Safe inside someone else's page: apart from the tokens, every rule
+   here only matches inside a deck (.can-present, the canvas .cp-canvas,
+   a card .scene-frame), at the specificity it had without that. The
+   engine's own page adds styles/page.css, which takes the document.
    ------------------------------------------------------------------ */
 
 /* :where() keeps these at zero specificity, so a deck's :root always wins */
@@ -29,40 +34,94 @@
   --radius: 24px;
 }
 
-* { box-sizing: border-box; }
-
-html, body, #app {
-  margin: 0;
-  height: 100%;
+/* ------------------------------------------------------------------
+   <CanPresent>: a deck in a box of someone else's page. By default the
+   box is as wide as it's given and 16:9; give it a height and the stage
+   is fitted inside. Zero specificity, so the page's own CSS (a class or
+   a style on the component) decides its size.
+   ------------------------------------------------------------------ */
+:where(.can-present) {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: var(--can-present-ratio, 16 / 9);
   overflow: hidden;
   background: var(--deck-canvas);
   font-family: var(--sans);
   color: var(--deck-ink);
+  /* the page's own text settings stop here: a scene looks the same in any page */
+  font-size: 16px;
+  font-weight: 400;
+  font-style: normal;
+  line-height: normal;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-align: start;
+  text-indent: 0;
+  text-transform: none;
+  white-space: normal;
   -webkit-font-smoothing: antialiased;
+  outline: none;
+}
+:where(.can-present, .can-present *) { box-sizing: border-box; }
+.can-present:focus-visible { outline: 3px solid var(--deck-accent); outline-offset: 2px; }
+/* full screen: the box is the screen, whatever its shape; the stage stays 16:9 inside it */
+.can-present:fullscreen { width: 100%; height: 100%; aspect-ratio: auto; outline: none; }
+.can-present:-webkit-full-screen { width: 100%; height: 100%; aspect-ratio: auto; outline: none; }
+/* where an element can't go full screen (iPhone), it fills the window instead */
+/* (and the presenter and notes screens always do). !important: here the deck is no longer a box in
+   the page's layout, so the page's own margin, size and corners for it mustn't apply */
+.can-present.is-maximized, .can-present.is-page {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2147483000 !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  aspect-ratio: auto !important;
+  outline: none;
+}
+.can-present:fullscreen { margin: 0 !important; border-radius: 0 !important; }
+.can-present:-webkit-full-screen { margin: 0 !important; border-radius: 0 !important; }
+
+/* <CanPresentPlayer> while its deck file loads, or when it can't be played */
+.can-present-message {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  text-align: center;
+  color: var(--deck-paper);
+  font: 15px/1.4 var(--sans);
+  opacity: 0.75;
 }
 
 /* entrance: add class .rise + style="--d: n" to stagger; replays whenever the scene comes on stage */
-.is-active .rise { animation: rise 0.9s var(--ease-out) both; animation-delay: calc(var(--d, 0) * 110ms + 200ms); }
-.is-active .fade-in { animation: fade-in 0.8s ease both; animation-delay: calc(var(--d, 0) * 110ms + 250ms); }
+:where(.scene-frame).is-active .rise, :where(.cp-canvas) .is-active .rise { animation: rise 0.9s var(--ease-out) both; animation-delay: calc(var(--d, 0) * 110ms + 200ms); }
+:where(.scene-frame).is-active .fade-in, :where(.cp-canvas) .is-active .fade-in { animation: fade-in 0.8s ease both; animation-delay: calc(var(--d, 0) * 110ms + 250ms); }
 @keyframes rise { from { opacity: 0; transform: translateY(40px); } }
 @keyframes fade-in { from { opacity: 0; } }
 
 /* ------------------------------------------------------------------
    <Step> build animations
    ------------------------------------------------------------------ */
-.step {
+:where(.scene-frame, .cp-canvas) .step {
   transition:
     opacity 0.6s var(--ease-out),
     transform 0.8s var(--ease-out),
     filter 0.6s var(--ease-out);
 }
-.step:not(.is-shown) { opacity: 0; transition-delay: 0s !important; pointer-events: none; }
-.step--up:not(.is-shown) { transform: translateY(60px); }
-.step--down:not(.is-shown) { transform: translateY(-60px); }
-.step--left:not(.is-shown) { transform: translateX(-100px); }
-.step--right:not(.is-shown) { transform: translateX(100px); }
-.step--pop { transition-timing-function: var(--ease-out), var(--ease-spring), var(--ease-out); }
-.step--pop:not(.is-shown) { transform: scale(0.6); }
-.step--blur:not(.is-shown) { filter: blur(20px); transform: scale(1.1); }
-.step--fade:not(.is-shown) { transform: none; }
-.step--dim:not(.is-shown) { opacity: 0.2; pointer-events: auto; }
+:where(.scene-frame, .cp-canvas) .step:not(.is-shown) { opacity: 0; transition-delay: 0s !important; pointer-events: none; }
+:where(.scene-frame, .cp-canvas) .step--up:not(.is-shown) { transform: translateY(60px); }
+:where(.scene-frame, .cp-canvas) .step--down:not(.is-shown) { transform: translateY(-60px); }
+:where(.scene-frame, .cp-canvas) .step--left:not(.is-shown) { transform: translateX(-100px); }
+:where(.scene-frame, .cp-canvas) .step--right:not(.is-shown) { transform: translateX(100px); }
+:where(.scene-frame, .cp-canvas) .step--pop { transition-timing-function: var(--ease-out), var(--ease-spring), var(--ease-out); }
+:where(.scene-frame, .cp-canvas) .step--pop:not(.is-shown) { transform: scale(0.6); }
+:where(.scene-frame, .cp-canvas) .step--blur:not(.is-shown) { filter: blur(20px); transform: scale(1.1); }
+:where(.scene-frame, .cp-canvas) .step--fade:not(.is-shown) { transform: none; }
+:where(.scene-frame, .cp-canvas) .step--dim:not(.is-shown) { opacity: 0.2; pointer-events: auto; }

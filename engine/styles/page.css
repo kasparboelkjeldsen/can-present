@@ -1,0 +1,17 @@
+/* ------------------------------------------------------------------
+   The engine's own page (main.js): the deck owns the whole document.
+   Not part of an embedded deck (<CanPresent>), which keeps to its box
+   and gets the same from engine.css under .can-present.
+   ------------------------------------------------------------------ */
+
+* { box-sizing: border-box; }
+
+html, body, #app {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--deck-canvas);
+  font-family: var(--sans);
+  color: var(--deck-ink);
+  -webkit-font-smoothing: antialiased;
+}

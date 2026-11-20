@@ -1,6 +1,6 @@
 <script setup>
 import { provide, computed } from 'vue'
-import { zoomOf } from './cameraState.js'
+import { useDeck } from './useDeck.js'
 
 const props = defineProps({
   scene: { type: Object, required: true },
@@ -15,7 +15,8 @@ provide('scene-near', computed(() => props.near))
 provide('scene-preview', computed(() => props.preview))
 // the card's on-screen scale (1 = it fills the stage), for <Detail>; thumbnails are always at 1.
 // Lazy: it's only recomputed per camera frame while something in the scene reads it.
-provide('scene-zoom', computed(() => (props.preview ? 1 : zoomOf(props.scene.at?.s ?? 1))))
+const deck = useDeck()
+provide('scene-zoom', computed(() => (props.preview || !deck ? 1 : deck.zoomOf(props.scene.at?.s ?? 1))))
 </script>
 
 <template>

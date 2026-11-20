@@ -1,0 +1,60 @@
+/* The theme of a deck that lives in someone else's page keeps to the deck's own box: everything is
+   nested under .can-present[data-deck="embedded"] (the deck's id, which <CanPresent> puts on the
+   box). So the tokens aren't on :root, .slide and .card mean nothing to the page round the deck, and
+   another deck on the same page can have its own. (A deck file gets this done for it when it's
+   packed: npm run pack-deck.) */
+.can-present[data-deck='embedded'] {
+  --ink: #17191f;
+  --paper: #f5f3ee;
+  --orange: #ff7849;
+  --accent-on-light: #c2410c;
+
+  --deck-canvas: #0f1115;
+  --deck-grid: rgba(245, 243, 238, 0.1);
+  --deck-ink: var(--ink);
+  --deck-paper: var(--paper);
+  --deck-accent: var(--orange);
+  --deck-on-accent: var(--ink);
+  --deck-accent-2: #ff5d73;
+  --display-font: var(--sans);
+  --radius: 28px;
+
+  .slide {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    padding: 120px 140px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    font-family: var(--sans);
+  }
+  .slide--dark { background: var(--ink); color: var(--paper); --accent: var(--orange); --on-accent: var(--ink); }
+  .slide--light { background: var(--paper); color: var(--ink); --accent: var(--accent-on-light); --on-accent: var(--paper); }
+  .slide--accent { background: var(--orange); color: var(--ink); --accent: var(--ink); --on-accent: var(--orange); }
+
+  .kicker {
+    align-self: flex-start;
+    padding: 12px 28px;
+    border-radius: 999px;
+    font: 700 26px var(--sans);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: var(--on-accent);
+  }
+  .h1, .h2 { margin: 0; font-family: var(--sans); font-weight: 800; letter-spacing: -0.02em; }
+  .h1 { font-size: 150px; line-height: 1.02; }
+  .h2 { font-size: 100px; line-height: 1.05; }
+  .lead { margin: 0; font-size: 46px; line-height: 1.35; max-width: 1400px; }
+  .accent { color: var(--accent); }
+  .card {
+    padding: 44px 48px;
+    border-radius: var(--radius);
+    background: #fff;
+    color: var(--ink);
+    font-size: 40px;
+    line-height: 1.3;
+    box-shadow: 0 24px 60px rgba(10, 12, 20, 0.18);
+  }
+}

@@ -1,5 +1,9 @@
 node_modules
 dist
+# the package build (npm run build:lib)
+lib
+# the embed example's packed deck (npm run embed packs decks/example into it)
+examples/embed/public/*.canpresent
 
 # client deck, kept out of git
 decks/ssi-markedsdialog/

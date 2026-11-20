@@ -6,6 +6,18 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "example",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "deck", "--", "dev", "example", "--port", "5181", "--strictPort"],
+      "port": 5181
+    },
+    {
+      "name": "embed",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "embed", "--", "--strictPort"],
+      "port": 5182
     }
   ]
 }

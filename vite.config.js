@@ -1,3 +1,4 @@
+import fs from 'node:fs'
 import { defineConfig, mergeConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolveDeck, deckSync, deckNotes, deckStatic, ENGINE_DIR, BRANDS_DIR } from './engine/vite.js'
@@ -20,9 +21,13 @@ const base = defineConfig({
       '@engine': ENGINE_DIR,
       '@deck': deck.dir,
       '@brands': BRANDS_DIR,
+      // the package's name, for a deck written the way another app writes one (engine/index.js)
+      'can-present': `${ENGINE_DIR}/index.js`,
     },
   },
   publicDir: deck.publicDir,
+  // the engine's version, for the deck-file check (engine/play.js)
+  define: { __CAN_PRESENT_VERSION__: JSON.stringify(JSON.parse(fs.readFileSync(new URL('./package.json', import.meta.url), 'utf8')).version) },
   build: { outDir: `dist/${deck.id}`, emptyOutDir: true },
   server: {
     port: 5173,
