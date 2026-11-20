@@ -11,6 +11,8 @@
   "live": "A real, clickable site in a frame.\nMove the mouse off it to drive the deck again.\nX jumps to the fallback if it dies.",
   "loop": "A small looping SVG, drawn in the scene.\nColours come from the theme tokens.",
   "deeper": "One card, four presses deeper. Things appear as we get close.\n[PRESS] a component\n[PRESS] a line of code\n[PRESS] one character\n[PRESS] its dot: the title scene. Scenes all the way down.",
+  "for-agents": "The repo is made to be worked on by an agent.\n[PRESS] AGENTS.md: start here\n[PRESS] two skills: write-talk, build-deck\n[PRESS] the presentation guide, for a chat\n[PRESS] brand kits, shared by every deck",
+  "workbench": "The commands behind every deck, one per press.\n[PRESS] new-deck --from, [PRESS] import-pptx\n[PRESS] check, [PRESS] ?sheet\n[PRESS] compile: the whole deck in one file",
   "get-the-code": "Take it with you: the repo behind this deck.\n<QrCode> with a label and the link; its dots fall onto the card as it arrives.\n(pause) Leave it up: people need a few seconds to scan.",
   "takeaway": "Ghost scene: hovers over the whole canvas.\n(pause) Every scene is a file you can copy.",
   "fallback": "Skipped by → and ←; X jumps here.\nScreenshots of the demo, in case it dies.",

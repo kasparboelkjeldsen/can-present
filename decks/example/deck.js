@@ -8,8 +8,8 @@
 // what that code makes on its back, code-back), the camera dives into the diagram
 // and rides its wires (inside, canvas), then the bottom row comes back right to
 // left (screens → live → loop → thanks). Below the loop hangs the zoom (deeper),
-// a "powers of ten" dive inside one card, and left of it a QR code to take home
-// (get-the-code), under the thanks card; the fallback hangs below the live demo;
+// a "powers of ten" dive inside one card, and left of it two cards about the tooling (for-agents,
+// workbench); above those a QR code to take home (get-the-code), left of the thanks card; the fallback hangs below the live demo;
 // the takeaway is a ghost over everything. The finale (thanks) is a formation:
 // every other card leaves its place and orbits the thanks card. Then the camera
 // keeps pulling back: the whole talk was the dot on an "i" (bigger), and that
@@ -48,6 +48,8 @@ import Screens from './scenes/Screens.vue'
 import Live from './scenes/Live.vue'
 import Loop from './scenes/Loop.vue'
 import Deeper from './scenes/Deeper.vue'
+import ForAgents from './scenes/ForAgents.vue'
+import Workbench from './scenes/Workbench.vue'
 import GetTheCode from './scenes/GetTheCode.vue'
 import Takeaway from './scenes/Takeaway.vue'
 import Fallback from './scenes/Fallback.vue'
@@ -97,9 +99,14 @@ export default {
     // powers of ten: each press flies the camera deeper into the card (frames, from deeper.js, which
     // the scene shares), and <Detail>s show what's readable at each zoom. It ends inside a dot.
     { id: 'deeper', title: 'Powers of ten', component: Deeper, steps: 4, frames: deeperFrames, at: { x: 4600, y: 4650 } },
-    // a link to take home: the QR code's dots fall onto the card as it arrives. Left of the zoom,
-    // under the thanks card, so the path turns up into the finale
-    { id: 'get-the-code', title: 'A QR code', component: GetTheCode, at: { x: 2300, y: 4700, r: -2 } },
+    // the tooling: the repo is built to be worked on by an agent (AGENTS.md, skills, the guide, brand
+    // kits), and the commands that make a deck (new-deck, import-pptx, check, ?sheet, compile).
+    // Left of the zoom, along the bottom row
+    { id: 'for-agents', title: 'Built for agents', component: ForAgents, steps: 4, at: { x: 2300, y: 4700, r: -2 } },
+    { id: 'workbench', title: 'From idea to deck', component: Workbench, steps: 5, at: { x: 0, y: 4700, r: 2 } },
+    // a link to take home: the QR code's dots fall onto the card as it arrives. Above the workbench,
+    // left of the thanks card, so the path turns up and right into the finale
+    { id: 'get-the-code', title: 'A QR code', component: GetTheCode, at: { x: 0, y: 2450, r: -2 } },
     // hovers over the whole canvas while on stage: the camera pulls back and the talk shows behind it
     { id: 'takeaway', title: 'Takeaway', component: Takeaway, ghost: true, at: null },
     // stepped over by → and ←; X (or #fallback) jumps here if the live demo dies
